@@ -1,6 +1,10 @@
 "use client";
 
 import { FormEvent, useCallback, useMemo, useState } from "react";
+import {
+  resolveSpecialTemplateRenderer,
+  type SpecialTemplateDraft,
+} from "@/lib/template-runtime/special-renderers";
 
 type LocaleCode = "ko" | "en";
 
@@ -69,7 +73,7 @@ type LikertSchema = {
 
 type TemplateDraft = {
   likertAnswers: Record<string, number>;
-  jsonText: string;
+  special: SpecialTemplateDraft;
 };
 
 const messageMap = {
@@ -383,13 +387,18 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
         }
         nextDrafts[template.templateId] = {
           likertAnswers,
-          jsonText: "",
+          special: {
+            jsonText: "{}",
+            state: {},
+          },
         };
         continue;
       }
+
+      const specialRenderer = resolveSpecialTemplateRenderer(template.schemaJson);
       nextDrafts[template.templateId] = {
         likertAnswers: {},
-        jsonText: "{}",
+        special: specialRenderer.createInitialDraft(template.schemaJson),
       };
     }
     setTemplateDrafts(nextDrafts);
@@ -434,20 +443,20 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
             ...(prev[templateId]?.likertAnswers ?? {}),
             [questionId]: value,
           },
-          jsonText: prev[templateId]?.jsonText ?? "",
+          special: prev[templateId]?.special ?? { jsonText: "{}", state: {} },
         },
       }));
     },
     [],
   );
 
-  const onChangeJsonText = useCallback((templateId: string, value: string) => {
+  const onChangeSpecialDraft = useCallback((templateId: string, value: SpecialTemplateDraft) => {
     setTemplateDrafts((prev) => ({
       ...prev,
       [templateId]: {
         ...prev[templateId],
         likertAnswers: prev[templateId]?.likertAnswers ?? {},
-        jsonText: value,
+        special: value,
       },
     }));
   }, []);
@@ -495,18 +504,24 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
         continue;
       }
 
-      const rawJson = draft?.jsonText?.trim() || "{}";
-      try {
-        const parsedJson = JSON.parse(rawJson);
-        responses.push({
-          templateId: template.templateId,
-          responseJson: parsedJson,
-        });
-      } catch {
-        setSurveyMessage(text.surveyInvalidJson);
+      const specialRenderer = resolveSpecialTemplateRenderer(template.schemaJson);
+      const specialResult = specialRenderer.buildResponse({
+        schema: template.schemaJson,
+        draft: draft?.special ?? specialRenderer.createInitialDraft(template.schemaJson),
+      });
+      if (!specialResult.ok) {
+        setSurveyMessage(
+          specialResult.errorCode === "incomplete_answers"
+            ? text.surveyNeedAllAnswers
+            : text.surveyInvalidJson,
+        );
         setSurveySubmitting(false);
         return;
       }
+      responses.push({
+        templateId: template.templateId,
+        responseJson: specialResult.responseJson,
+      });
     }
 
     const response = await fetch("/api/participant/packages/respond", {
@@ -643,6 +658,9 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                         {activeSurvey.templates.map((template) => {
                           const likert = parseLikertSchema(template.schemaJson);
                           const draft = templateDrafts[template.templateId];
+                          const specialRenderer = resolveSpecialTemplateRenderer(
+                            template.schemaJson,
+                          );
 
                           return (
                             <article
@@ -698,17 +716,18 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                                   ))}
                                 </div>
                               ) : (
-                                <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
-                                  JSON
-                                  <textarea
-                                    rows={6}
-                                    value={draft?.jsonText ?? "{}"}
-                                    onChange={(event) =>
-                                      onChangeJsonText(template.templateId, event.target.value)
-                                    }
-                                    style={{ fontFamily: "monospace" }}
-                                  />
-                                </label>
+                                <div style={{ marginTop: 8 }}>
+                                  {specialRenderer.render({
+                                    locale,
+                                    schema: template.schemaJson,
+                                    draft:
+                                      draft?.special ??
+                                      specialRenderer.createInitialDraft(template.schemaJson),
+                                    disabled: surveySubmitting,
+                                    onChangeDraft: (next) =>
+                                      onChangeSpecialDraft(template.templateId, next),
+                                  })}
+                                </div>
                               )}
                             </article>
                           );

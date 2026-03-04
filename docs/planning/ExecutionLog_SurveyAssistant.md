@@ -816,3 +816,51 @@
 1. 특수 템플릿 렌더러 플러그인 인터페이스 설계/구현
 2. CSV export 필터(기간/attempt) 추가
 3. AI 차감 정책 고도화(토큰 기반 단가)
+
+## 28) Work Session Entry (2026-03-04, Special Template Renderer Plugin Runtime)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행
+- Working Branch: main
+
+### Planned
+1. 특수 템플릿 렌더러를 플러그인 구조로 분리
+2. 피검자 응답 화면에 플러그인 런타임 연결
+3. 문서화 + 회귀 검증
+
+### Done
+1. 렌더러 플러그인 런타임 추가
+   - `apps/web/src/lib/template-runtime/special-renderers.tsx`
+   - 인터페이스: `matches`, `createInitialDraft`, `render`, `buildResponse`
+2. 내장 렌더러 추가
+   - `emotion_stimulus_judgment_v1`
+   - `self_aspect_inventory_v1`
+   - `special.json-fallback`
+3. 피검자 대시보드 연동
+   - SPECIAL 템플릿 렌더링/검증/응답 빌드에 resolver 적용
+4. 문서화
+   - `docs/planning/SpecialTemplateRuntime.md`
+   - `apps/web/README.md`에 runtime 섹션 추가
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 특수 템플릿은 schema kind 기반 플러그인 매칭 전략으로 확정
+  - 매칭 실패 시 JSON fallback 렌더러를 기본 보장
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 의뢰받은 특수 템플릿 코드를 별도 패키지/레포로 분리할지 여부
+
+### Risks / Blockers
+- 템플릿 schema 품질이 낮으면 fallback 비중이 높아질 수 있음
+
+### Next Actions
+1. CSV export 필터(기간/attempt) 추가
+2. AI 차감 정책 고도화(토큰 기반 단가)
+3. 특수 템플릿 의뢰-배포 워크플로우(소스 공개 동의) 연결

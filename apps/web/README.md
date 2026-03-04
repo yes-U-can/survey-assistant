@@ -53,5 +53,12 @@ This app is linked to project `survey_sicp`.
 - Migration jobs list: `GET /api/platform-admin/migration-jobs`
 - Migration status update: `PATCH /api/platform-admin/migration-jobs/{jobId}/status`
 
+## Special Template Runtime (Participant)
+- Renderer plugin registry: `src/lib/template-runtime/special-renderers.tsx`
+- Built-in kinds:
+  - `emotion_stimulus_judgment_v1`
+  - `self_aspect_inventory_v1`
+- Unknown schema kinds fall back to JSON editor renderer.
+
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.
