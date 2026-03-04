@@ -686,6 +686,21 @@ export function AdminDashboardClient({
                   >
                     {t.setArchived}
                   </button>
+                  <a
+                    href={`/api/admin/packages/${pkg.id}/export`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "2px 8px",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      textDecoration: "none",
+                      color: "inherit",
+                      fontSize: 13,
+                    }}
+                  >
+                    {locale === "ko" ? "CSV" : "Export CSV"}
+                  </a>
                 </div>
               </article>
             ))
@@ -695,4 +710,3 @@ export function AdminDashboardClient({
     </main>
   );
 }
-

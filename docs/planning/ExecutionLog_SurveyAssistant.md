@@ -674,3 +674,48 @@
 1. CSV export MVP 구현 (패키지 결과 다운로드)
 2. 관리자 AI 호출 경로에 `SPEND` 자동 차감 훅 연결
 3. Preview env 자동화 스크립트 또는 API 기반 반영 방식 확정
+
+## 25) Work Session Entry (2026-03-04, CSV Export MVP)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "계속 진행" (계획대로 다음 단계 구현)
+- Working Branch: main
+
+### Planned
+1. 관리자 패키지 결과 CSV export API 구현
+2. 관리자 대시보드에서 패키지별 CSV 다운로드 연결
+3. 문서/검증 동기화
+
+### Done
+1. CSV export API 추가
+   - `GET /api/admin/packages/{packageId}/export`
+   - 소유자 범위 검증(`requireAdminSession` + package owner check)
+   - CSV 기본 컬럼 + 동적 `response.*` flatten 컬럼 지원
+   - UTF-8 BOM + attachment 응답 처리
+2. 관리자 대시보드에 다운로드 액션 추가
+   - 패키지 카드 액션 영역에 `CSV / Export CSV` 링크 추가
+3. 문서 업데이트
+   - `apps/web/README.md` Admin API 목록에 export endpoint 반영
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - CSV export MVP는 "응답 1행 = 템플릿 1개 응답" 형태를 기본으로 채택
+  - 원본 JSON(`response_json`)과 flatten 컬럼(`response.*`)을 함께 제공
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 연구/분석 용 "participant-attempt wide CSV" 2차 포맷 제공 여부
+
+### Risks / Blockers
+- 템플릿별 응답 스키마가 자유형이므로 flatten 컬럼 폭이 넓어질 수 있음
+
+### Next Actions
+1. CSV export에 필터(기간/시도차수) 옵션 추가
+2. 관리자 AI 호출 경로에 `SPEND` 자동 차감 훅 연결
+3. Participant 리커트 응답 UI와 export 데이터 일관성 점검
