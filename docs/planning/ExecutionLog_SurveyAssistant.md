@@ -571,3 +571,55 @@
 ### Notes
 - 플랫폼 어드민 권한은 "DB 수동 수정"이 아니라 "해당 Google 계정으로 1회 로그인" 시 자동 적용됨
 - 민감정보(레거시 백업/회원정보/IP/응답원본) 업로드 금지 원칙 유지
+
+## 23) Work Session Entry (2026-03-04, Platform Admin Console Baseline)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 프로 SaaS 방식으로 계속 구현 + 진행내역 기록 지속
+- Working Branch: main
+
+### Planned
+1. 3역할 구조에서 Platform Admin 전용 기능 최소선 구현
+2. Platform Admin API + 화면 추가
+3. 문서/로그 동기화 + 회귀 검증
+
+### Done
+1. 세션 가드 확장
+   - `requirePlatformAdminSession` 추가
+2. Platform Admin API 추가
+   - `GET /api/platform-admin/overview`
+   - `GET/POST /api/platform-admin/credits` (피검자 대상 크레딧 지급)
+   - `GET /api/platform-admin/migration-jobs`
+   - `PATCH /api/platform-admin/migration-jobs/{jobId}/status`
+3. Platform Admin 화면 추가
+   - `/{locale}/platform` 페이지
+   - 운영 현황/지갑 잔액/거래 내역/마이그레이션 상태 변경 UI
+4. 인증 UX 보강
+   - 관리자 로그인 페이지에 `callbackUrl` 처리 추가
+   - `/admin`, `/platform` 미로그인 접근 시 원래 경로로 복귀 가능
+5. 네비게이션 정리
+   - 로케일 홈에서 Platform Admin console 링크 추가
+   - 관리자 화면 footer에 Platform Admin 링크(플랫폼 어드민 계정일 때만)
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - Platform Admin 최소 운영 기능(크레딧 원장/마이그레이션 상태관리)을 코어 MVP에 포함
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 크레딧 차감/환불/정산 세부 정책(ISSUE 외 트랜잭션 UX)
+
+### Risks / Blockers
+- Platform Admin UI는 기능 중심 MVP이며, 디자인 시스템/접근성 고도화는 후속 단계 필요
+- Preview 환경 변수(`PLATFORM_ADMIN_EMAILS`)는 Vercel branch 정책 이슈로 별도 후속 조치 필요
+
+### Next Actions
+1. Participant 설문 응답 UI(리커트 렌더러)와 응답 API 완전 연결
+2. CSV export MVP(패키지 결과 다운로드) 구현
+3. Platform Admin 크레딧 정책(차감/환불/정산) 확장 설계

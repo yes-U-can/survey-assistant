@@ -43,5 +43,12 @@ This app is linked to project `survey_sicp`.
 - Package list/create: `GET/POST /api/admin/packages`
 - Package status update: `PATCH /api/admin/packages/{packageId}/status`
 
+## Platform Admin APIs (Current Baseline)
+- Overview: `GET /api/platform-admin/overview`
+- Credit ledger list: `GET /api/platform-admin/credits`
+- Issue credits to participant: `POST /api/platform-admin/credits`
+- Migration jobs list: `GET /api/platform-admin/migration-jobs`
+- Migration status update: `PATCH /api/platform-admin/migration-jobs/{jobId}/status`
+
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.

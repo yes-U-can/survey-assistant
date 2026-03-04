@@ -17,7 +17,9 @@ export default async function AdminHomePage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    redirect(`/${locale}/auth/admin`);
+    redirect(
+      `/${locale}/auth/admin?callbackUrl=${encodeURIComponent(`/${locale}/admin`)}`,
+    );
   }
 
   if (
@@ -73,24 +75,24 @@ export default async function AdminHomePage({ params }: PageProps) {
   ]);
 
   const initialPackages = packages.map((pkg) => ({
-      id: pkg.id,
-      code: pkg.code,
-      title: pkg.title,
-      description: pkg.description,
-      mode: pkg.mode,
-      status: pkg.status,
-      maxResponsesPerParticipant: pkg.maxResponsesPerParticipant,
-      startsAt: pkg.startsAt?.toISOString() ?? null,
-      endsAt: pkg.endsAt?.toISOString() ?? null,
-      createdAt: pkg.createdAt.toISOString(),
-      updatedAt: pkg.updatedAt.toISOString(),
-      templates: pkg.templates.map((item) => ({
-        templateId: item.templateId,
-        orderIndex: item.orderIndex,
-        title: item.template.title,
-        type: item.template.type,
-      })),
-    }));
+    id: pkg.id,
+    code: pkg.code,
+    title: pkg.title,
+    description: pkg.description,
+    mode: pkg.mode,
+    status: pkg.status,
+    maxResponsesPerParticipant: pkg.maxResponsesPerParticipant,
+    startsAt: pkg.startsAt?.toISOString() ?? null,
+    endsAt: pkg.endsAt?.toISOString() ?? null,
+    createdAt: pkg.createdAt.toISOString(),
+    updatedAt: pkg.updatedAt.toISOString(),
+    templates: pkg.templates.map((item) => ({
+      templateId: item.templateId,
+      orderIndex: item.orderIndex,
+      title: item.template.title,
+      type: item.template.type,
+    })),
+  }));
 
   const initialTemplates = templates.map((tpl) => ({
     ...tpl,
@@ -108,6 +110,14 @@ export default async function AdminHomePage({ params }: PageProps) {
       <footer style={{ padding: "0 24px 24px", fontFamily: "sans-serif" }}>
         <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
         <span style={{ margin: "0 8px" }}>|</span>
+        {session.user.role === UserRole.PLATFORM_ADMIN ? (
+          <>
+            <Link href={`/${locale}/platform`}>
+              {locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}
+            </Link>
+            <span style={{ margin: "0 8px" }}>|</span>
+          </>
+        ) : null}
         <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
       </footer>
     </>
