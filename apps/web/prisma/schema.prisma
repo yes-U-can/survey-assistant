@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Locale {
+  ko
+  en
+}
+
+enum UserRole {
+  PARTICIPANT
+  RESEARCH_ADMIN
+  PLATFORM_ADMIN
+}
+
+enum TemplateType {
+  LIKERT
+  SPECIAL
+}
+
+enum TemplateVisibility {
+  PRIVATE
+  STORE
+}
+
+enum PackageMode {
+  CROSS_SECTIONAL
+  LONGITUDINAL
+}
+
+enum PackageStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum CreditTxnType {
+  ISSUE
+  SPEND
+  REFUND
+  REWARD
+  ADJUSTMENT
+}
+
+enum MigrationJobStatus {
+  REQUESTED
+  ACCEPTED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  role         UserRole
+  loginId      String?  @unique
+  googleSub    String?  @unique
+  displayName  String?
+  locale       Locale   @default(ko)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  wallet         CreditWallet?
+  ownedTemplates Template[]         @relation("TemplateOwner")
+  createdPackages SurveyPackage[]   @relation("PackageCreator")
+  enrollments    ParticipantPackage[]
+  responses      Response[]
+  migrationJobs  MigrationJob[]     @relation("MigrationRequester")
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions CreditTransaction[]
+}
+
+model CreditTransaction {
+  id          String        @id @default(cuid())
+  walletId    String
+  type        CreditTxnType
+  amount      Int
+  memo        String?
+  createdAt   DateTime      @default(now())
+  referenceId String?
+
+  wallet CreditWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Template {
+  id          String             @id @default(cuid())
+  ownerId     String
+  type        TemplateType
+  visibility  TemplateVisibility @default(PRIVATE)
+  title       String
+  description String?
+  version     Int                @default(1)
+  schemaJson  Json
+  isArchived  Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  owner           User              @relation("TemplateOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  packageMappings PackageTemplate[]
+  responses       Response[]
+}
+
+model SurveyPackage {
+  id                        String        @id @default(cuid())
+  ownerId                   String
+  code                      String        @unique
+  title                     String
+  description               String?
+  mode                      PackageMode
+  status                    PackageStatus @default(DRAFT)
+  maxResponsesPerParticipant Int         @default(1)
+  startsAt                  DateTime?
+  endsAt                    DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  owner         User                 @relation("PackageCreator", fields: [ownerId], references: [id], onDelete: Restrict)
+  templates     PackageTemplate[]
+  enrollments   ParticipantPackage[]
+  responses     Response[]
+}
+
+model PackageTemplate {
+  id         String @id @default(cuid())
+  packageId  String
+  templateId String
+  orderIndex Int    @default(0)
+
+  surveyPackage SurveyPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  template      Template      @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  @@unique([packageId, templateId])
+}
+
+model ParticipantPackage {
+  id               String   @id @default(cuid())
+  packageId        String
+  participantId    String
+  joinedAt         DateTime @default(now())
+  completedCount   Int      @default(0)
+  lastRespondedAt  DateTime?
+
+  surveyPackage SurveyPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  participant   User          @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, participantId])
+}
+
+model Response {
+  id            String   @id @default(cuid())
+  packageId     String
+  templateId    String
+  participantId String
+  attemptNo     Int      @default(1)
+  responseJson  Json
+  submittedAt   DateTime @default(now())
+
+  surveyPackage SurveyPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  template      Template      @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  participant   User          @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([packageId, participantId])
+}
+
+model MigrationJob {
+  id             String             @id @default(cuid())
+  requesterId    String
+  sourceLabel    String
+  sourceFormat   String
+  status         MigrationJobStatus @default(REQUESTED)
+  requestNote    String?
+  resultNote     String?
+  requestedAt    DateTime           @default(now())
+  completedAt    DateTime?
+
+  requester User @relation("MigrationRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+}

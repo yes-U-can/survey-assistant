@@ -28,6 +28,10 @@ $forbiddenPatterns = @(
 
 $violations = @()
 foreach ($f in $tracked) {
+  if ($f -match '^apps/web/prisma/migrations/.+/migration\.sql$') {
+    continue
+  }
+
   foreach ($p in $forbiddenPatterns) {
     if ($f -match $p) {
       $violations += "$f  (matched: $p)"

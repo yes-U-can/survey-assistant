@@ -1,0 +1,11 @@
+node_modules
+.pnpm-store
+.git
+.github
+.vscode
+.idea
+archive
+**/.env
+**/.env.*
+apps/web/.next
+apps/web/node_modules

@@ -183,3 +183,8 @@ survey-assistant/
 ## 19) Migration Capability (Added 2026-03-04)
 - Data migration is a core platform feature, not a side task.
 - Provide self-service + assisted migration request workflow.
+
+## 20) Progress Label Policy (Added 2026-03-04)
+- 완료 전 단계의 문서/작업 표기는 버전 번호(`v1`, `v2`)를 사용하지 않는다.
+- 진행 구분은 날짜 스냅샷(`YYYY-MM-DD`)과 단계명으로만 관리한다.
+- 버전 번호는 첫 공개 릴리스 이후에만 도입한다.

@@ -1,7 +1,9 @@
-Ôªø# Node
+# Node
 node_modules/
 .pnpm-store/
 .npm/
+**/package-lock.json
+**/yarn.lock
 
 # Build
 .next/
@@ -39,7 +41,7 @@ __pycache__/
 # Local data (DO NOT PUBLISH)
 archive/sicp-legacy/**/yesucan.sql
 archive/sicp-legacy/**/yesucan_*.sql/**
-archive/gas-prototype/**/25.12.20 Î∞±ÏóÖ Îç∞Ïù¥ÌÑ∞/**
+archive/gas-prototype/**/25.12.20 πÈæ˜ µ•¿Ã≈Õ/**
 archive/response-exports/**
 archive/private-migration-assets/**
 archive/**/DB/**
@@ -55,3 +57,4 @@ archive/**/.viminfo
 
 # Keep only explicit placeholders if needed in future
 !/archive/.gitkeep
+.vercel
