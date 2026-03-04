@@ -38,5 +38,10 @@ This app is linked to project `survey_sicp`.
 - Participant progress endpoint: `GET /api/participant/packages`
 - Participant response submit endpoint: `POST /api/participant/packages/respond`
 
+## Admin APIs (Current Baseline)
+- Template list/create: `GET/POST /api/admin/templates`
+- Package list/create: `GET/POST /api/admin/packages`
+- Package status update: `PATCH /api/admin/packages/{packageId}/status`
+
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.

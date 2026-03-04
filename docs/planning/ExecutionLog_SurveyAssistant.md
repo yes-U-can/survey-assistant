@@ -466,3 +466,40 @@
 1. 템플릿 렌더러(리커트 우선)와 `respond` API 연결
 2. 관리자 템플릿/패키지 CRUD 첫 엔드포인트 구현
 3. CSV export MVP 구현
+
+## 20) Work Session Entry (2026-03-04, GCloud Setup + Admin API Skeleton)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 필요한 조치 전부 진행 + 다음 단계 착수
+- Working Branch: main
+
+### Planned
+1. gcloud CLI 설치/로그인 확인
+2. OAuth 클라이언트와 매칭되는 GCP 프로젝트 고정
+3. 관리자 템플릿/패키지 API 골격 구현
+
+### Done
+1. gcloud CLI 설치 완료 (`Google Cloud SDK 559.0.0`)
+2. gcloud 로그인 상태 확인 (`sicpseoul@gmail.com`)
+3. OAuth client number 매칭 프로젝트 확인 및 기본 프로젝트 설정
+   - project: `gen-lang-client-0562843170`
+4. 관리자 API 추가
+   - `GET/POST /api/admin/templates`
+   - `GET/POST /api/admin/packages`
+   - `PATCH /api/admin/packages/{packageId}/status`
+5. 관리자 홈 페이지 한글 깨짐 수정 및 API 안내 반영
+6. README 업데이트 (Admin APIs 섹션)
+
+### Verification
+- `pnpm --filter web lint` PASS
+- `pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Risks / Blockers
+- OAuth 동의화면이 테스트 모드이므로 테스트 사용자 등록 계정만 관리자 로그인 가능
+
+### Next Actions
+1. 관리자 API를 실제 화면(Form/Table)과 연결
+2. 템플릿 리커트 빌더 최소 UI 구현
+3. 패키지 활성화/종료 버튼 및 상태 전환 UX 구현
