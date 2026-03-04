@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type LocaleCode = "ko" | "en";
 
@@ -483,7 +483,7 @@ export function PlatformAdminClient({
   const [adjustmentDirection, setAdjustmentDirection] = useState<AdjustmentDirection>("INCREASE");
   const [amount, setAmount] = useState(100);
   const [memo, setMemo] = useState("");
-  const [renderNow] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(0);
   const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
     "ALL",
   );
@@ -518,7 +518,7 @@ export function PlatformAdminClient({
       if (!openRequestStatuses.includes(item.status)) {
         return false;
       }
-      return renderNow - new Date(item.createdAt).getTime() >= staleThresholdMs;
+      return nowMs > 0 && nowMs - new Date(item.createdAt).getTime() >= staleThresholdMs;
     }).length;
 
     if (overview.credits.totalBalance < initialAlertThresholds.minTotalCredits) {
@@ -608,7 +608,16 @@ export function PlatformAdminClient({
     }
 
     return alerts;
-  }, [initialAlertThresholds, locale, overview, renderNow, settlementSummary, specialRequests]);
+  }, [initialAlertThresholds, locale, nowMs, overview, settlementSummary, specialRequests]);
+
+  useEffect(() => {
+    const updateNow = () => {
+      setNowMs(Date.now());
+    };
+    updateNow();
+    const timer = window.setInterval(updateNow, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
