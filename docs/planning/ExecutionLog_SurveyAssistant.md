@@ -127,3 +127,8 @@
 - Added auth split: Google SSO(admin), anonymous-style participant registration
 - Added migration feature/service as first-class platform capability
 - Reorganized repository into archive-first structure to reduce accidental disclosure risk
+
+## 11) Policy Update (2026-03-04)
+- Added explicit policy for special template source-code public disclosure under MIT.
+- Added separation rule: publication vs credit compensation.
+- Added dedicated migration policy docs and service direction.

@@ -174,3 +174,12 @@ survey-assistant/
 - Self-service migration tools for organizations with legacy survey systems
 - Assisted migration request workflow (service intake)
 - Our own institute data will be migrated after Survey Assistant core is stabilized
+
+## 18) Special Template Open-Source Notice (Added 2026-03-04)
+- Special template implementation source code may be publicly disclosed under MIT.
+- Request flow must include explicit requester consent.
+- Credit compensation and source publication are handled as separate tracks.
+
+## 19) Migration Capability (Added 2026-03-04)
+- Data migration is a core platform feature, not a side task.
+- Provide self-service + assisted migration request workflow.
