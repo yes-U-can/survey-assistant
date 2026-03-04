@@ -125,6 +125,19 @@ type StorePurchaseHistoryItem = {
   };
 };
 
+type ParticipantAccountItem = {
+  id: string;
+  loginId: string | null;
+  displayName: string | null;
+  locale: "ko" | "en";
+  isActive: boolean;
+  enrollmentCount: number;
+  responseCount: number;
+  lastRespondedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type Props = {
   locale: LocaleCode;
   viewerRole: "RESEARCH_ADMIN" | "PLATFORM_ADMIN";
@@ -136,6 +149,7 @@ type Props = {
   initialMarketListings: StoreListingItem[];
   initialPurchases: StorePurchaseHistoryItem[];
   initialSales: StorePurchaseHistoryItem[];
+  initialParticipants: ParticipantAccountItem[];
 };
 
 const msg = {
@@ -239,6 +253,22 @@ const msg = {
     storePriceLabel: "가격",
     storeFeeLabel: "수수료",
     storeSellerCreditLabel: "판매자 정산",
+    participantSection: "피검자 계정 관리",
+    participantNoData: "관리 가능한 피검자 계정이 없습니다.",
+    participantLoginId: "로그인 ID",
+    participantDisplayName: "표시 이름",
+    participantLocale: "언어",
+    participantStatus: "상태",
+    participantEnrollments: "등록 패키지",
+    participantResponses: "응답 수",
+    participantLastRespondedAt: "최근 응답",
+    participantCreatedAt: "가입일시",
+    participantAction: "액션",
+    participantActive: "활성",
+    participantInactive: "비활성",
+    participantDeactivate: "비활성화",
+    participantRestore: "복원",
+    participantUpdated: "피검자 계정 상태가 업데이트되었습니다.",
   },
   en: {
     title: "Admin Home",
@@ -340,6 +370,22 @@ const msg = {
     storePriceLabel: "Price",
     storeFeeLabel: "Platform fee",
     storeSellerCreditLabel: "Seller credit",
+    participantSection: "Participant Accounts",
+    participantNoData: "No manageable participant account.",
+    participantLoginId: "Login ID",
+    participantDisplayName: "Display name",
+    participantLocale: "Locale",
+    participantStatus: "Status",
+    participantEnrollments: "Enrollments",
+    participantResponses: "Responses",
+    participantLastRespondedAt: "Last response",
+    participantCreatedAt: "Joined at",
+    participantAction: "Action",
+    participantActive: "Active",
+    participantInactive: "Inactive",
+    participantDeactivate: "Deactivate",
+    participantRestore: "Restore",
+    participantUpdated: "Participant account status updated.",
   },
 } as const;
 
@@ -395,6 +441,17 @@ function displayUserName(
   return user.displayName?.trim() || user.loginId?.trim() || "-";
 }
 
+function formatMaybeDate(locale: LocaleCode, value: string | null) {
+  if (!value) {
+    return "-";
+  }
+  const formatter = new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return formatter.format(new Date(value));
+}
+
 export function AdminDashboardClient({
   locale,
   viewerRole,
@@ -406,6 +463,7 @@ export function AdminDashboardClient({
   initialMarketListings,
   initialPurchases,
   initialSales,
+  initialParticipants,
 }: Props) {
   const t = useMemo(() => msg[locale], [locale]);
   const canAuthorSpecialTemplate = viewerRole === "PLATFORM_ADMIN";
@@ -420,6 +478,7 @@ export function AdminDashboardClient({
   const [marketListings, setMarketListings] = useState<StoreListingItem[]>(initialMarketListings);
   const [purchaseHistory, setPurchaseHistory] = useState<StorePurchaseHistoryItem[]>(initialPurchases);
   const [salesHistory, setSalesHistory] = useState<StorePurchaseHistoryItem[]>(initialSales);
+  const [participants, setParticipants] = useState<ParticipantAccountItem[]>(initialParticipants);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -488,12 +547,13 @@ export function AdminDashboardClient({
     setIsLoading(true);
     setMessage("");
 
-    const [tplRes, pkgRes, specialRes, listingsRes, purchasesRes] = await Promise.all([
+    const [tplRes, pkgRes, specialRes, listingsRes, purchasesRes, participantsRes] = await Promise.all([
       fetch("/api/admin/templates", { cache: "no-store" }),
       fetch("/api/admin/packages", { cache: "no-store" }),
       fetch("/api/admin/special-requests", { cache: "no-store" }),
       fetch("/api/admin/store/listings?limit=100", { cache: "no-store" }),
       fetch("/api/admin/store/purchases?limit=50", { cache: "no-store" }),
+      fetch("/api/admin/participants?limit=200", { cache: "no-store" }),
     ]);
 
     const tplJson = (await tplRes.json().catch(() => null)) as
@@ -516,6 +576,9 @@ export function AdminDashboardClient({
     const purchasesJson = (await purchasesRes.json().catch(() => null)) as
       | { ok?: boolean; purchases?: StorePurchaseHistoryItem[]; sales?: StorePurchaseHistoryItem[] }
       | null;
+    const participantsJson = (await participantsRes.json().catch(() => null)) as
+      | { ok?: boolean; participants?: ParticipantAccountItem[] }
+      | null;
 
     if (
       !tplRes.ok ||
@@ -523,11 +586,13 @@ export function AdminDashboardClient({
       !specialRes.ok ||
       !listingsRes.ok ||
       !purchasesRes.ok ||
+      !participantsRes.ok ||
       !tplJson?.ok ||
       !pkgJson?.ok ||
       !specialJson?.ok ||
       !listingsJson?.ok ||
-      !purchasesJson?.ok
+      !purchasesJson?.ok ||
+      !participantsJson?.ok
     ) {
       setMessage(t.failDefault);
       setIsLoading(false);
@@ -542,6 +607,7 @@ export function AdminDashboardClient({
     const nextMarketListings = listingsJson.marketListings ?? [];
     const nextPurchases = purchasesJson.purchases ?? [];
     const nextSales = purchasesJson.sales ?? [];
+    const nextParticipants = participantsJson.participants ?? [];
 
     setTemplates(nextTemplates);
     setPackages(nextPackages);
@@ -551,6 +617,7 @@ export function AdminDashboardClient({
     setMarketListings(nextMarketListings);
     setPurchaseHistory(nextPurchases);
     setSalesHistory(nextSales);
+    setParticipants(nextParticipants);
     setListingDrafts(
       Object.fromEntries(
         nextMyListings.map((listing) => [
@@ -915,6 +982,28 @@ export function AdminDashboardClient({
 
     setMessage(t.storePurchased);
     await refreshAll();
+    setIsLoading(false);
+  };
+
+  const onSetParticipantActive = async (participantId: string, nextIsActive: boolean) => {
+    setIsLoading(true);
+    setMessage("");
+
+    const response = await fetch(`/api/admin/participants/${participantId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: nextIsActive ? "ACTIVATE" : "DEACTIVATE" }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setMessage(payload?.error ?? t.failDefault);
+      setIsLoading(false);
+      return;
+    }
+
+    await refreshAll();
+    setMessage(t.participantUpdated);
     setIsLoading(false);
   };
 
@@ -1572,6 +1661,56 @@ export function AdminDashboardClient({
             ))
           )}
         </div>
+      </section>
+
+      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+        <h2>{t.participantSection}</h2>
+        {participants.length === 0 ? (
+          <p>{t.participantNoData}</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th align="left">{t.participantLoginId}</th>
+                <th align="left">{t.participantDisplayName}</th>
+                <th align="left">{t.participantLocale}</th>
+                <th align="left">{t.participantStatus}</th>
+                <th align="right">{t.participantEnrollments}</th>
+                <th align="right">{t.participantResponses}</th>
+                <th align="left">{t.participantLastRespondedAt}</th>
+                <th align="left">{t.participantCreatedAt}</th>
+                <th align="left">{t.participantAction}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {participants.map((participant) => (
+                <tr key={participant.id}>
+                  <td>{participant.loginId ?? "-"}</td>
+                  <td>{participant.displayName ?? "-"}</td>
+                  <td>{participant.locale}</td>
+                  <td>
+                    {participant.isActive ? t.participantActive : t.participantInactive}
+                  </td>
+                  <td align="right">{participant.enrollmentCount}</td>
+                  <td align="right">{participant.responseCount}</td>
+                  <td>{formatMaybeDate(locale, participant.lastRespondedAt)}</td>
+                  <td>{formatMaybeDate(locale, participant.createdAt)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() =>
+                        void onSetParticipantActive(participant.id, !participant.isActive)
+                      }
+                    >
+                      {participant.isActive ? t.participantDeactivate : t.participantRestore}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>

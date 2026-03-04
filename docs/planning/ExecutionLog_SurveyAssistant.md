@@ -1328,3 +1328,59 @@
 1. participant 모바일 설문 화면의 단계형 네비게이션 필요성 평가
 2. 관리자/플랫폼 데스크톱 정보 밀도 미세조정
 3. 변경사항 커밋/푸시 및 배포 확인
+
+## 38) Work Session Entry (2026-03-04, Admin Participant Account Management MVP)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 긴 작업 단위로 핵심 남은 기능 진행
+- Working Branch: main
+
+### Planned
+1. 관리자 콘솔에 피검자 계정 관리 기능 추가
+2. API(목록/상태변경) + 화면 연동
+3. 검증/배포/기록 동기화
+
+### Done
+1. 피검자 계정 관리 API 추가
+   - `GET /api/admin/participants`
+   - `PATCH /api/admin/participants/{participantId}` (`ACTIVATE`/`DEACTIVATE`)
+   - 파일:
+     - `apps/web/src/app/api/admin/participants/route.ts`
+     - `apps/web/src/app/api/admin/participants/[participantId]/route.ts`
+2. 관리자 권한 범위 헬퍼 추가
+   - 파일: `apps/web/src/lib/participant-admin-scope.ts`
+   - 규칙:
+     - Platform admin: 전체 participant 관리 가능
+     - Research admin: 본인 소유 패키지와 연결된 participant만 관리 가능
+3. 관리자 페이지 초기 데이터 확장
+   - 파일: `apps/web/src/app/[locale]/admin/page.tsx`
+   - participant 목록/카운트/최근응답 시각 포함
+4. 관리자 대시보드 UI 연동
+   - 파일: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+   - 섹션 추가:
+     - participant 목록 테이블
+     - 계정 비활성화/복원 버튼
+5. 문서 갱신
+   - `apps/web/README.md`에 admin participant API 항목 추가
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - participant 계정 관리는 관리자 콘솔 MVP 범위에 포함
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - participant 계정의 "말소(익명화/삭제)" 정책 상세(법적 보존/감사 대응 포함)
+
+### Risks / Blockers
+- "말소"는 단순 삭제 대신 데이터 보존/법적 요건 고려가 필요하여 정책 확정 전 보류
+
+### Next Actions
+1. participant 계정 "거부/말소" 정책 확정(soft-delete/anonymize 설계)
+2. 관리자/플랫폼 데스크톱 화면 정보 밀도 개선
+3. 변경사항 커밋/푸시 및 배포 확인

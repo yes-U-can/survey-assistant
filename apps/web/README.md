@@ -63,6 +63,8 @@ This app is linked to project `survey_sicp`.
 - Store listings: `GET/POST /api/admin/store/listings`
 - Store listing update: `PATCH /api/admin/store/listings/{listingId}`
 - Store purchases: `GET/POST /api/admin/store/purchases`
+- Participant accounts list: `GET /api/admin/participants`
+- Participant account status update: `PATCH /api/admin/participants/{participantId}` (`ACTIVATE`/`DEACTIVATE`)
 
 ## Platform Admin APIs (Current Baseline)
 - Overview: `GET /api/platform-admin/overview`

@@ -38,7 +38,44 @@ export default async function AdminHomePage({ params }: PageProps) {
     );
   }
 
-  const [templates, packages, specialRequests, ownedSpecialTemplates, myListings, marketListings, purchases, sales] =
+  const participantScope =
+    session.user.role === UserRole.PLATFORM_ADMIN
+      ? { role: UserRole.PARTICIPANT }
+      : {
+          role: UserRole.PARTICIPANT,
+          OR: [
+            {
+              enrollments: {
+                some: {
+                  surveyPackage: {
+                    ownerId: session.user.id,
+                  },
+                },
+              },
+            },
+            {
+              responses: {
+                some: {
+                  surveyPackage: {
+                    ownerId: session.user.id,
+                  },
+                },
+              },
+            },
+          ],
+        };
+
+  const [
+    templates,
+    packages,
+    specialRequests,
+    ownedSpecialTemplates,
+    myListings,
+    marketListings,
+    purchases,
+    sales,
+    participantAccounts,
+  ] =
     await Promise.all([
     prisma.template.findMany({
       where: {
@@ -238,7 +275,46 @@ export default async function AdminHomePage({ params }: PageProps) {
         },
       },
     }),
+    prisma.user.findMany({
+      where: participantScope,
+      take: 200,
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        loginId: true,
+        displayName: true,
+        locale: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            enrollments: true,
+            responses: true,
+          },
+        },
+      },
+    }),
   ]);
+
+  const participantIds = participantAccounts.map((item) => item.id);
+  const participantResponseMax = participantIds.length
+    ? await prisma.response.groupBy({
+        by: ["participantId"],
+        where: {
+          participantId: { in: participantIds },
+        },
+        _max: {
+          submittedAt: true,
+        },
+      })
+    : [];
+  const participantResponseMap = new Map(
+    participantResponseMax.map((row) => [
+      row.participantId,
+      row._max.submittedAt?.toISOString() ?? null,
+    ]),
+  );
 
   const initialPackages = packages.map((pkg) => ({
     id: pkg.id,
@@ -304,6 +380,19 @@ export default async function AdminHomePage({ params }: PageProps) {
     createdAt: item.createdAt.toISOString(),
   }));
 
+  const initialParticipants = participantAccounts.map((item) => ({
+    id: item.id,
+    loginId: item.loginId,
+    displayName: item.displayName,
+    locale: item.locale,
+    isActive: item.isActive,
+    enrollmentCount: item._count.enrollments,
+    responseCount: item._count.responses,
+    lastRespondedAt: participantResponseMap.get(item.id) ?? null,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }));
+
   const mobileBlockedTitle =
     locale === "ko" ? "관리자 기능은 PC 웹 전용입니다." : "Admin features are desktop-only.";
   const mobileBlockedBody =
@@ -326,6 +415,7 @@ export default async function AdminHomePage({ params }: PageProps) {
           initialMarketListings={initialMarketListings}
           initialPurchases={initialPurchases}
           initialSales={initialSales}
+          initialParticipants={initialParticipants}
         />
         <footer className="sa-footer">
           <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
