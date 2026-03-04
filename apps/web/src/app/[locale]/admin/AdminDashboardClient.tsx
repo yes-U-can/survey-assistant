@@ -37,10 +37,104 @@ type PackageItem = {
   templates: PackageTemplateItem[];
 };
 
+type SpecialRequestStatus =
+  | "REQUESTED"
+  | "REVIEWING"
+  | "IN_PROGRESS"
+  | "DELIVERED"
+  | "REJECTED"
+  | "CANCELED";
+
+type SpecialRequestItem = {
+  id: string;
+  title: string;
+  description: string;
+  status: SpecialRequestStatus;
+  consentPublicSource: boolean;
+  consentAt: string;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type StoreOwnedTemplateItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  version: number;
+  updatedAt: string;
+};
+
+type StoreListingTemplateItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  version: number;
+  isArchived: boolean;
+};
+
+type StoreListingItem = {
+  id: string;
+  templateId: string;
+  sellerId: string;
+  priceCredits: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  template: StoreListingTemplateItem;
+  seller?: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+  alreadyPurchased?: boolean;
+  canPurchase?: boolean;
+};
+
+type StorePurchaseHistoryItem = {
+  id: string;
+  listingId: string;
+  templateId: string;
+  buyerId: string;
+  sellerId: string;
+  priceCredits: number;
+  sellerCredit: number;
+  platformFeeCredits: number;
+  createdAt: string;
+  listing: {
+    id: string;
+    priceCredits: number;
+    template: {
+      id: string;
+      title: string;
+      version: number;
+    };
+  };
+  seller?: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+  buyer?: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+};
+
 type Props = {
   locale: LocaleCode;
   initialTemplates: TemplateItem[];
   initialPackages: PackageItem[];
+  initialSpecialRequests: SpecialRequestItem[];
+  initialOwnedSpecialTemplates: StoreOwnedTemplateItem[];
+  initialMyListings: StoreListingItem[];
+  initialMarketListings: StoreListingItem[];
+  initialPurchases: StorePurchaseHistoryItem[];
+  initialSales: StorePurchaseHistoryItem[];
 };
 
 const msg = {
@@ -105,6 +199,45 @@ const msg = {
     csvAttemptHint: "비워두면 전체 회차",
     csvInvalidRange: "CSV 필터 기간을 확인하세요. 종료일시는 시작일시 이후여야 합니다.",
     exportCsv: "CSV",
+    specialRequestSection: "특수 템플릿 의뢰",
+    specialRequestTitle: "의뢰 제목",
+    specialRequestDescription: "요구사항 상세",
+    specialRequestConsent:
+      "동의: 구현 소스코드는 MIT 정책에 따라 공개될 수 있으며, 공개와 크레딧 보상은 별개로 처리됨",
+    specialRequestSubmit: "의뢰 등록",
+    specialRequestStatus: "진행상태",
+    specialRequestAdminNote: "어드민 메모",
+    specialRequestNoData: "등록된 의뢰가 없습니다.",
+    specialRequestNeedConsent: "의뢰 등록을 위해 공개 동의 체크가 필요합니다.",
+    specialRequestCreated: "특수 템플릿 의뢰가 등록되었습니다.",
+    storeSection: "특수 템플릿 스토어",
+    storeCreateListing: "내 특수 템플릿 등록",
+    storeTemplateSelect: "템플릿 선택",
+    storePrice: "판매 가격(크레딧)",
+    storeActive: "판매 활성화",
+    storeListButton: "스토어 등록",
+    storeMyListings: "내 등록 목록",
+    storeMarketListings: "구매 가능 목록",
+    storePurchases: "내 구매 내역",
+    storeSales: "내 판매 내역",
+    storeNoOwnedTemplates: "등록 가능한 특수 템플릿이 없습니다.",
+    storeNoMyListings: "내 등록 목록이 없습니다.",
+    storeNoMarketListings: "구매 가능한 목록이 없습니다.",
+    storeNoPurchases: "구매 내역이 없습니다.",
+    storeNoSales: "판매 내역이 없습니다.",
+    storeListingCreated: "스토어 등록이 완료되었습니다.",
+    storeListingUpdated: "등록 정보가 변경되었습니다.",
+    storePurchased: "템플릿 구매가 완료되었습니다.",
+    storeAlreadyPurchased: "이미 구매함",
+    storeBuy: "구매",
+    storeUpdate: "수정",
+    storeSeller: "판매자",
+    storeTemplate: "템플릿",
+    storeCreatedAt: "등록일시",
+    storeBoughtAt: "구매일시",
+    storePriceLabel: "가격",
+    storeFeeLabel: "수수료",
+    storeSellerCreditLabel: "판매자 정산",
   },
   en: {
     title: "Admin Home",
@@ -167,6 +300,45 @@ const msg = {
     csvAttemptHint: "Leave blank for all attempts",
     csvInvalidRange: "Check CSV filter range. End datetime must be after start datetime.",
     exportCsv: "Export CSV",
+    specialRequestSection: "Special Template Requests",
+    specialRequestTitle: "Request title",
+    specialRequestDescription: "Requirement details",
+    specialRequestConsent:
+      "Consent: implementation source code may be publicly disclosed under MIT, and credit compensation is handled separately.",
+    specialRequestSubmit: "Submit request",
+    specialRequestStatus: "Status",
+    specialRequestAdminNote: "Admin note",
+    specialRequestNoData: "No request yet.",
+    specialRequestNeedConsent: "Consent is required before submitting request.",
+    specialRequestCreated: "Special template request submitted.",
+    storeSection: "Special Template Store",
+    storeCreateListing: "List my special template",
+    storeTemplateSelect: "Template",
+    storePrice: "Price (credits)",
+    storeActive: "Listing active",
+    storeListButton: "Create listing",
+    storeMyListings: "My listings",
+    storeMarketListings: "Market listings",
+    storePurchases: "My purchases",
+    storeSales: "My sales",
+    storeNoOwnedTemplates: "No special template available for listing.",
+    storeNoMyListings: "No listing yet.",
+    storeNoMarketListings: "No listing to buy.",
+    storeNoPurchases: "No purchase history.",
+    storeNoSales: "No sales history.",
+    storeListingCreated: "Listing created.",
+    storeListingUpdated: "Listing updated.",
+    storePurchased: "Template purchased.",
+    storeAlreadyPurchased: "Purchased",
+    storeBuy: "Buy",
+    storeUpdate: "Update",
+    storeSeller: "Seller",
+    storeTemplate: "Template",
+    storeCreatedAt: "Listed at",
+    storeBoughtAt: "Purchased at",
+    storePriceLabel: "Price",
+    storeFeeLabel: "Platform fee",
+    storeSellerCreditLabel: "Seller credit",
   },
 } as const;
 
@@ -193,15 +365,58 @@ function visibilityLabel(locale: LocaleCode, value: TemplateItem["visibility"]) 
   return value === "STORE" ? t.visibilityStore : t.visibilityPrivate;
 }
 
+function specialRequestStatusLabel(
+  locale: LocaleCode,
+  status: SpecialRequestStatus,
+) {
+  if (locale === "en") {
+    return status;
+  }
+  if (status === "REQUESTED") return "접수됨";
+  if (status === "REVIEWING") return "검토중";
+  if (status === "IN_PROGRESS") return "개발중";
+  if (status === "DELIVERED") return "전달완료";
+  if (status === "REJECTED") return "반려";
+  return "취소";
+}
+
+function displayUserName(
+  user:
+    | {
+        loginId: string | null;
+        displayName: string | null;
+      }
+    | undefined,
+) {
+  if (!user) {
+    return "-";
+  }
+  return user.displayName?.trim() || user.loginId?.trim() || "-";
+}
+
 export function AdminDashboardClient({
   locale,
   initialTemplates,
   initialPackages,
+  initialSpecialRequests,
+  initialOwnedSpecialTemplates,
+  initialMyListings,
+  initialMarketListings,
+  initialPurchases,
+  initialSales,
 }: Props) {
   const t = useMemo(() => msg[locale], [locale]);
 
   const [templates, setTemplates] = useState<TemplateItem[]>(initialTemplates);
   const [packages, setPackages] = useState<PackageItem[]>(initialPackages);
+  const [specialRequests, setSpecialRequests] = useState<SpecialRequestItem[]>(initialSpecialRequests);
+  const [ownedSpecialTemplates, setOwnedSpecialTemplates] = useState<StoreOwnedTemplateItem[]>(
+    initialOwnedSpecialTemplates,
+  );
+  const [myListings, setMyListings] = useState<StoreListingItem[]>(initialMyListings);
+  const [marketListings, setMarketListings] = useState<StoreListingItem[]>(initialMarketListings);
+  const [purchaseHistory, setPurchaseHistory] = useState<StorePurchaseHistoryItem[]>(initialPurchases);
+  const [salesHistory, setSalesHistory] = useState<StorePurchaseHistoryItem[]>(initialSales);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -246,6 +461,22 @@ export function AdminDashboardClient({
   const [aiResult, setAiResult] = useState("");
   const [aiMeta, setAiMeta] = useState("");
   const [aiIsRunning, setAiIsRunning] = useState(false);
+  const [specialRequestTitle, setSpecialRequestTitle] = useState("");
+  const [specialRequestDescription, setSpecialRequestDescription] = useState("");
+  const [specialRequestConsent, setSpecialRequestConsent] = useState(false);
+  const [storeTemplateId, setStoreTemplateId] = useState(initialOwnedSpecialTemplates[0]?.id ?? "");
+  const [storePriceCredits, setStorePriceCredits] = useState(100);
+  const [storeIsActive, setStoreIsActive] = useState(true);
+  const [listingDrafts, setListingDrafts] = useState<
+    Record<string, { priceCredits: number; isActive: boolean }>
+  >(() =>
+    Object.fromEntries(
+      initialMyListings.map((listing) => [
+        listing.id,
+        { priceCredits: listing.priceCredits, isActive: listing.isActive },
+      ]),
+    ),
+  );
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
   const [exportAttempt, setExportAttempt] = useState("");
@@ -254,9 +485,12 @@ export function AdminDashboardClient({
     setIsLoading(true);
     setMessage("");
 
-    const [tplRes, pkgRes] = await Promise.all([
+    const [tplRes, pkgRes, specialRes, listingsRes, purchasesRes] = await Promise.all([
       fetch("/api/admin/templates", { cache: "no-store" }),
       fetch("/api/admin/packages", { cache: "no-store" }),
+      fetch("/api/admin/special-requests", { cache: "no-store" }),
+      fetch("/api/admin/store/listings?limit=100", { cache: "no-store" }),
+      fetch("/api/admin/store/purchases?limit=50", { cache: "no-store" }),
     ]);
 
     const tplJson = (await tplRes.json().catch(() => null)) as
@@ -265,8 +499,33 @@ export function AdminDashboardClient({
     const pkgJson = (await pkgRes.json().catch(() => null)) as
       | { ok?: boolean; packages?: PackageItem[] }
       | null;
+    const specialJson = (await specialRes.json().catch(() => null)) as
+      | { ok?: boolean; requests?: SpecialRequestItem[] }
+      | null;
+    const listingsJson = (await listingsRes.json().catch(() => null)) as
+      | {
+          ok?: boolean;
+          ownedSpecialTemplates?: StoreOwnedTemplateItem[];
+          myListings?: StoreListingItem[];
+          marketListings?: StoreListingItem[];
+        }
+      | null;
+    const purchasesJson = (await purchasesRes.json().catch(() => null)) as
+      | { ok?: boolean; purchases?: StorePurchaseHistoryItem[]; sales?: StorePurchaseHistoryItem[] }
+      | null;
 
-    if (!tplRes.ok || !pkgRes.ok || !tplJson?.ok || !pkgJson?.ok) {
+    if (
+      !tplRes.ok ||
+      !pkgRes.ok ||
+      !specialRes.ok ||
+      !listingsRes.ok ||
+      !purchasesRes.ok ||
+      !tplJson?.ok ||
+      !pkgJson?.ok ||
+      !specialJson?.ok ||
+      !listingsJson?.ok ||
+      !purchasesJson?.ok
+    ) {
       setMessage(t.failDefault);
       setIsLoading(false);
       return;
@@ -274,9 +533,34 @@ export function AdminDashboardClient({
 
     const nextTemplates = tplJson.templates ?? [];
     const nextPackages = pkgJson.packages ?? [];
+    const nextRequests = specialJson.requests ?? [];
+    const nextOwnedSpecialTemplates = listingsJson.ownedSpecialTemplates ?? [];
+    const nextMyListings = listingsJson.myListings ?? [];
+    const nextMarketListings = listingsJson.marketListings ?? [];
+    const nextPurchases = purchasesJson.purchases ?? [];
+    const nextSales = purchasesJson.sales ?? [];
 
     setTemplates(nextTemplates);
     setPackages(nextPackages);
+    setSpecialRequests(nextRequests);
+    setOwnedSpecialTemplates(nextOwnedSpecialTemplates);
+    setMyListings(nextMyListings);
+    setMarketListings(nextMarketListings);
+    setPurchaseHistory(nextPurchases);
+    setSalesHistory(nextSales);
+    setListingDrafts(
+      Object.fromEntries(
+        nextMyListings.map((listing) => [
+          listing.id,
+          { priceCredits: listing.priceCredits, isActive: listing.isActive },
+        ]),
+      ),
+    );
+    setStoreTemplateId((prev) =>
+      prev && nextOwnedSpecialTemplates.some((tpl) => tpl.id === prev)
+        ? prev
+        : (nextOwnedSpecialTemplates[0]?.id ?? ""),
+    );
     setAiPackageId((prev) =>
       prev && nextPackages.some((pkg) => pkg.id === prev) ? prev : (nextPackages[0]?.id ?? ""),
     );
@@ -492,6 +776,140 @@ export function AdminDashboardClient({
     setIsLoading(false);
   };
 
+  const onCreateSpecialRequest = async (event: FormEvent) => {
+    event.preventDefault();
+    setMessage("");
+
+    if (!specialRequestTitle.trim() || !specialRequestDescription.trim()) {
+      setMessage(t.failDefault);
+      return;
+    }
+    if (!specialRequestConsent) {
+      setMessage(t.specialRequestNeedConsent);
+      return;
+    }
+
+    setIsLoading(true);
+    const response = await fetch("/api/admin/special-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: specialRequestTitle.trim(),
+        description: specialRequestDescription.trim(),
+        consentPublicSource: true,
+      }),
+    });
+
+    if (!response.ok) {
+      setMessage(t.failDefault);
+      setIsLoading(false);
+      return;
+    }
+
+    setSpecialRequestTitle("");
+    setSpecialRequestDescription("");
+    setSpecialRequestConsent(false);
+    setMessage(t.specialRequestCreated);
+    await refreshAll();
+    setIsLoading(false);
+  };
+
+  const updateListingDraft = (listingId: string, patch: Partial<{ priceCredits: number; isActive: boolean }>) => {
+    setListingDrafts((prev) => ({
+      ...prev,
+      [listingId]: {
+        priceCredits: patch.priceCredits ?? prev[listingId]?.priceCredits ?? 1,
+        isActive: patch.isActive ?? prev[listingId]?.isActive ?? true,
+      },
+    }));
+  };
+
+  const onCreateStoreListing = async (event: FormEvent) => {
+    event.preventDefault();
+    setMessage("");
+
+    if (!storeTemplateId || !Number.isFinite(storePriceCredits) || Math.trunc(storePriceCredits) < 1) {
+      setMessage(t.failDefault);
+      return;
+    }
+
+    setIsLoading(true);
+    const response = await fetch("/api/admin/store/listings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        templateId: storeTemplateId,
+        priceCredits: Math.trunc(storePriceCredits),
+        isActive: storeIsActive,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setMessage(payload?.error ?? t.failDefault);
+      setIsLoading(false);
+      return;
+    }
+
+    setMessage(t.storeListingCreated);
+    await refreshAll();
+    setIsLoading(false);
+  };
+
+  const onUpdateStoreListing = async (listingId: string) => {
+    const draft = listingDrafts[listingId];
+    if (!draft) {
+      return;
+    }
+    if (!Number.isFinite(draft.priceCredits) || Math.trunc(draft.priceCredits) < 1) {
+      setMessage(t.failDefault);
+      return;
+    }
+
+    setIsLoading(true);
+    const response = await fetch(`/api/admin/store/listings/${listingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        priceCredits: Math.trunc(draft.priceCredits),
+        isActive: draft.isActive,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setMessage(payload?.error ?? t.failDefault);
+      setIsLoading(false);
+      return;
+    }
+
+    setMessage(t.storeListingUpdated);
+    await refreshAll();
+    setIsLoading(false);
+  };
+
+  const onPurchaseListing = async (listingId: string) => {
+    setIsLoading(true);
+    setMessage("");
+
+    const response = await fetch("/api/admin/store/purchases", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setMessage(payload?.error ?? t.failDefault);
+      setIsLoading(false);
+      return;
+    }
+
+    setMessage(t.storePurchased);
+    await refreshAll();
+    setIsLoading(false);
+  };
+
   const onRunAiAnalysis = async (event: FormEvent) => {
     event.preventDefault();
     setMessage("");
@@ -685,6 +1103,259 @@ export function AdminDashboardClient({
                 <small>{tpl.description ?? ""}</small>
               </article>
             ))
+          )}
+        </div>
+      </section>
+
+      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+        <h2>{t.specialRequestSection}</h2>
+        <form onSubmit={onCreateSpecialRequest} style={{ display: "grid", gap: 10, marginTop: 8 }}>
+          <label>
+            {t.specialRequestTitle}
+            <input
+              value={specialRequestTitle}
+              onChange={(event) => setSpecialRequestTitle(event.target.value)}
+              style={{ marginLeft: 8, minWidth: 320 }}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6 }}>
+            {t.specialRequestDescription}
+            <textarea
+              value={specialRequestDescription}
+              onChange={(event) => setSpecialRequestDescription(event.target.value)}
+              rows={5}
+            />
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={specialRequestConsent}
+              onChange={(event) => setSpecialRequestConsent(event.target.checked)}
+            />
+            <span style={{ marginLeft: 6 }}>{t.specialRequestConsent}</span>
+          </label>
+          <button type="submit" disabled={isLoading} style={{ width: 140 }}>
+            {isLoading ? t.loading : t.specialRequestSubmit}
+          </button>
+        </form>
+
+        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+          {specialRequests.length === 0 ? (
+            <p>{t.specialRequestNoData}</p>
+          ) : (
+            specialRequests.map((item) => (
+              <article key={item.id} style={{ border: "1px solid #eee", padding: 10 }}>
+                <strong>{item.title}</strong> | {t.specialRequestStatus}:{" "}
+                {specialRequestStatusLabel(locale, item.status)}
+                <br />
+                <small>{new Date(item.createdAt).toLocaleString()}</small>
+                <p style={{ margin: "8px 0" }}>{item.description}</p>
+                <small>
+                  {t.specialRequestAdminNote}: {item.adminNote?.trim() || "-"}
+                </small>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+        <h2>{t.storeSection}</h2>
+
+        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
+          <h3 style={{ marginTop: 0 }}>{t.storeCreateListing}</h3>
+          {ownedSpecialTemplates.length === 0 ? (
+            <p>{t.storeNoOwnedTemplates}</p>
+          ) : (
+            <form onSubmit={onCreateStoreListing} style={{ display: "grid", gap: 10, maxWidth: 560 }}>
+              <label>
+                {t.storeTemplateSelect}
+                <select
+                  value={storeTemplateId}
+                  onChange={(event) => setStoreTemplateId(event.target.value)}
+                  style={{ marginLeft: 8, minWidth: 300 }}
+                >
+                  {ownedSpecialTemplates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.title} (v{tpl.version})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t.storePrice}
+                <input
+                  type="number"
+                  min={1}
+                  max={1_000_000}
+                  value={storePriceCredits}
+                  onChange={(event) => setStorePriceCredits(Number(event.target.value))}
+                  style={{ marginLeft: 8, width: 120 }}
+                />
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={storeIsActive}
+                  onChange={(event) => setStoreIsActive(event.target.checked)}
+                />
+                <span style={{ marginLeft: 6 }}>{t.storeActive}</span>
+              </label>
+              <button type="submit" disabled={isLoading} style={{ width: 140 }}>
+                {isLoading ? t.loading : t.storeListButton}
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <h3>{t.storeMyListings}</h3>
+          {myListings.length === 0 ? (
+            <p>{t.storeNoMyListings}</p>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              {myListings.map((listing) => {
+                const draft = listingDrafts[listing.id] ?? {
+                  priceCredits: listing.priceCredits,
+                  isActive: listing.isActive,
+                };
+                return (
+                  <article key={listing.id} style={{ border: "1px solid #eee", padding: 10 }}>
+                    <strong>{listing.template.title}</strong> (v{listing.template.version})
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                      <label>
+                        {t.storePriceLabel}
+                        <input
+                          type="number"
+                          min={1}
+                          max={1_000_000}
+                          value={draft.priceCredits}
+                          onChange={(event) =>
+                            updateListingDraft(listing.id, { priceCredits: Number(event.target.value) })
+                          }
+                          style={{ marginLeft: 8, width: 110 }}
+                        />
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={draft.isActive}
+                          onChange={(event) =>
+                            updateListingDraft(listing.id, { isActive: event.target.checked })
+                          }
+                        />
+                        <span style={{ marginLeft: 6 }}>{t.storeActive}</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => void onUpdateStoreListing(listing.id)}
+                        disabled={isLoading}
+                      >
+                        {t.storeUpdate}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <h3>{t.storeMarketListings}</h3>
+          {marketListings.length === 0 ? (
+            <p>{t.storeNoMarketListings}</p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th align="left">{t.storeTemplate}</th>
+                  <th align="left">{t.storeSeller}</th>
+                  <th align="right">{t.storePriceLabel}</th>
+                  <th align="left">{t.storeCreatedAt}</th>
+                  <th align="left">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {marketListings.map((listing) => (
+                  <tr key={listing.id}>
+                    <td>{listing.template.title}</td>
+                    <td>{displayUserName(listing.seller)}</td>
+                    <td align="right">{listing.priceCredits}</td>
+                    <td>{new Date(listing.createdAt).toLocaleString()}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => void onPurchaseListing(listing.id)}
+                        disabled={isLoading || listing.canPurchase === false}
+                      >
+                        {listing.alreadyPurchased ? t.storeAlreadyPurchased : t.storeBuy}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <h3>{t.storePurchases}</h3>
+          {purchaseHistory.length === 0 ? (
+            <p>{t.storeNoPurchases}</p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th align="left">{t.storeBoughtAt}</th>
+                  <th align="left">{t.storeTemplate}</th>
+                  <th align="left">{t.storeSeller}</th>
+                  <th align="right">{t.storePriceLabel}</th>
+                  <th align="right">{t.storeFeeLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchaseHistory.map((item) => (
+                  <tr key={item.id}>
+                    <td>{new Date(item.createdAt).toLocaleString()}</td>
+                    <td>{item.listing.template.title}</td>
+                    <td>{displayUserName(item.seller)}</td>
+                    <td align="right">{item.priceCredits}</td>
+                    <td align="right">{item.platformFeeCredits}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <h3>{t.storeSales}</h3>
+          {salesHistory.length === 0 ? (
+            <p>{t.storeNoSales}</p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th align="left">{t.storeBoughtAt}</th>
+                  <th align="left">{t.storeTemplate}</th>
+                  <th align="left">{locale === "ko" ? "구매자" : "Buyer"}</th>
+                  <th align="right">{t.storePriceLabel}</th>
+                  <th align="right">{t.storeSellerCreditLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {salesHistory.map((item) => (
+                  <tr key={item.id}>
+                    <td>{new Date(item.createdAt).toLocaleString()}</td>
+                    <td>{item.listing.template.title}</td>
+                    <td>{displayUserName(item.buyer)}</td>
+                    <td align="right">{item.priceCredits}</td>
+                    <td align="right">{item.sellerCredit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </section>

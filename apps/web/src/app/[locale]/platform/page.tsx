@@ -46,6 +46,10 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     wallets,
     transactions,
     jobs,
+    specialRequests,
+    settlementAggregate,
+    settlementPurchases,
+    sellerSettlementGroups,
   ] = await Promise.all([
     prisma.user.groupBy({
       by: ["role"],
@@ -164,6 +168,90 @@ export default async function PlatformAdminPage({ params }: PageProps) {
         },
       },
     }),
+    prisma.specialTemplateRequest.findMany({
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        consentPublicSource: true,
+        consentAt: true,
+        adminNote: true,
+        createdAt: true,
+        updatedAt: true,
+        requester: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
+          },
+        },
+      },
+    }),
+    prisma.templatePurchase.aggregate({
+      _count: { _all: true },
+      _sum: {
+        priceCredits: true,
+        sellerCredit: true,
+        platformFeeCredits: true,
+      },
+    }),
+    prisma.templatePurchase.findMany({
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        listingId: true,
+        templateId: true,
+        buyerId: true,
+        sellerId: true,
+        priceCredits: true,
+        sellerCredit: true,
+        platformFeeCredits: true,
+        createdAt: true,
+        buyer: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
+          },
+        },
+        seller: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
+          },
+        },
+        template: {
+          select: {
+            id: true,
+            title: true,
+            version: true,
+          },
+        },
+      },
+    }),
+    prisma.templatePurchase.groupBy({
+      by: ["sellerId"],
+      _count: { _all: true },
+      _sum: {
+        sellerCredit: true,
+        platformFeeCredits: true,
+        priceCredits: true,
+      },
+      orderBy: {
+        _sum: {
+          sellerCredit: "desc",
+        },
+      },
+      take: 20,
+    }),
   ]);
 
   let participantCount = 0;
@@ -237,6 +325,52 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     completedAt: job.completedAt?.toISOString() ?? null,
   }));
 
+  const sellerIds = sellerSettlementGroups.map((row) => row.sellerId);
+  const sellers = await prisma.user.findMany({
+    where: {
+      id: { in: sellerIds },
+    },
+    select: {
+      id: true,
+      loginId: true,
+      displayName: true,
+      role: true,
+    },
+  });
+  const sellerMap = new Map(sellers.map((seller) => [seller.id, seller]));
+
+  const initialSpecialRequests = specialRequests.map((item) => ({
+    ...item,
+    consentAt: item.consentAt.toISOString(),
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }));
+
+  const initialSettlementSummary = {
+    purchaseCount: settlementAggregate._count._all,
+    totalPriceCredits: settlementAggregate._sum.priceCredits ?? 0,
+    totalSellerCredits: settlementAggregate._sum.sellerCredit ?? 0,
+    totalPlatformFeeCredits: settlementAggregate._sum.platformFeeCredits ?? 0,
+  };
+
+  const initialSettlementPurchases = settlementPurchases.map((item) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+  }));
+
+  const initialSellerSettlements = sellerSettlementGroups.map((row) => ({
+    seller: sellerMap.get(row.sellerId) ?? {
+      id: row.sellerId,
+      loginId: null,
+      displayName: null,
+      role: "UNKNOWN",
+    },
+    salesCount: row._count._all,
+    totalPriceCredits: row._sum.priceCredits ?? 0,
+    totalSellerCredits: row._sum.sellerCredit ?? 0,
+    totalPlatformFeeCredits: row._sum.platformFeeCredits ?? 0,
+  }));
+
   return (
     <>
       <PlatformAdminClient
@@ -246,6 +380,10 @@ export default async function PlatformAdminPage({ params }: PageProps) {
         initialWallets={initialWallets}
         initialTransactions={initialTransactions}
         initialJobs={initialJobs}
+        initialSpecialRequests={initialSpecialRequests}
+        initialSettlementSummary={initialSettlementSummary}
+        initialSettlementPurchases={initialSettlementPurchases}
+        initialSellerSettlements={initialSellerSettlements}
       />
       <footer style={{ padding: "0 24px 24px", fontFamily: "sans-serif" }}>
         <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>

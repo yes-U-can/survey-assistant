@@ -15,6 +15,14 @@ type MigrationStatus =
   | "FAILED"
   | "CANCELED";
 
+type SpecialRequestStatus =
+  | "REQUESTED"
+  | "REVIEWING"
+  | "IN_PROGRESS"
+  | "DELIVERED"
+  | "REJECTED"
+  | "CANCELED";
+
 type Overview = {
   users: {
     participantCount: number;
@@ -83,11 +91,86 @@ type MigrationJobItem = {
   };
 };
 
+type SpecialRequestItem = {
+  id: string;
+  title: string;
+  description: string;
+  status: SpecialRequestStatus;
+  consentPublicSource: boolean;
+  consentAt: string;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  requester: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+};
+
+type SettlementSummary = {
+  purchaseCount: number;
+  totalPriceCredits: number;
+  totalSellerCredits: number;
+  totalPlatformFeeCredits: number;
+};
+
+type SettlementPurchaseItem = {
+  id: string;
+  listingId: string;
+  templateId: string;
+  buyerId: string;
+  sellerId: string;
+  priceCredits: number;
+  sellerCredit: number;
+  platformFeeCredits: number;
+  createdAt: string;
+  buyer: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+  seller: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+  template: {
+    id: string;
+    title: string;
+    version: number;
+  };
+};
+
+type SellerSettlementItem = {
+  seller: {
+    id: string;
+    loginId: string | null;
+    displayName: string | null;
+    role: string;
+  };
+  salesCount: number;
+  totalPriceCredits: number;
+  totalSellerCredits: number;
+  totalPlatformFeeCredits: number;
+};
+
 type JobDraftMap = Record<
   string,
   {
     status: MigrationStatus;
     resultNote: string;
+  }
+>;
+
+type SpecialRequestDraftMap = Record<
+  string,
+  {
+    status: SpecialRequestStatus;
+    adminNote: string;
   }
 >;
 
@@ -98,6 +181,10 @@ type Props = {
   initialWallets: WalletItem[];
   initialTransactions: TransactionItem[];
   initialJobs: MigrationJobItem[];
+  initialSpecialRequests?: SpecialRequestItem[];
+  initialSettlementSummary?: SettlementSummary;
+  initialSettlementPurchases?: SettlementPurchaseItem[];
+  initialSellerSettlements?: SellerSettlementItem[];
 };
 
 const statusOptions: MigrationStatus[] = [
@@ -106,6 +193,15 @@ const statusOptions: MigrationStatus[] = [
   "RUNNING",
   "COMPLETED",
   "FAILED",
+  "CANCELED",
+];
+
+const specialRequestStatusOptions: SpecialRequestStatus[] = [
+  "REQUESTED",
+  "REVIEWING",
+  "IN_PROGRESS",
+  "DELIVERED",
+  "REJECTED",
   "CANCELED",
 ];
 
@@ -148,6 +244,22 @@ const msg = {
     adjustmentDirection: "조정 방향",
     adjustmentIncrease: "증가(+)",
     adjustmentDecrease: "감소(-)",
+    specialRequests: "특수 템플릿 의뢰",
+    requestTitle: "의뢰 제목",
+    requestDesc: "요구사항",
+    requestConsent: "공개 동의",
+    requestCreatedAt: "요청일시",
+    requestAdminNote: "어드민 메모",
+    requestApply: "의뢰 상태 반영",
+    requestUpdated: "의뢰 상태가 변경되었습니다.",
+    settlements: "스토어 정산",
+    settlementSummary: "정산 요약",
+    settlementRecent: "최근 구매",
+    settlementBySeller: "판매자별 정산",
+    totalPurchaseCredits: "총 거래액",
+    totalSellerCredits: "총 판매자 정산",
+    totalPlatformFeeCredits: "총 플랫폼 수수료",
+    purchaseCount: "구매 건수",
   },
   en: {
     title: "Platform Admin",
@@ -179,6 +291,22 @@ const msg = {
     adjustmentDirection: "Adjustment direction",
     adjustmentIncrease: "Increase (+)",
     adjustmentDecrease: "Decrease (-)",
+    specialRequests: "Special template requests",
+    requestTitle: "Request title",
+    requestDesc: "Requirements",
+    requestConsent: "Consent",
+    requestCreatedAt: "Requested at",
+    requestAdminNote: "Admin note",
+    requestApply: "Apply request status",
+    requestUpdated: "Request status updated.",
+    settlements: "Store settlements",
+    settlementSummary: "Settlement summary",
+    settlementRecent: "Recent purchases",
+    settlementBySeller: "Per-seller settlement",
+    totalPurchaseCredits: "Total sales credits",
+    totalSellerCredits: "Total seller credits",
+    totalPlatformFeeCredits: "Total platform fee credits",
+    purchaseCount: "Purchase count",
   },
 } as const;
 
@@ -202,6 +330,25 @@ function formatUserLabel(user: AdminUserItem) {
   return `${name} (${user.role})`;
 }
 
+function displayUserName(user: { loginId: string | null; displayName: string | null } | null | undefined) {
+  if (!user) {
+    return "-";
+  }
+  return user.displayName?.trim() || user.loginId?.trim() || "-";
+}
+
+function specialRequestStatusLabel(locale: LocaleCode, status: SpecialRequestStatus) {
+  if (locale === "en") {
+    return status;
+  }
+  if (status === "REQUESTED") return "접수됨";
+  if (status === "REVIEWING") return "검토중";
+  if (status === "IN_PROGRESS") return "개발중";
+  if (status === "DELIVERED") return "전달완료";
+  if (status === "REJECTED") return "반려";
+  return "취소";
+}
+
 export function PlatformAdminClient({
   locale,
   initialOverview,
@@ -209,6 +356,15 @@ export function PlatformAdminClient({
   initialWallets,
   initialTransactions,
   initialJobs,
+  initialSpecialRequests = [],
+  initialSettlementSummary = {
+    purchaseCount: 0,
+    totalPriceCredits: 0,
+    totalSellerCredits: 0,
+    totalPlatformFeeCredits: 0,
+  },
+  initialSettlementPurchases = [],
+  initialSellerSettlements = [],
 }: Props) {
   const t = useMemo(() => msg[locale], [locale]);
 
@@ -217,12 +373,30 @@ export function PlatformAdminClient({
   const [wallets, setWallets] = useState<WalletItem[]>(initialWallets);
   const [transactions, setTransactions] = useState<TransactionItem[]>(initialTransactions);
   const [jobs, setJobs] = useState<MigrationJobItem[]>(initialJobs);
+  const [specialRequests, setSpecialRequests] = useState<SpecialRequestItem[]>(initialSpecialRequests);
+  const [settlementSummary, setSettlementSummary] = useState<SettlementSummary>(
+    initialSettlementSummary,
+  );
+  const [settlementPurchases, setSettlementPurchases] =
+    useState<SettlementPurchaseItem[]>(initialSettlementPurchases);
+  const [sellerSettlements, setSellerSettlements] =
+    useState<SellerSettlementItem[]>(initialSellerSettlements);
   const [jobDrafts, setJobDrafts] = useState<JobDraftMap>(() => {
     const initialMap: JobDraftMap = {};
     for (const job of initialJobs) {
       initialMap[job.id] = {
         status: job.status,
         resultNote: job.resultNote ?? "",
+      };
+    }
+    return initialMap;
+  });
+  const [specialRequestDrafts, setSpecialRequestDrafts] = useState<SpecialRequestDraftMap>(() => {
+    const initialMap: SpecialRequestDraftMap = {};
+    for (const request of initialSpecialRequests) {
+      initialMap[request.id] = {
+        status: request.status,
+        adminNote: request.adminNote ?? "",
       };
     }
     return initialMap;
@@ -241,10 +415,12 @@ export function PlatformAdminClient({
     setIsLoading(true);
     setMessage("");
 
-    const [overviewRes, creditsRes, migrationRes] = await Promise.all([
+    const [overviewRes, creditsRes, migrationRes, specialRes, settlementRes] = await Promise.all([
       fetch("/api/platform-admin/overview", { cache: "no-store" }),
       fetch("/api/platform-admin/credits?limit=20", { cache: "no-store" }),
       fetch("/api/platform-admin/migration-jobs?limit=50", { cache: "no-store" }),
+      fetch("/api/platform-admin/special-requests?limit=50", { cache: "no-store" }),
+      fetch("/api/platform-admin/store/settlements?limit=50", { cache: "no-store" }),
     ]);
 
     const overviewJson = await parseJson<{ ok?: boolean; overview?: Overview }>(overviewRes);
@@ -257,14 +433,27 @@ export function PlatformAdminClient({
     const migrationJson = await parseJson<{ ok?: boolean; jobs?: MigrationJobItem[] }>(
       migrationRes,
     );
+    const specialJson = await parseJson<{ ok?: boolean; requests?: SpecialRequestItem[] }>(
+      specialRes,
+    );
+    const settlementJson = await parseJson<{
+      ok?: boolean;
+      summary?: SettlementSummary;
+      recentPurchases?: SettlementPurchaseItem[];
+      sellerSettlements?: SellerSettlementItem[];
+    }>(settlementRes);
 
     if (
       !overviewRes.ok ||
       !creditsRes.ok ||
       !migrationRes.ok ||
+      !specialRes.ok ||
+      !settlementRes.ok ||
       !overviewJson?.ok ||
       !creditsJson?.ok ||
-      !migrationJson?.ok
+      !migrationJson?.ok ||
+      !specialJson?.ok ||
+      !settlementJson?.ok
     ) {
       setMessage(t.failDefault);
       setIsLoading(false);
@@ -281,6 +470,18 @@ export function PlatformAdminClient({
     setTransactions(creditsJson.transactions ?? []);
     const loadedJobs = migrationJson.jobs ?? [];
     setJobs(loadedJobs);
+    const loadedRequests = specialJson.requests ?? [];
+    setSpecialRequests(loadedRequests);
+    setSettlementSummary(
+      settlementJson.summary ?? {
+        purchaseCount: 0,
+        totalPriceCredits: 0,
+        totalSellerCredits: 0,
+        totalPlatformFeeCredits: 0,
+      },
+    );
+    setSettlementPurchases(settlementJson.recentPurchases ?? []);
+    setSellerSettlements(settlementJson.sellerSettlements ?? []);
     setJobDrafts((prev) => {
       const next: JobDraftMap = {};
       for (const job of loadedJobs) {
@@ -288,6 +489,17 @@ export function PlatformAdminClient({
         next[job.id] = {
           status: existing?.status ?? job.status,
           resultNote: existing?.resultNote ?? (job.resultNote ?? ""),
+        };
+      }
+      return next;
+    });
+    setSpecialRequestDrafts((prev) => {
+      const next: SpecialRequestDraftMap = {};
+      for (const request of loadedRequests) {
+        const existing = prev[request.id];
+        next[request.id] = {
+          status: existing?.status ?? request.status,
+          adminNote: existing?.adminNote ?? (request.adminNote ?? ""),
         };
       }
       return next;
@@ -372,6 +584,19 @@ export function PlatformAdminClient({
     [],
   );
 
+  const updateSpecialRequestDraft = useCallback(
+    (requestId: string, patch: Partial<SpecialRequestDraftMap[string]>) => {
+      setSpecialRequestDrafts((prev) => ({
+        ...prev,
+        [requestId]: {
+          status: patch.status ?? prev[requestId]?.status ?? "REQUESTED",
+          adminNote: patch.adminNote ?? prev[requestId]?.adminNote ?? "",
+        },
+      }));
+    },
+    [],
+  );
+
   const onUpdateJob = useCallback(
     async (jobId: string) => {
       const draft = jobDrafts[jobId];
@@ -403,6 +628,37 @@ export function PlatformAdminClient({
     [jobDrafts, refreshAll, t.failDefault, t.okStatus],
   );
 
+  const onUpdateSpecialRequest = useCallback(
+    async (requestId: string) => {
+      const draft = specialRequestDrafts[requestId];
+      if (!draft) {
+        return;
+      }
+
+      setIsLoading(true);
+      const response = await fetch(`/api/platform-admin/special-requests/${requestId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: draft.status,
+          adminNote: draft.adminNote.trim() || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await parseJson<{ error?: string }>(response);
+        setMessage(body?.error ?? t.failDefault);
+        setIsLoading(false);
+        return;
+      }
+
+      setMessage(t.requestUpdated);
+      await refreshAll();
+      setIsLoading(false);
+    },
+    [refreshAll, specialRequestDrafts, t.failDefault, t.requestUpdated],
+  );
+
   return (
     <main style={{ padding: 24, fontFamily: "sans-serif" }}>
       <h1 style={{ marginTop: 0 }}>{t.title}</h1>
@@ -425,6 +681,8 @@ export function PlatformAdminClient({
             <li>Migration Requested: {overview.migrationJobs.REQUESTED}</li>
             <li>Migration Running: {overview.migrationJobs.RUNNING}</li>
             <li>Migration Completed: {overview.migrationJobs.COMPLETED}</li>
+            <li>Store Purchases: {settlementSummary.purchaseCount}</li>
+            <li>Platform Fee Credits: {settlementSummary.totalPlatformFeeCredits}</li>
           </ul>
         ) : (
           <p>-</p>
@@ -567,6 +825,165 @@ export function PlatformAdminClient({
                   <td>{txn.type}</td>
                   <td align="right">{txn.amount}</td>
                   <td>{txn.memo ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <h2>{t.specialRequests}</h2>
+        {specialRequests.length === 0 ? (
+          <p>-</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th align="left">{t.requestCreatedAt}</th>
+                <th align="left">{t.requester}</th>
+                <th align="left">{t.requestTitle}</th>
+                <th align="left">{t.status}</th>
+                <th align="left">{t.requestAdminNote}</th>
+                <th align="left">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {specialRequests.map((request) => {
+                const draft = specialRequestDrafts[request.id] ?? {
+                  status: request.status,
+                  adminNote: request.adminNote ?? "",
+                };
+
+                return (
+                  <tr key={request.id}>
+                    <td>{new Date(request.createdAt).toLocaleString()}</td>
+                    <td>{displayUserName(request.requester)}</td>
+                    <td>
+                      <strong>{request.title}</strong>
+                      <br />
+                      <small>{request.description}</small>
+                      <br />
+                      <small>
+                        {t.requestConsent}: {request.consentPublicSource ? "Y" : "N"}
+                      </small>
+                    </td>
+                    <td>
+                      <select
+                        value={draft.status}
+                        onChange={(event) =>
+                          updateSpecialRequestDraft(request.id, {
+                            status: event.target.value as SpecialRequestStatus,
+                          })
+                        }
+                        disabled={isLoading}
+                      >
+                        {specialRequestStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {specialRequestStatusLabel(locale, status)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        value={draft.adminNote}
+                        onChange={(event) =>
+                          updateSpecialRequestDraft(request.id, {
+                            adminNote: event.target.value,
+                          })
+                        }
+                        disabled={isLoading}
+                        style={{ width: "100%" }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => void onUpdateSpecialRequest(request.id)}
+                        disabled={isLoading}
+                      >
+                        {t.requestApply}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <h2>{t.settlements}</h2>
+        <h3>{t.settlementSummary}</h3>
+        <ul>
+          <li>
+            {t.purchaseCount}: {settlementSummary.purchaseCount}
+          </li>
+          <li>
+            {t.totalPurchaseCredits}: {settlementSummary.totalPriceCredits}
+          </li>
+          <li>
+            {t.totalSellerCredits}: {settlementSummary.totalSellerCredits}
+          </li>
+          <li>
+            {t.totalPlatformFeeCredits}: {settlementSummary.totalPlatformFeeCredits}
+          </li>
+        </ul>
+
+        <h3>{t.settlementRecent}</h3>
+        {settlementPurchases.length === 0 ? (
+          <p>-</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th align="left">Time</th>
+                <th align="left">{locale === "ko" ? "템플릿" : "Template"}</th>
+                <th align="left">{locale === "ko" ? "구매자" : "Buyer"}</th>
+                <th align="left">{locale === "ko" ? "판매자" : "Seller"}</th>
+                <th align="right">{locale === "ko" ? "거래액" : "Price"}</th>
+                <th align="right">{locale === "ko" ? "수수료" : "Fee"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {settlementPurchases.map((item) => (
+                <tr key={item.id}>
+                  <td>{new Date(item.createdAt).toLocaleString()}</td>
+                  <td>{item.template.title}</td>
+                  <td>{displayUserName(item.buyer)}</td>
+                  <td>{displayUserName(item.seller)}</td>
+                  <td align="right">{item.priceCredits}</td>
+                  <td align="right">{item.platformFeeCredits}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <h3>{t.settlementBySeller}</h3>
+        {sellerSettlements.length === 0 ? (
+          <p>-</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th align="left">{locale === "ko" ? "판매자" : "Seller"}</th>
+                <th align="right">{locale === "ko" ? "판매건" : "Sales"}</th>
+                <th align="right">{t.totalPurchaseCredits}</th>
+                <th align="right">{t.totalSellerCredits}</th>
+                <th align="right">{t.totalPlatformFeeCredits}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sellerSettlements.map((item) => (
+                <tr key={item.seller.id}>
+                  <td>{displayUserName(item.seller)}</td>
+                  <td align="right">{item.salesCount}</td>
+                  <td align="right">{item.totalPriceCredits}</td>
+                  <td align="right">{item.totalSellerCredits}</td>
+                  <td align="right">{item.totalPlatformFeeCredits}</td>
                 </tr>
               ))}
             </tbody>

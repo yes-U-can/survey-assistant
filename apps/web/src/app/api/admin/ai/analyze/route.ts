@@ -68,14 +68,6 @@ function parseInteger(value: string | undefined, fallback: number, min: number, 
   return Math.min(Math.max(asInt, min), max);
 }
 
-function parseDecimal(value: string | undefined, fallback: number, min: number, max: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.min(Math.max(parsed, min), max);
-}
-
 function safeJson(value: Prisma.JsonValue): unknown {
   if (
     value === null ||
@@ -212,79 +204,6 @@ async function runOpenAiChat(params: {
   };
 }
 
-function calculateManagedCreditCharge(params: {
-  usage: { promptTokens: number | null; completionTokens: number | null; totalTokens: number | null };
-}) {
-  const minPerRequest = parseInteger(
-    process.env.AI_MANAGED_CREDIT_MIN_PER_REQUEST,
-    1,
-    0,
-    1_000_000,
-  );
-  const fallbackPerRequest = parseInteger(
-    process.env.AI_MANAGED_CREDIT_PER_REQUEST,
-    1,
-    0,
-    1_000_000,
-  );
-  const inputPer1k = parseDecimal(
-    process.env.AI_MANAGED_CREDIT_PER_1K_INPUT_TOKENS,
-    0,
-    0,
-    1_000_000,
-  );
-  const outputPer1k = parseDecimal(
-    process.env.AI_MANAGED_CREDIT_PER_1K_OUTPUT_TOKENS,
-    0,
-    0,
-    1_000_000,
-  );
-
-  const tokenPricingEnabled = inputPer1k > 0 || outputPer1k > 0;
-  if (!tokenPricingEnabled) {
-    return {
-      charged: Math.max(minPerRequest, fallbackPerRequest),
-      policy: {
-        mode: "per_request_fallback" as const,
-        minPerRequest,
-        fallbackPerRequest,
-        inputPer1k,
-        outputPer1k,
-      },
-    };
-  }
-
-  const promptTokens = Math.max(params.usage.promptTokens ?? 0, 0);
-  const completionTokens = Math.max(params.usage.completionTokens ?? 0, 0);
-  const rawCharge = (promptTokens / 1000) * inputPer1k + (completionTokens / 1000) * outputPer1k;
-  const roundedCharge = Math.ceil(rawCharge);
-  const tokenBasedCharge = Math.max(minPerRequest, roundedCharge);
-
-  if (params.usage.totalTokens === null && tokenBasedCharge === minPerRequest) {
-    return {
-      charged: Math.max(minPerRequest, fallbackPerRequest),
-      policy: {
-        mode: "token_pricing_missing_usage_fallback" as const,
-        minPerRequest,
-        fallbackPerRequest,
-        inputPer1k,
-        outputPer1k,
-      },
-    };
-  }
-
-  return {
-    charged: tokenBasedCharge,
-    policy: {
-      mode: "token_pricing" as const,
-      minPerRequest,
-      fallbackPerRequest,
-      inputPer1k,
-      outputPer1k,
-    },
-  };
-}
-
 export async function POST(request: Request) {
   const session = await requireAdminSession();
   if (!session) {
@@ -353,10 +272,10 @@ export async function POST(request: Request) {
     }),
   ]);
 
-  const minimumManagedCharge = parseInteger(
-    process.env.AI_MANAGED_CREDIT_MIN_PER_REQUEST,
+  const managedChargePerRequest = parseInteger(
+    process.env.AI_MANAGED_CREDIT_PER_REQUEST,
     1,
-    0,
+    1,
     1_000_000,
   );
 
@@ -365,7 +284,7 @@ export async function POST(request: Request) {
       where: { userId: session.user.id },
       select: { balance: true },
     });
-    if ((balance?.balance ?? 0) < minimumManagedCharge) {
+    if ((balance?.balance ?? 0) < managedChargePerRequest) {
       return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
     }
   }
@@ -444,6 +363,37 @@ export async function POST(request: Request) {
     JSON.stringify(analysisPayload),
   ].join("\n");
 
+  let managedChargeMutation:
+    | {
+        charged: number;
+        balanceAfter: number;
+        transactionId: string;
+      }
+    | null = null;
+
+  if (parsed.data.mode === "MANAGED") {
+    try {
+      const result = await applyCreditMutationWithPrisma({
+        userId: session.user.id,
+        type: CreditTxnType.SPEND,
+        amount: managedChargePerRequest,
+        memo: `managed_ai_charge_start:${targetPackage.code}`,
+        referenceId: targetPackage.id,
+      });
+
+      managedChargeMutation = {
+        charged: managedChargePerRequest,
+        balanceAfter: result.wallet.balance,
+        transactionId: result.transaction.id,
+      };
+    } catch (error) {
+      if (error instanceof CreditLedgerError && error.code === "insufficient_balance") {
+        return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
+      }
+      return NextResponse.json({ ok: false, error: "credit_ledger_error" }, { status: 500 });
+    }
+  }
+
   const aiResult = await runOpenAiChat({
     apiKey,
     model,
@@ -453,52 +403,49 @@ export async function POST(request: Request) {
   });
 
   if (!aiResult.ok) {
+    if (parsed.data.mode === "MANAGED" && managedChargeMutation) {
+      try {
+        const refund = await applyCreditMutationWithPrisma({
+          userId: session.user.id,
+          type: CreditTxnType.REFUND,
+          amount: managedChargeMutation.charged,
+          memo: `managed_ai_refund:${targetPackage.code}`,
+          referenceId: managedChargeMutation.transactionId,
+        });
+
+        return NextResponse.json(
+          {
+            ok: false,
+            error: aiResult.error,
+            refunded: true,
+            refundTransactionId: refund.transaction.id,
+          },
+          { status: aiResult.status },
+        );
+      } catch {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "refund_failed_after_provider_error",
+          },
+          { status: 500 },
+        );
+      }
+    }
+
     return NextResponse.json({ ok: false, error: aiResult.error }, { status: aiResult.status });
   }
 
-  const managedCharge =
-    parsed.data.mode === "MANAGED"
-      ? calculateManagedCreditCharge({
-          usage: aiResult.usage,
-        })
+  const creditMutation =
+    parsed.data.mode === "MANAGED" && managedChargeMutation
+      ? {
+          charged: managedChargeMutation.charged,
+          balanceAfter: managedChargeMutation.balanceAfter,
+          transactionId: managedChargeMutation.transactionId,
+          policyMode: "immediate_charge_refund",
+          refunded: false,
+        }
       : null;
-
-  let creditMutation:
-    | {
-        charged: number;
-        balanceAfter: number;
-        transactionId: string;
-        policyMode: string;
-      }
-    | null = null;
-
-  if (parsed.data.mode === "MANAGED") {
-    if (!managedCharge) {
-      return NextResponse.json({ ok: false, error: "managed_charge_calc_error" }, { status: 500 });
-    }
-
-    try {
-      const result = await applyCreditMutationWithPrisma({
-        userId: session.user.id,
-        type: CreditTxnType.SPEND,
-        amount: managedCharge.charged,
-        memo: `managed_ai_analysis:${targetPackage.code}`,
-        referenceId: targetPackage.id,
-      });
-
-      creditMutation = {
-        charged: managedCharge.charged,
-        balanceAfter: result.wallet.balance,
-        transactionId: result.transaction.id,
-        policyMode: managedCharge.policy.mode,
-      };
-    } catch (error) {
-      if (error instanceof CreditLedgerError && error.code === "insufficient_balance") {
-        return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
-      }
-      return NextResponse.json({ ok: false, error: "credit_ledger_error" }, { status: 500 });
-    }
-  }
 
   return NextResponse.json({
     ok: true,

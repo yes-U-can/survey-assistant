@@ -960,3 +960,73 @@
 1. 특수 템플릿 의뢰-배포 워크플로우(소스 공개 동의) 연결
 2. CSV export 고급 옵션(와이드 포맷/컬럼 선택) 검토
 3. Managed AI 크레딧 사전 hold/reservation 설계
+
+## 31) Work Session Entry (2026-03-04, Special Request + Store MVP + AI Billing Fix)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 정정 반영 계획 구현 (의뢰/스토어/정산 + AI 즉시차감/실패환불)
+- Working Branch: main
+
+### Planned
+1. Prisma 스키마 확장 및 마이그레이션
+2. 특수 템플릿 의뢰 API 구현
+3. 스토어/구매/정산 API 구현
+4. 관리자/플랫폼 어드민 UI 연동
+5. AI 과금 로직 즉시 차감 + 실패 환불로 전환
+
+### Done
+1. Prisma 스키마 확장
+   - `SpecialTemplateRequestStatus` enum 추가
+   - `SpecialTemplateRequest`, `TemplateStoreListing`, `TemplatePurchase` 모델 추가
+   - 관계: User/Template와 연결
+2. 마이그레이션 파일 추가 및 DB 적용
+   - `apps/web/prisma/migrations/20260304081000_add_special_request_store_purchase/migration.sql`
+   - `prisma db execute --file ...`로 적용
+3. 신규 API 추가
+   - 관리자:
+     - `GET/POST /api/admin/special-requests`
+     - `GET/POST /api/admin/store/listings`
+     - `PATCH /api/admin/store/listings/{listingId}`
+     - `GET/POST /api/admin/store/purchases`
+   - 플랫폼 어드민:
+     - `GET /api/platform-admin/special-requests`
+     - `PATCH /api/platform-admin/special-requests/{requestId}/status`
+     - `GET /api/platform-admin/store/settlements`
+4. UI 연동
+   - 관리자 콘솔:
+     - 특수 템플릿 의뢰 등록(공개 동의 필수) + 의뢰 목록
+     - 스토어 등록/수정/구매 + 구매/판매 내역
+   - 플랫폼 어드민 콘솔:
+     - 의뢰 큐 상태/메모 처리
+     - 정산 요약/최근 구매/판매자별 정산
+5. AI 과금 로직 정정
+   - `POST /api/admin/ai/analyze` Managed 모드:
+     - 시작 시 즉시 `SPEND`
+     - 실패/예외 시 자동 `REFUND`
+     - 토큰 사용량은 응답 메타/모니터링 용도로 유지
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 특수 템플릿은 의뢰 기반 코드형 단일 정책으로 고정
+  - 스토어 거래 대상은 SPECIAL 템플릿만 허용
+  - 스토어 수수료 20%, 판매자 80% 정산 기본값 채택
+  - AI Managed 과금은 즉시 차감 + 실패 환불로 고정
+- Changed decisions:
+  - 30번 세션의 토큰 단가 기반 과금 정책을 폐기하고, 즉시 차감/환불 정책으로 대체
+  - CSV 고급 내보내기 항목은 이번 우선순위에서 제외
+- Deferred decisions:
+  - 환불/분쟁/정산취소 자동화는 2차 범위로 이관
+
+### Risks / Blockers
+- `prisma migrate dev`는 기존 DB 드리프트(`User.passwordHash`)로 자동 적용이 차단되어, 이번에는 마이그레이션 SQL 파일 + `db execute` 방식으로 동기화함
+
+### Next Actions
+1. 스토어 환불/분쟁 처리 정책 문서화 및 2차 범위 설계
+2. 특수 템플릿 의뢰 상태 알림(이메일/내부 알림) 도입 검토
+3. 구매 템플릿 버전 업그레이드/재배포 정책 정의

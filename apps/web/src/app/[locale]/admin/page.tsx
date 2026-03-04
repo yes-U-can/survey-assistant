@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { TemplateType, UserRole } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -38,7 +38,8 @@ export default async function AdminHomePage({ params }: PageProps) {
     );
   }
 
-  const [templates, packages] = await Promise.all([
+  const [templates, packages, specialRequests, ownedSpecialTemplates, myListings, marketListings, purchases, sales] =
+    await Promise.all([
     prisma.template.findMany({
       where: {
         ownerId: session.user.id,
@@ -72,6 +73,171 @@ export default async function AdminHomePage({ params }: PageProps) {
         },
       },
     }),
+    prisma.specialTemplateRequest.findMany({
+      where: { requesterId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        consentPublicSource: true,
+        consentAt: true,
+        adminNote: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.template.findMany({
+      where: {
+        ownerId: session.user.id,
+        type: TemplateType.SPECIAL,
+        isArchived: false,
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        version: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.templateStoreListing.findMany({
+      where: { sellerId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        templateId: true,
+        sellerId: true,
+        priceCredits: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        template: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            version: true,
+            isArchived: true,
+          },
+        },
+      },
+    }),
+    prisma.templateStoreListing.findMany({
+      where: {
+        isActive: true,
+        sellerId: { not: session.user.id },
+        template: {
+          type: TemplateType.SPECIAL,
+          isArchived: false,
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        templateId: true,
+        sellerId: true,
+        priceCredits: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        seller: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
+          },
+        },
+        template: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            version: true,
+            isArchived: true,
+          },
+        },
+      },
+    }),
+    prisma.templatePurchase.findMany({
+      where: { buyerId: session.user.id },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        listingId: true,
+        templateId: true,
+        buyerId: true,
+        sellerId: true,
+        priceCredits: true,
+        sellerCredit: true,
+        platformFeeCredits: true,
+        createdAt: true,
+        listing: {
+          select: {
+            id: true,
+            priceCredits: true,
+            template: {
+              select: {
+                id: true,
+                title: true,
+                version: true,
+              },
+            },
+          },
+        },
+        seller: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
+          },
+        },
+      },
+    }),
+    prisma.templatePurchase.findMany({
+      where: { sellerId: session.user.id },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        listingId: true,
+        templateId: true,
+        buyerId: true,
+        sellerId: true,
+        priceCredits: true,
+        sellerCredit: true,
+        platformFeeCredits: true,
+        createdAt: true,
+        listing: {
+          select: {
+            id: true,
+            priceCredits: true,
+            template: {
+              select: {
+                id: true,
+                title: true,
+                version: true,
+              },
+            },
+          },
+        },
+        buyer: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
+          },
+        },
+      },
+    }),
   ]);
 
   const initialPackages = packages.map((pkg) => ({
@@ -100,12 +266,56 @@ export default async function AdminHomePage({ params }: PageProps) {
     updatedAt: tpl.updatedAt.toISOString(),
   }));
 
+  const purchasedListingIdSet = new Set(purchases.map((item) => item.listingId));
+
+  const initialSpecialRequests = specialRequests.map((item) => ({
+    ...item,
+    consentAt: item.consentAt.toISOString(),
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }));
+
+  const initialOwnedSpecialTemplates = ownedSpecialTemplates.map((tpl) => ({
+    ...tpl,
+    updatedAt: tpl.updatedAt.toISOString(),
+  }));
+
+  const initialMyListings = myListings.map((item) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  }));
+
+  const initialMarketListings = marketListings.map((item) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    alreadyPurchased: purchasedListingIdSet.has(item.id),
+    canPurchase: !purchasedListingIdSet.has(item.id) && item.isActive && !item.template.isArchived,
+  }));
+
+  const initialPurchases = purchases.map((item) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+  }));
+
+  const initialSales = sales.map((item) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+  }));
+
   return (
     <>
       <AdminDashboardClient
         locale={locale}
         initialTemplates={initialTemplates}
         initialPackages={initialPackages}
+        initialSpecialRequests={initialSpecialRequests}
+        initialOwnedSpecialTemplates={initialOwnedSpecialTemplates}
+        initialMyListings={initialMyListings}
+        initialMarketListings={initialMarketListings}
+        initialPurchases={initialPurchases}
+        initialSales={initialSales}
       />
       <footer style={{ padding: "0 24px 24px", fontFamily: "sans-serif" }}>
         <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
