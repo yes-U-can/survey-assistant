@@ -158,6 +158,22 @@ type SellerSettlementItem = {
   totalPlatformFeeCredits: number;
 };
 
+type AlertThresholds = {
+  minTotalCredits: number;
+  maxOpenSpecialRequests: number;
+  maxRunningMigrations: number;
+  maxFailedMigrations: number;
+  staleSpecialRequestDays: number;
+  maxStaleSpecialRequests: number;
+};
+
+type OpsAlert = {
+  id: string;
+  severity: "warning" | "critical";
+  title: string;
+  message: string;
+};
+
 type JobDraftMap = Record<
   string,
   {
@@ -185,6 +201,7 @@ type Props = {
   initialSettlementSummary?: SettlementSummary;
   initialSettlementPurchases?: SettlementPurchaseItem[];
   initialSellerSettlements?: SellerSettlementItem[];
+  initialAlertThresholds?: AlertThresholds;
 };
 
 const statusOptions: MigrationStatus[] = [
@@ -274,6 +291,10 @@ const msg = {
     filterAll: "전체",
     specialRequestFilter: "의뢰 상태 필터",
     migrationFilter: "마이그레이션 상태 필터",
+    alerts: "운영 알림",
+    noAlerts: "현재 임계치 초과 알림이 없습니다.",
+    severityWarning: "주의",
+    severityCritical: "위험",
   },
   en: {
     title: "Platform Admin",
@@ -335,6 +356,10 @@ const msg = {
     filterAll: "All",
     specialRequestFilter: "Request status filter",
     migrationFilter: "Migration status filter",
+    alerts: "Operational Alerts",
+    noAlerts: "No threshold alerts at the moment.",
+    severityWarning: "Warning",
+    severityCritical: "Critical",
   },
 } as const;
 
@@ -405,6 +430,14 @@ export function PlatformAdminClient({
   },
   initialSettlementPurchases = [],
   initialSellerSettlements = [],
+  initialAlertThresholds = {
+    minTotalCredits: 500,
+    maxOpenSpecialRequests: 12,
+    maxRunningMigrations: 5,
+    maxFailedMigrations: 3,
+    staleSpecialRequestDays: 14,
+    maxStaleSpecialRequests: 0,
+  },
 }: Props) {
   const t = useMemo(() => msg[locale], [locale]);
 
@@ -450,6 +483,7 @@ export function PlatformAdminClient({
   const [adjustmentDirection, setAdjustmentDirection] = useState<AdjustmentDirection>("INCREASE");
   const [amount, setAmount] = useState(100);
   const [memo, setMemo] = useState("");
+  const [renderNow] = useState(() => Date.now());
   const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
     "ALL",
   );
@@ -468,6 +502,113 @@ export function PlatformAdminClient({
     }
     return jobs.filter((item) => item.status === migrationFilter);
   }, [jobs, migrationFilter]);
+
+  const opsAlerts = useMemo<OpsAlert[]>(() => {
+    if (!overview) {
+      return [];
+    }
+
+    const alerts: OpsAlert[] = [];
+    const openRequestStatuses: SpecialRequestStatus[] = ["REQUESTED", "REVIEWING", "IN_PROGRESS"];
+    const openSpecialCount = specialRequests.filter((item) =>
+      openRequestStatuses.includes(item.status),
+    ).length;
+    const staleThresholdMs = initialAlertThresholds.staleSpecialRequestDays * 24 * 60 * 60 * 1000;
+    const staleOpenSpecialCount = specialRequests.filter((item) => {
+      if (!openRequestStatuses.includes(item.status)) {
+        return false;
+      }
+      return renderNow - new Date(item.createdAt).getTime() >= staleThresholdMs;
+    }).length;
+
+    if (overview.credits.totalBalance < initialAlertThresholds.minTotalCredits) {
+      const criticalCutoff = Math.floor(initialAlertThresholds.minTotalCredits / 2);
+      const severity: OpsAlert["severity"] =
+        overview.credits.totalBalance < criticalCutoff ? "critical" : "warning";
+      alerts.push({
+        id: "low_total_credits",
+        severity,
+        title:
+          locale === "ko" ? "관리자 총 크레딧 잔액 부족" : "Low admin total credit balance",
+        message:
+          locale === "ko"
+            ? `현재 ${overview.credits.totalBalance} / 기준 ${initialAlertThresholds.minTotalCredits}`
+            : `Current ${overview.credits.totalBalance} / threshold ${initialAlertThresholds.minTotalCredits}`,
+      });
+    }
+
+    if (openSpecialCount > initialAlertThresholds.maxOpenSpecialRequests) {
+      alerts.push({
+        id: "special_requests_backlog",
+        severity:
+          openSpecialCount > initialAlertThresholds.maxOpenSpecialRequests * 2
+            ? "critical"
+            : "warning",
+        title: locale === "ko" ? "특수 템플릿 의뢰 적체" : "Special template request backlog",
+        message:
+          locale === "ko"
+            ? `처리중 ${openSpecialCount}건 / 기준 ${initialAlertThresholds.maxOpenSpecialRequests}건`
+            : `Open ${openSpecialCount} / threshold ${initialAlertThresholds.maxOpenSpecialRequests}`,
+      });
+    }
+
+    if (staleOpenSpecialCount > initialAlertThresholds.maxStaleSpecialRequests) {
+      alerts.push({
+        id: "stale_special_requests",
+        severity: "warning",
+        title:
+          locale === "ko" ? "장기 미처리 특수 의뢰 존재" : "Stale special requests detected",
+        message:
+          locale === "ko"
+            ? `${initialAlertThresholds.staleSpecialRequestDays}일 이상 미처리 ${staleOpenSpecialCount}건`
+            : `${staleOpenSpecialCount} open request(s) older than ${initialAlertThresholds.staleSpecialRequestDays} day(s)`,
+      });
+    }
+
+    if (overview.migrationJobs.RUNNING > initialAlertThresholds.maxRunningMigrations) {
+      alerts.push({
+        id: "running_migrations_high",
+        severity: "warning",
+        title:
+          locale === "ko"
+            ? "동시 마이그레이션 실행량 초과"
+            : "Concurrent running migrations over threshold",
+        message:
+          locale === "ko"
+            ? `진행중 ${overview.migrationJobs.RUNNING}건 / 기준 ${initialAlertThresholds.maxRunningMigrations}건`
+            : `Running ${overview.migrationJobs.RUNNING} / threshold ${initialAlertThresholds.maxRunningMigrations}`,
+      });
+    }
+
+    if (overview.migrationJobs.FAILED > initialAlertThresholds.maxFailedMigrations) {
+      alerts.push({
+        id: "failed_migrations_high",
+        severity: "critical",
+        title: locale === "ko" ? "마이그레이션 실패 건수 초과" : "Migration failures over threshold",
+        message:
+          locale === "ko"
+            ? `실패 ${overview.migrationJobs.FAILED}건 / 기준 ${initialAlertThresholds.maxFailedMigrations}건`
+            : `Failed ${overview.migrationJobs.FAILED} / threshold ${initialAlertThresholds.maxFailedMigrations}`,
+      });
+    }
+
+    if (settlementSummary.purchaseCount > 0 && settlementSummary.totalPlatformFeeCredits === 0) {
+      alerts.push({
+        id: "settlement_fee_zero",
+        severity: "warning",
+        title:
+          locale === "ko"
+            ? "정산 데이터 점검 필요(수수료 0)"
+            : "Settlement data check required (zero platform fee)",
+        message:
+          locale === "ko"
+            ? "구매가 존재하지만 플랫폼 수수료 누적이 0입니다."
+            : "Purchases exist while total platform fee is zero.",
+      });
+    }
+
+    return alerts;
+  }, [initialAlertThresholds, locale, overview, renderNow, settlementSummary, specialRequests]);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
@@ -777,6 +918,28 @@ export function PlatformAdminClient({
           </div>
         ) : (
           <p>-</p>
+        )}
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <h2>{t.alerts}</h2>
+        {opsAlerts.length === 0 ? (
+          <p>{t.noAlerts}</p>
+        ) : (
+          <div className="sa-alert-grid">
+            {opsAlerts.map((alert) => (
+              <article
+                key={alert.id}
+                className={`sa-alert-card ${alert.severity === "critical" ? "is-critical" : "is-warning"}`}
+              >
+                <strong>
+                  {alert.severity === "critical" ? t.severityCritical : t.severityWarning}
+                </strong>
+                <h3>{alert.title}</h3>
+                <p>{alert.message}</p>
+              </article>
+            ))}
+          </div>
         )}
       </section>
 

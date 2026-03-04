@@ -223,3 +223,13 @@ survey-assistant/
   - OAuth 포함 브라우저 e2e 자동화
   - 운영 알림/이상징후 모니터링(정산/크레딧)
   - 출시 전 컴플라이언스 체크리스트 마감
+
+## 24) Build Snapshot Update (2026-03-04, final)
+- Overall completion (current MVP line): ~96%
+- Newly completed in this update
+  - 플랫폼 어드민 운영 알림(임계치 경고) MVP 추가
+  - 운영 임계치 환경변수화 및 문서 반영
+  - 릴리스 체크리스트/특수템플릿 운영 런북 문서 완성
+- Remaining focus
+  - OAuth 브라우저 e2e 자동화(CI 통합)
+  - 릴리스 태그/체인지로그 자동화

@@ -11,6 +11,19 @@ type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
+function parseIntEnv(name: string, fallback: number, min: number, max: number) {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  const int = Math.trunc(parsed);
+  return Math.max(min, Math.min(max, int));
+}
+
 export default async function PlatformAdminPage({ params }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = rawLocale === "en" ? "en" : "ko";
@@ -371,6 +384,15 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     totalPlatformFeeCredits: row._sum.platformFeeCredits ?? 0,
   }));
 
+  const initialAlertThresholds = {
+    minTotalCredits: parseIntEnv("PLATFORM_ALERT_MIN_TOTAL_CREDITS", 500, 0, 100_000_000),
+    maxOpenSpecialRequests: parseIntEnv("PLATFORM_ALERT_MAX_OPEN_SPECIAL_REQUESTS", 12, 0, 10_000),
+    maxRunningMigrations: parseIntEnv("PLATFORM_ALERT_MAX_RUNNING_MIGRATIONS", 5, 0, 10_000),
+    maxFailedMigrations: parseIntEnv("PLATFORM_ALERT_MAX_FAILED_MIGRATIONS", 3, 0, 10_000),
+    staleSpecialRequestDays: parseIntEnv("PLATFORM_ALERT_STALE_SPECIAL_REQUEST_DAYS", 14, 1, 3650),
+    maxStaleSpecialRequests: parseIntEnv("PLATFORM_ALERT_MAX_STALE_SPECIAL_REQUESTS", 0, 0, 10_000),
+  };
+
   const mobileBlockedTitle =
     locale === "ko" ? "플랫폼 어드민 기능은 PC 웹 전용입니다." : "Platform admin is desktop-only.";
   const mobileBlockedBody =
@@ -393,6 +415,7 @@ export default async function PlatformAdminPage({ params }: PageProps) {
           initialSettlementSummary={initialSettlementSummary}
           initialSettlementPurchases={initialSettlementPurchases}
           initialSellerSettlements={initialSellerSettlements}
+          initialAlertThresholds={initialAlertThresholds}
         />
         <footer className="sa-footer">
           <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>

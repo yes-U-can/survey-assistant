@@ -1498,3 +1498,62 @@
 1. 의뢰->제작->스토어 배포 운영 절차 문서(플랫폼 어드민 관점) 추가
 2. 정산/크레딧 이상징후 알림(임계치) MVP 검토
 3. QA 체크리스트 기반 정기 회귀 루틴 정착
+
+## 41) Work Session Entry (2026-03-04, Ops Alerts + Release Checklist + Runbook)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 남은 작업을 중간 끊김 없이 한 번에 진행
+- Working Branch: main
+
+### Planned
+1. 운영 알림/이상징후 모니터링 MVP 추가
+2. 출시 전 체크리스트 문서화
+3. 특수 템플릿 의뢰 운영 런북 문서화
+
+### Done
+1. Platform Admin 운영 알림 MVP 추가
+   - 알림 기준:
+     - 관리자 총 크레딧 부족
+     - 특수 의뢰 적체
+     - 장기 미처리 의뢰
+     - 동시 마이그레이션 과다
+     - 마이그레이션 실패 과다
+     - 정산 데이터 이상(구매 존재 + 수수료 0)
+   - 파일:
+     - `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+     - `apps/web/src/app/[locale]/platform/page.tsx`
+     - `apps/web/src/app/globals.css`
+2. 알림 임계치 환경변수 지원
+   - 파일:
+     - `.env.example`
+     - `apps/web/README.md`
+3. 릴리스 체크리스트 문서 추가
+   - 파일: `docs/planning/ReleaseReadinessChecklist_20260304.md`
+4. 특수 템플릿 운영 런북 문서 추가
+   - 파일: `docs/planning/OpsRunbook_SpecialTemplateWorkflow_20260304.md`
+5. 루트 문서 동기화
+   - 파일: `README.md`
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `powershell -ExecutionPolicy Bypass -File scripts/check-repo-safety.ps1` PASS
+- `corepack pnpm smoke:web` PASS
+
+### Decision Updates
+- New decisions:
+  - 운영 알림은 플랫폼 어드민 콘솔 내 임계치 기반 경고 카드로 1차 적용
+  - 릴리스 직전 점검은 체크리스트 문서를 단일 참조점으로 사용
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - OAuth 브라우저 e2e 자동화(CI 통합)는 후속
+
+### Risks / Blockers
+- OAuth 브라우저 자동화는 계정/동의/시크릿 관리가 필요하여 즉시 CI 자동화로 올리기 어려움
+
+### Next Actions
+1. OAuth 포함 브라우저 e2e 자동화 전략 수립(수동+자동 분리)
+2. 운영 알림 임계치 운영값(기관별) 튜닝 가이드 문서화
+3. 릴리스 태그/체인지로그 자동화 스크립트 검토

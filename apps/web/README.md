@@ -88,3 +88,11 @@ This app is linked to project `survey_sicp`.
 
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.
+
+## Platform Alert Thresholds (Optional)
+- `PLATFORM_ALERT_MIN_TOTAL_CREDITS` (default `500`)
+- `PLATFORM_ALERT_MAX_OPEN_SPECIAL_REQUESTS` (default `12`)
+- `PLATFORM_ALERT_MAX_RUNNING_MIGRATIONS` (default `5`)
+- `PLATFORM_ALERT_MAX_FAILED_MIGRATIONS` (default `3`)
+- `PLATFORM_ALERT_STALE_SPECIAL_REQUEST_DAYS` (default `14`)
+- `PLATFORM_ALERT_MAX_STALE_SPECIAL_REQUESTS` (default `0`)

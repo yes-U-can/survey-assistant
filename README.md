@@ -32,3 +32,7 @@
 ## Smoke Check
 - 배포 스모크 체크: `pnpm smoke:web`
 - 기본 대상 URL: `https://surveysicp.vercel.app`
+
+## Ops Docs
+- 릴리스 체크리스트: `docs/planning/ReleaseReadinessChecklist_20260304.md`
+- 특수 템플릿 운영 런북: `docs/planning/OpsRunbook_SpecialTemplateWorkflow_20260304.md`
