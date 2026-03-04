@@ -233,3 +233,15 @@ survey-assistant/
 - Remaining focus
   - OAuth 브라우저 e2e 자동화(CI 통합)
   - 릴리스 태그/체인지로그 자동화
+
+## 25) Build Snapshot Update (2026-03-04, quality gate)
+- Overall completion (current MVP line): ~96%
+- Newly completed in this update
+  - 전역 스타일 누락 이슈 수정(`apps/web/src/app/[locale]/layout.tsx`에서 `globals.css` 로드)
+  - 플랫폼 어드민 경고 시간 계산 버그 수정(페이지 열린 상태에서도 경과 시간 갱신)
+  - 로컬 품질게이트 스크립트 추가(`verify:local` = safety + lint + build)
+  - Git hooks 강화(pre-push에서 품질게이트 강제)
+  - GitHub Actions 품질게이트 추가(`web-quality-gate.yml`)
+- Remaining focus
+  - OAuth 브라우저 e2e 자동화(CI 통합)
+  - 릴리스 태그/체인지로그 자동화

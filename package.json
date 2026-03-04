@@ -8,6 +8,7 @@
   "scripts": {
     "safety:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-repo-safety.ps1",
     "hooks:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-hooks.ps1",
-    "smoke:web": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/smoke-web-api.ps1"
+    "smoke:web": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/smoke-web-api.ps1",
+    "verify:local": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-local.ps1"
   }
 }

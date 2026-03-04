@@ -1557,3 +1557,48 @@
 1. OAuth 포함 브라우저 e2e 자동화 전략 수립(수동+자동 분리)
 2. 운영 알림 임계치 운영값(기관별) 튜닝 가이드 문서화
 3. 릴리스 태그/체인지로그 자동화 스크립트 검토
+
+## 42) Work Session Entry (2026-03-04, trust recovery + quality gate hardening)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "수동으로 오류를 하나씩 찾지 않게 해달라"
+- Working Branch: main
+
+### Planned
+1. 현재 코드 상태를 전체 재검증
+2. 재발 방지를 위한 자동 품질게이트 추가
+3. 문서(마스터플랜/실행로그) 동기화
+
+### Done
+1. 전체 재검증 수행
+   - `corepack pnpm --filter web lint` PASS
+   - `corepack pnpm --filter web build` PASS
+   - `corepack pnpm smoke:web` PASS
+   - `corepack pnpm safety:check` PASS
+2. 자동 품질게이트 추가
+   - 로컬 통합 검증 스크립트 추가: `scripts/verify-local.ps1`
+   - 루트 스크립트 추가: `corepack pnpm verify:local`
+   - pre-push 훅 추가: `.githooks/pre-push`
+   - 훅 설치 스크립트 확장: `scripts/install-hooks.ps1` (pre-commit + pre-push)
+   - GitHub Actions 품질게이트 추가: `.github/workflows/web-quality-gate.yml`
+3. 운영 문서 반영
+   - `docs/planning/MasterPlan_SurveyAssistant_20260304.md`
+   - `README.md`
+
+### Decision Updates
+- New decisions:
+  - Push 전 로컬 품질게이트(safety + lint + build)를 기본 정책으로 강제
+  - GitHub CI에서도 동일 품질게이트를 main 브랜치 기준으로 강제
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - OAuth 브라우저 e2e 자동화(CI)는 분리 트랙으로 후속
+
+### Risks / Blockers
+- CI 환경에서 OAuth 브라우저 플로우를 완전 자동화하려면 테스트 계정/동의 화면/시크릿 관리가 추가로 필요
+
+### Next Actions
+1. 플랫폼/관리자 핵심 시나리오 e2e(로그인 포함 제외) 자동화 추가
+2. OAuth 수동 검증 체크리스트를 릴리스 절차에 고정
+3. 릴리스 태그/체인지로그 자동화 스크립트 도입

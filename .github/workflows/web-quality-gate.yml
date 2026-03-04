@@ -1,0 +1,35 @@
+name: web-quality-gate
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Repository safety check
+        run: corepack pnpm safety:check
+
+      - name: Web lint
+        run: corepack pnpm --filter web lint
+
+      - name: Web build
+        run: corepack pnpm --filter web build

@@ -30,8 +30,12 @@
 - 특수 템플릿 구현 코드는 MIT 정책 하에 공개될 수 있으며, 의뢰 플로우에서 동의 문구를 명시한다.
 
 ## Smoke Check
-- 배포 스모크 체크: `pnpm smoke:web`
+- 배포 스모크 체크: `corepack pnpm smoke:web`
 - 기본 대상 URL: `https://surveysicp.vercel.app`
+
+## Quality Gate
+- 로컬 검증: `corepack pnpm verify:local`
+- Push 전 자동검증 훅 설치: `corepack pnpm hooks:install`
 
 ## Ops Docs
 - 릴리스 체크리스트: `docs/planning/ReleaseReadinessChecklist_20260304.md`
