@@ -424,3 +424,45 @@
 1. 응답 제출 API 구현으로 `completedCount`/`lastRespondedAt` 자동 갱신
 2. 관리자 템플릿/패키지 CRUD 엔드포인트 착수
 3. CSV export MVP 연결
+
+## 19) Work Session Entry (2026-03-04, Participant Response Submission API)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 진행 지속 + 계획 정합성 유지
+- Working Branch: main
+
+### Planned
+1. 참가자 응답 제출 API 추가
+2. 제출 시 진행현황 자동 갱신
+3. 배포/운영 이슈 점검
+
+### Done
+1. 참가자 응답 제출 API 추가
+   - `POST /api/participant/packages/respond`
+2. API 검증 규칙 추가
+   - 참여 등록 여부 확인
+   - ACTIVE/기간 검증
+   - 응답 횟수 제한 검증
+   - 패키지 템플릿 전체 제출 검증
+3. 제출 처리 트랜잭션 적용
+   - `Response` 다건 생성
+   - `ParticipantPackage.completedCount` 증가
+   - `ParticipantPackage.lastRespondedAt` 갱신
+4. 운영 이슈 수정
+   - Vercel `NEXTAUTH_SECRET` 누락으로 인한 500 해결
+   - development/preview/production 환경변수 반영 후 production redeploy
+
+### Verification
+- `pnpm --filter web lint` PASS
+- `pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+- production health: `GET /api/health/db` -> `{"ok":true,"db":"connected"}`
+
+### Risks / Blockers
+- 실제 설문 UI(템플릿 렌더러) 연결 전이라 응답 제출은 API 중심 단계
+
+### Next Actions
+1. 템플릿 렌더러(리커트 우선)와 `respond` API 연결
+2. 관리자 템플릿/패키지 CRUD 첫 엔드포인트 구현
+3. CSV export MVP 구현

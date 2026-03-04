@@ -36,6 +36,7 @@ This app is linked to project `survey_sicp`.
 - Participant signup endpoint: `POST /api/auth/participant/signup`
 - Participant package enrollment endpoint: `POST /api/participant/packages/enroll`
 - Participant progress endpoint: `GET /api/participant/packages`
+- Participant response submit endpoint: `POST /api/participant/packages/respond`
 
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.
