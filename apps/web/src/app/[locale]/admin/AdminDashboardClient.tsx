@@ -127,6 +127,7 @@ type StorePurchaseHistoryItem = {
 
 type Props = {
   locale: LocaleCode;
+  viewerRole: "RESEARCH_ADMIN" | "PLATFORM_ADMIN";
   initialTemplates: TemplateItem[];
   initialPackages: PackageItem[];
   initialSpecialRequests: SpecialRequestItem[];
@@ -396,6 +397,7 @@ function displayUserName(
 
 export function AdminDashboardClient({
   locale,
+  viewerRole,
   initialTemplates,
   initialPackages,
   initialSpecialRequests,
@@ -406,6 +408,7 @@ export function AdminDashboardClient({
   initialSales,
 }: Props) {
   const t = useMemo(() => msg[locale], [locale]);
+  const canAuthorSpecialTemplate = viewerRole === "PLATFORM_ADMIN";
 
   const [templates, setTemplates] = useState<TemplateItem[]>(initialTemplates);
   const [packages, setPackages] = useState<PackageItem[]>(initialPackages);
@@ -603,6 +606,11 @@ export function AdminDashboardClient({
   const onCreateTemplate = async (event: FormEvent) => {
     event.preventDefault();
     setMessage("");
+
+    if (templateType === "SPECIAL" && !canAuthorSpecialTemplate) {
+      setMessage(locale === "ko" ? "특수 템플릿은 의뢰를 통해서만 제작됩니다." : "Special templates are request-only.");
+      return;
+    }
 
     if (!templateTitle.trim()) {
       setMessage(t.failValidationTemplate);
@@ -1001,7 +1009,7 @@ export function AdminDashboardClient({
               style={{ marginLeft: 8 }}
             >
               <option value="LIKERT">{t.typeLikert}</option>
-              <option value="SPECIAL">{t.typeSpecial}</option>
+              {canAuthorSpecialTemplate ? <option value="SPECIAL">{t.typeSpecial}</option> : null}
             </select>
           </label>
 

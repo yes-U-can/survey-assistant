@@ -39,6 +39,13 @@ This app is linked to project `survey_sicp`.
 - Participant survey load endpoint: `GET /api/participant/packages/{packageId}/survey`
 - Participant response submit endpoint: `POST /api/participant/packages/respond`
 
+### Google OAuth Setup (Required Redirect URIs)
+- Production callback URI: `https://surveysicp.vercel.app/api/auth/callback/google`
+- Local callback URI: `http://localhost:3000/api/auth/callback/google`
+- If you access a random deployment URL (`https://surveysicp-*.vercel.app`), Google can return `redirect_uri_mismatch`.
+  - Use canonical domain `https://surveysicp.vercel.app` for admin login.
+  - App-level canonical redirect is enforced from `src/proxy.ts` using `NEXTAUTH_URL`.
+
 ## Admin APIs (Current Baseline)
 - Template list/create: `GET/POST /api/admin/templates`
 - Package list/create: `GET/POST /api/admin/packages`

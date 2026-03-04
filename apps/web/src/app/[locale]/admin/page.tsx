@@ -308,6 +308,7 @@ export default async function AdminHomePage({ params }: PageProps) {
     <>
       <AdminDashboardClient
         locale={locale}
+        viewerRole={session.user.role}
         initialTemplates={initialTemplates}
         initialPackages={initialPackages}
         initialSpecialRequests={initialSpecialRequests}

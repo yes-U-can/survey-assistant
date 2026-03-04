@@ -1030,3 +1030,53 @@
 1. 스토어 환불/분쟁 처리 정책 문서화 및 2차 범위 설계
 2. 특수 템플릿 의뢰 상태 알림(이메일/내부 알림) 도입 검토
 3. 구매 템플릿 버전 업그레이드/재배포 정책 정의
+
+## 32) Work Session Entry (2026-03-04, OAuth Mismatch Triage + Brand Token Sync)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 관리자 로그인 `redirect_uri_mismatch` 원인 점검 + Rorschach 프로젝트 디자인 레퍼런스 확인
+- Working Branch: main
+
+### Planned
+1. Google OAuth 실패 원인 재현/확인
+2. 재발 방지용 canonical domain 라우팅 추가
+3. 레퍼런스 색상 토큰 반영
+
+### Done
+1. OAuth 요청값 재현 확인
+   - 현재 앱이 Google로 보내는 redirect URI 확인:
+     - `https://surveysicp.vercel.app/api/auth/callback/google`
+   - 랜덤 배포 도메인(`surveysicp-*.vercel.app`)으로 접근 시 host 기반 callback이 달라져 mismatch 가능성 확인
+2. 재발 방지 라우팅 추가
+   - 파일: `apps/web/src/proxy.ts`
+   - `NEXTAUTH_URL`를 canonical origin으로 사용해 비정식 host 접근 시 canonical host로 리다이렉트
+3. 디자인 토큰 반영
+   - 레퍼런스 확인 파일(읽기 전용): `../Computing-Program-for-Rorschach-Structural-Summary/v2-nextjs/app/globals.css`
+   - 키컬러 반영:
+     - `#C1D2DC` (base)
+     - `#2A5F7F` (primary accent)
+   - 적용 파일: `apps/web/src/app/globals.css`
+4. 운영 문서 보강
+   - `apps/web/README.md`에 Google OAuth Required Redirect URI 및 mismatch 주의사항 추가
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+
+### Decision Updates
+- New decisions:
+  - 관리자 로그인 canonical domain은 `https://surveysicp.vercel.app`로 고정 운영
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - Preview 도메인 로그인까지 허용할지(다중 redirect URI 운영 여부)는 추후 결정
+
+### Risks / Blockers
+- Vercel CLI 직접 업로드 배포는 Hobby 업로드 한도(`api-upload-free`)에 걸릴 수 있음
+- Google OAuth client secret은 대화/로그에 노출되면 즉시 재발급 필요
+
+### Next Actions
+1. Google Cloud Console에서 callback URI 최종 반영 상태 점검
+2. canonical domain 기준으로 관리자 로그인 정상 동작 확인
+3. 관리자/피검자 화면 컴포넌트 단위로 브랜드 스타일 확장

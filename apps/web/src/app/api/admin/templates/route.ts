@@ -1,4 +1,4 @@
-import { Prisma, TemplateType, TemplateVisibility } from "@prisma/client";
+import { Prisma, TemplateType, TemplateVisibility, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -80,6 +80,13 @@ export async function POST(request: Request) {
   const parsed = createTemplateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
+  }
+
+  if (parsed.data.type === "SPECIAL" && session.user.role !== UserRole.PLATFORM_ADMIN) {
+    return NextResponse.json(
+      { ok: false, error: "special_template_request_only" },
+      { status: 403 },
+    );
   }
 
   if (!isInputJsonValue(parsed.data.schemaJson)) {

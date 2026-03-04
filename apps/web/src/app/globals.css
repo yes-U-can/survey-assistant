@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --brand-200: #c1d2dc;
+  --brand-700: #2a5f7f;
+  --brand-900: #16384b;
+  --background: #f4f8fb;
+  --foreground: #16384b;
+  --surface: #ffffff;
+  --muted-foreground: #3e5b6d;
+  --ring: color-mix(in srgb, var(--brand-700) 35%, transparent);
+  --font-family-sans:
+    "Pretendard Variable",
+    "Pretendard",
+    "Noto Sans KR",
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    Arial,
+    sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-family-sans);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--brand-200) 55%, white), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-200) 35%, white), var(--background));
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-family-sans);
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-family-sans);
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
