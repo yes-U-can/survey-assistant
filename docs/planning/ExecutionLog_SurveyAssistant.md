@@ -169,3 +169,41 @@
 1. Prisma 도입 + 초기 스키마 작성
 2. Auth 분리(관리자 Google SSO / 피검자 익명형) 모델링
 3. CSV export 최소 파이프라인 구현
+
+## 13) Work Session Entry (2026-03-04, Naming/Policy Confirmation)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계획 기록 누락 방지 확인 + Vercel 프로젝트명 `survey_sicp` 정리
+- Working Branch: main
+
+### Planned
+1. 핵심 정책 문서화 상태 재검증
+2. Vercel 프로젝트명 정리
+3. 안전검사 스크립트 오탐 수정
+
+### Done
+1. 특수 템플릿 공개/보상 분리 정책 문서 존재 확인:
+   - `docs/legal/SpecialTemplatePolicy.md`
+   - `docs/planning/MasterPlan_SurveyAssistant_20260304.md` 섹션 18
+2. Vercel 프로젝트 `survey_sicp` 생성 및 `apps/web` 재링크 완료
+3. 기존 `survey-sicp` 프로젝트 제거 완료
+4. `scripts/check-repo-safety.ps1`에서 `.env.example` 오탐 수정
+
+### Verification
+- Tests run: `scripts/check-repo-safety.ps1` PASS
+- Manual checks: `vercel project ls`에서 `survey_sicp`만 남았는지 확인
+- Known gaps: Prisma/DB schema 미착수
+
+### Decision Updates
+- New decisions: Vercel 프로젝트 표준명은 `survey_sicp` 사용
+- Changed decisions: 초기 Vercel 이름 `survey-sicp`를 `survey_sicp`로 정정
+- Deferred decisions: 없음
+
+### Risks / Blockers
+- CLI 출력에 비밀값(접속정보)이 보일 수 있으므로 보고 시 마스킹 필수
+
+### Next Actions
+1. Prisma 모델 설계(roles/templates/packages/responses/credits/migration)
+2. Auth 분리 구현 초안
+3. CSV export MVP

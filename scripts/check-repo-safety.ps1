@@ -23,7 +23,7 @@ $forbiddenPatterns = @(
   'request_member',
   'survey_backup',
   '\.env$',
-  '\.env\..+'
+  '\.env\.(?!example$).+'
 )
 
 $violations = @()

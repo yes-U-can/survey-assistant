@@ -20,7 +20,7 @@
 
 ## Environment Bootstrap
 - Web app: `apps/web` (Next.js)
-- Linked Vercel project: `survey-sicp`
+- Linked Vercel project: `survey_sicp`
 - Neon project: `survey-sicp` (PostgreSQL)
 - Setup guide: `docs/setup/EnvironmentSetup.md`
 

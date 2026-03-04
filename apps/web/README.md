@@ -13,7 +13,7 @@ npm run dev
 - Supported locales: `/ko`, `/en`
 
 ## Vercel
-This app is linked to project `survey-sicp`.
+This app is linked to project `survey_sicp`.
 
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.

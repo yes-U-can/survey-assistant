@@ -9,9 +9,9 @@
 - 원칙: 민감 데이터는 `archive/` 보관 + `.gitignore` 제외 유지
 
 ## 3) Vercel
-- Linked project: `survey-sicp`
+- Linked project: `survey_sicp`
 - Link command (already done in `apps/web`):
-  - `vercel link --yes --project survey-sicp`
+  - `vercel link --yes --project survey_sicp`
 
 ## 4) Neon
 - Organization: `SICP (org-spring-mountain-53946345)`
