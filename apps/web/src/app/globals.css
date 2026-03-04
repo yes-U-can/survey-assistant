@@ -45,3 +45,202 @@ textarea {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+.sa-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.sa-home {
+  max-width: 860px;
+}
+
+.sa-home h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.75rem, 2.5vw, 2.3rem);
+  letter-spacing: -0.02em;
+}
+
+.sa-home p {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.sa-home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.sa-home-card {
+  display: block;
+  text-decoration: none;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--surface) 86%, var(--brand-200));
+  border: 1px solid color-mix(in srgb, var(--brand-700) 16%, white);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-700) 10%, transparent);
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.sa-home-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--brand-700) 35%, white);
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--brand-700) 16%, transparent);
+}
+
+.sa-home-card strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--brand-900);
+}
+
+.sa-home-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+}
+
+.sa-page > h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.sa-page > p {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+}
+
+.sa-page > section {
+  margin-top: 20px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--brand-200));
+  border: 1px solid color-mix(in srgb, var(--brand-700) 18%, white);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--brand-700) 8%, transparent);
+}
+
+.sa-page h2 {
+  margin: 0 0 8px;
+  font-size: 1.14rem;
+  color: var(--brand-900);
+}
+
+.sa-page h3 {
+  margin: 0 0 6px;
+  color: var(--brand-900);
+}
+
+.sa-page form {
+  margin-top: 8px;
+}
+
+.sa-page input,
+.sa-page select,
+.sa-page textarea {
+  border: 1px solid color-mix(in srgb, var(--brand-700) 22%, white);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--foreground);
+  padding: 8px 10px;
+}
+
+.sa-page textarea {
+  resize: vertical;
+}
+
+.sa-page button,
+.sa-btn-link {
+  border: 1px solid color-mix(in srgb, var(--brand-700) 25%, white);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface) 90%, var(--brand-200));
+  color: var(--brand-900);
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.sa-page button:hover,
+.sa-btn-link:hover {
+  background: color-mix(in srgb, var(--brand-200) 40%, white);
+  border-color: color-mix(in srgb, var(--brand-700) 48%, white);
+}
+
+.sa-page button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sa-btn-primary,
+.sa-page button[type="submit"] {
+  border-color: color-mix(in srgb, var(--brand-900) 35%, white);
+  background: var(--brand-700);
+  color: #fff;
+}
+
+.sa-btn-primary:hover,
+.sa-page button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--brand-700) 82%, black);
+}
+
+.sa-page table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid color-mix(in srgb, var(--brand-700) 18%, white);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.sa-page th,
+.sa-page td {
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-700) 12%, white);
+  padding: 8px 10px;
+  vertical-align: top;
+  font-size: 0.93rem;
+}
+
+.sa-page th {
+  background: color-mix(in srgb, var(--brand-200) 45%, white);
+  color: var(--brand-900);
+}
+
+.sa-page article {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-700) 7%, transparent);
+}
+
+.sa-footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px 24px;
+  color: var(--muted-foreground);
+}
+
+.sa-footer a {
+  color: var(--brand-700);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.sa-footer a:hover {
+  text-decoration: underline;
+}
+
+.sa-divider {
+  margin: 0 8px;
+  color: color-mix(in srgb, var(--brand-700) 38%, white);
+}
+
+.sa-inline-message {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+}

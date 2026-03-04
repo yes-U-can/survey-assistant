@@ -1080,3 +1080,103 @@
 1. Google Cloud Console에서 callback URI 최종 반영 상태 점검
 2. canonical domain 기준으로 관리자 로그인 정상 동작 확인
 3. 관리자/피검자 화면 컴포넌트 단위로 브랜드 스타일 확장
+
+## 33) Work Session Entry (2026-03-04, Owner Checkpoint Alignment)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계획 정합성 재확인 + 기록 지속 + 의논 필요 시 즉시 보고
+- Working Branch: main
+
+### Planned
+1. 현재 구현과 확정 정책 간 정합성 재점검
+2. 기록 루프 유지 상태 명시
+3. 다음 구현 단계 준비
+
+### Done
+1. 정책 정합성 재확인 완료
+   - 특수 템플릿: 의뢰 기반 정책 유지
+   - 일반 관리자의 SPECIAL 직접 생성 차단 유지
+   - 플랫폼 어드민 전용 처리 경로 유지
+2. 운영 안정성 재확인
+   - OAuth redirect mismatch 원인/대응 정리 완료
+   - canonical domain 운영 원칙 적용 유지
+3. 기록 루프 유지 선언
+   - 이후 기능 단위 구현 시 본 로그에 세션 단위로 계속 누적 기록
+   - 의사결정 필요 항목 발생 시 owner에게 선보고 후 진행
+
+### Verification
+- 기존 최신 검증 상태 유지:
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 없음
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 없음
+
+### Risks / Blockers
+- 현재 즉시 blocker 없음
+
+### Next Actions
+1. 관리자/피검자 화면의 브랜드 스타일 확장 적용
+2. 스토어/의뢰 플로우 UI 검증 시나리오 점검
+3. 기능 추가 시 세션 로그 즉시 갱신 지속
+
+## 34) Work Session Entry (2026-03-04, Brand Style Layer Expansion)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "계속 진행" (계획 정합성 유지 + 기록 지속)
+- Working Branch: main
+
+### Planned
+1. SICP 키컬러 기반 전역 UI 레이어 확장
+2. 핵심 화면(홈/인증/관리자/피검자/플랫폼)에 공통 스타일 적용
+3. 회귀 검증 + 실행로그 동기화
+
+### Done
+1. 전역 스타일 확장
+   - 파일: `apps/web/src/app/globals.css`
+   - 추가 내용:
+     - `sa-page`, `sa-home`, `sa-home-card`, `sa-footer`, `sa-divider`, `sa-inline-message` 등 공통 클래스
+     - 테이블/폼/버튼/섹션/카드 공통 룩앤필
+     - 브랜드 토큰(`--brand-200`, `--brand-700`) 활용 강도 확장
+2. 화면 적용
+   - 홈: `apps/web/src/app/[locale]/page.tsx`
+   - 관리자 로그인: `apps/web/src/app/[locale]/auth/admin/page.tsx`
+   - 피검자 인증: `apps/web/src/app/[locale]/auth/participant/ParticipantAuthClient.tsx`
+   - 관리자 대시보드: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+   - 피검자 대시보드: `apps/web/src/app/[locale]/participant/ParticipantDashboardClient.tsx`
+   - 플랫폼 어드민 대시보드: `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+   - 각 page footer/권한거부 화면 클래스 적용:
+     - `apps/web/src/app/[locale]/admin/page.tsx`
+     - `apps/web/src/app/[locale]/participant/page.tsx`
+     - `apps/web/src/app/[locale]/platform/page.tsx`
+3. 정합성 유지
+   - 기존 정책(특수 템플릿 request-only, 역할 분리, OAuth canonical 운영)과 충돌 없음
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 없음 (기존 브랜드/정책 가이드의 시각 적용 범위만 확대)
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 컴포넌트 단위 디자인 시스템 분리(`packages/ui`) 여부는 후속
+
+### Risks / Blockers
+- 현재 blocker 없음
+
+### Next Actions
+1. 관리자 의뢰/스토어 흐름 UX 미세조정(필드 그룹화/가독성)
+2. 피검자 설문 응답 화면 모바일 터치 영역 최적화
+3. 변경사항 커밋/푸시 후 배포 확인

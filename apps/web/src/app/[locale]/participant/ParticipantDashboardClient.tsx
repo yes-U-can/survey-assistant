@@ -559,7 +559,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
   ]);
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif" }}>
+    <main className="sa-page">
       <h1>{text.title}</h1>
       <p>{text.subtitle}</p>
 
@@ -582,7 +582,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
         </button>
       </form>
 
-      {message ? <p style={{ marginTop: 12 }}>{message}</p> : null}
+      {message ? <p className="sa-inline-message">{message}</p> : null}
 
       <section style={{ marginTop: 24 }}>
         <h2>{text.sectionTitle}</h2>
@@ -752,7 +752,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
         ) : null}
       </section>
 
-      {surveyMessage ? <p style={{ marginTop: 16 }}>{surveyMessage}</p> : null}
+      {surveyMessage ? <p className="sa-inline-message">{surveyMessage}</p> : null}
     </main>
   );
 }

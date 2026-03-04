@@ -16,7 +16,7 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
       : fallbackCallback;
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", maxWidth: 480 }}>
+    <main className="sa-page" style={{ maxWidth: 540 }}>
       <h1>{locale === "ko" ? "관리자 로그인" : "Admin Sign-In"}</h1>
       <p>
         {locale === "ko"
@@ -24,17 +24,9 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
           : "Research admins and platform admins sign in with Google."}
       </p>
       <a
+        className="sa-btn-link sa-btn-primary"
         href={`/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-        style={{
-          display: "inline-block",
-          marginTop: 16,
-          padding: "10px 14px",
-          borderRadius: 8,
-          border: "1px solid #111",
-          textDecoration: "none",
-          color: "inherit",
-          cursor: "pointer",
-        }}
+        style={{ display: "inline-block", marginTop: 16, textDecoration: "none" }}
       >
         {locale === "ko" ? "Google로 로그인" : "Continue with Google"}
       </a>

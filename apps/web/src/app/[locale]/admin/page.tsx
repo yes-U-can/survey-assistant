@@ -27,7 +27,7 @@ export default async function AdminHomePage({ params }: PageProps) {
     session.user.role !== UserRole.PLATFORM_ADMIN
   ) {
     return (
-      <main style={{ padding: 24, fontFamily: "sans-serif" }}>
+      <main className="sa-page">
         <h1>{locale === "ko" ? "접근 권한 없음" : "Access Denied"}</h1>
         <p>
           {locale === "ko"
@@ -318,15 +318,15 @@ export default async function AdminHomePage({ params }: PageProps) {
         initialPurchases={initialPurchases}
         initialSales={initialSales}
       />
-      <footer style={{ padding: "0 24px 24px", fontFamily: "sans-serif" }}>
+      <footer className="sa-footer">
         <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-        <span style={{ margin: "0 8px" }}>|</span>
+        <span className="sa-divider">|</span>
         {session.user.role === UserRole.PLATFORM_ADMIN ? (
           <>
             <Link href={`/${locale}/platform`}>
               {locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}
             </Link>
-            <span style={{ margin: "0 8px" }}>|</span>
+            <span className="sa-divider">|</span>
           </>
         ) : null}
         <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>

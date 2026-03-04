@@ -61,10 +61,10 @@ export function ParticipantAuthClient({ locale }: Props) {
   };
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", maxWidth: 520 }}>
+    <main className="sa-page" style={{ maxWidth: 620 }}>
       <h1>{locale === "ko" ? "피검자 로그인" : "Participant Sign-In"}</h1>
 
-      <section style={{ marginTop: 20 }}>
+      <section>
         <h2>{locale === "ko" ? "익명형 가입" : "Anonymous-Style Sign-Up"}</h2>
         <form onSubmit={onSignup} style={{ display: "grid", gap: 10 }}>
           <input
@@ -89,10 +89,10 @@ export function ParticipantAuthClient({ locale }: Props) {
             {locale === "ko" ? "가입하기" : "Create Account"}
           </button>
         </form>
-        <p>{signupMessage}</p>
+        <p className="sa-inline-message">{signupMessage}</p>
       </section>
 
-      <section style={{ marginTop: 24 }}>
+      <section>
         <h2>{locale === "ko" ? "로그인" : "Sign-In"}</h2>
         <form onSubmit={onLogin} style={{ display: "grid", gap: 10 }}>
           <input
@@ -110,9 +110,8 @@ export function ParticipantAuthClient({ locale }: Props) {
           />
           <button type="submit">{locale === "ko" ? "로그인" : "Sign In"}</button>
         </form>
-        <p>{loginMessage}</p>
+        <p className="sa-inline-message">{loginMessage}</p>
       </section>
     </main>
   );
 }
-

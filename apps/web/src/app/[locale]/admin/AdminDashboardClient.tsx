@@ -983,7 +983,7 @@ export function AdminDashboardClient({
   };
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif", display: "grid", gap: 20 }}>
+    <main className="sa-page sa-admin-grid" style={{ display: "grid", gap: 20 }}>
       <section>
         <h1>{t.title}</h1>
         <p>{t.subtitle}</p>
@@ -995,7 +995,7 @@ export function AdminDashboardClient({
         >
           {isLoading ? t.loading : t.refresh}
         </button>
-        {message ? <p style={{ marginTop: 10 }}>{message}</p> : null}
+        {message ? <p className="sa-inline-message">{message}</p> : null}
       </section>
 
       <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>

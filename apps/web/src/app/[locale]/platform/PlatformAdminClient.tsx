@@ -660,13 +660,13 @@ export function PlatformAdminClient({
   );
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1 style={{ marginTop: 0 }}>{t.title}</h1>
+    <main className="sa-page">
+      <h1>{t.title}</h1>
       <p>{t.subtitle}</p>
       <button type="button" onClick={() => void refreshAll()} disabled={isLoading}>
         {isLoading ? t.loading : t.refresh}
       </button>
-      {message ? <p>{message}</p> : null}
+      {message ? <p className="sa-inline-message">{message}</p> : null}
 
       <section style={{ marginTop: 24 }}>
         <h2>{t.overview}</h2>
