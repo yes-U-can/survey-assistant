@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
-import { loadEnvConfig } from "@next/env";
+import { loadTestEnv } from "./e2e/load-test-env";
 
-loadEnvConfig(process.cwd());
+loadTestEnv(process.cwd());
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
 const shouldStartWebServer = !process.env.PLAYWRIGHT_BASE_URL;

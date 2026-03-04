@@ -7,10 +7,10 @@ import {
   UserRole,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { loadEnvConfig } from "@next/env";
 import { test, expect, APIRequestContext } from "@playwright/test";
+import { loadTestEnv } from "./load-test-env";
 
-loadEnvConfig(process.cwd());
+loadTestEnv(process.cwd());
 
 const connectionString = process.env.DATABASE_URL ?? process.env.DIRECT_URL;
 const prisma = connectionString
