@@ -2,14 +2,28 @@ import { CreditTxnType, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { applyCreditMutationWithPrisma, CreditLedgerError } from "@/lib/credit-ledger";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdminSession } from "@/lib/session-guard";
 
-const issueCreditSchema = z.object({
-  loginId: z.string().trim().min(1).max(120),
-  amount: z.number().int().min(1).max(1_000_000),
+const baseSchema = z.object({
+  targetUserId: z.string().trim().min(1),
   memo: z.string().trim().max(300).optional(),
 });
+
+const standardMutationSchema = baseSchema.extend({
+  type: z.enum(["ISSUE", "SPEND", "REFUND", "REWARD"]),
+  amount: z.number().int().min(1).max(1_000_000),
+});
+
+const adjustmentMutationSchema = baseSchema.extend({
+  type: z.literal("ADJUSTMENT"),
+  amount: z.number().int().min(-1_000_000).max(1_000_000).refine((value) => value !== 0),
+});
+
+const mutateCreditSchema = z.union([standardMutationSchema, adjustmentMutationSchema]);
+
+const adminRoles: UserRole[] = [UserRole.RESEARCH_ADMIN, UserRole.PLATFORM_ADMIN];
 
 export async function GET(request: Request) {
   const session = await requirePlatformAdminSession();
@@ -23,8 +37,28 @@ export async function GET(request: Request) {
     ? Math.min(Math.max(Math.trunc(limitRaw), 1), 100)
     : 20;
 
-  const [wallets, transactions] = await Promise.all([
+  const [adminUsers, wallets, transactions] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        role: { in: adminRoles },
+        isActive: true,
+      },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        role: true,
+        loginId: true,
+        displayName: true,
+        isActive: true,
+        createdAt: true,
+      },
+    }),
     prisma.creditWallet.findMany({
+      where: {
+        user: {
+          role: { in: adminRoles },
+        },
+      },
       take: limit,
       orderBy: { updatedAt: "desc" },
       select: {
@@ -43,6 +77,13 @@ export async function GET(request: Request) {
       },
     }),
     prisma.creditTransaction.findMany({
+      where: {
+        wallet: {
+          user: {
+            role: { in: adminRoles },
+          },
+        },
+      },
       take: limit,
       orderBy: { createdAt: "desc" },
       select: {
@@ -70,6 +111,10 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    adminUsers: adminUsers.map((user) => ({
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+    })),
     wallets: wallets.map((wallet) => ({
       id: wallet.id,
       balance: wallet.balance,
@@ -95,14 +140,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const parsed = issueCreditSchema.safeParse(body);
+  const parsed = mutateCreditSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
   }
 
-  const loginId = parsed.data.loginId.trim();
   const target = await prisma.user.findUnique({
-    where: { loginId },
+    where: { id: parsed.data.targetUserId },
     select: {
       id: true,
       role: true,
@@ -115,7 +159,7 @@ export async function POST(request: Request) {
   if (!target) {
     return NextResponse.json({ ok: false, error: "target_not_found" }, { status: 404 });
   }
-  if (target.role !== UserRole.PARTICIPANT) {
+  if (target.role !== UserRole.RESEARCH_ADMIN && target.role !== UserRole.PLATFORM_ADMIN) {
     return NextResponse.json(
       { ok: false, error: "target_role_not_supported" },
       { status: 400 },
@@ -125,75 +169,56 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "target_inactive" }, { status: 400 });
   }
 
+  const amount = parsed.data.amount;
+  const mutationType =
+    parsed.data.type === "ISSUE"
+      ? CreditTxnType.ISSUE
+      : parsed.data.type === "SPEND"
+        ? CreditTxnType.SPEND
+        : parsed.data.type === "REFUND"
+          ? CreditTxnType.REFUND
+          : parsed.data.type === "REWARD"
+            ? CreditTxnType.REWARD
+            : CreditTxnType.ADJUSTMENT;
+
   const memo = parsed.data.memo?.trim() ? parsed.data.memo.trim() : null;
 
-  const result = await prisma.$transaction(async (tx) => {
-    const wallet = await tx.creditWallet.upsert({
-      where: { userId: target.id },
-      update: {},
-      create: {
-        userId: target.id,
-        balance: 0,
-      },
-      select: {
-        id: true,
-      },
+  try {
+    const result = await applyCreditMutationWithPrisma({
+      userId: target.id,
+      type: mutationType,
+      amount,
+      memo,
+      referenceId: null,
     });
 
-    const updatedWallet = await tx.creditWallet.update({
-      where: { id: wallet.id },
-      data: {
-        balance: {
-          increment: parsed.data.amount,
+    return NextResponse.json(
+      {
+        ok: true,
+        target: {
+          id: target.id,
+          role: target.role,
+          loginId: target.loginId,
+          displayName: target.displayName,
+        },
+        wallet: {
+          ...result.wallet,
+          updatedAt: result.wallet.updatedAt.toISOString(),
+        },
+        transaction: {
+          ...result.transaction,
+          createdAt: result.transaction.createdAt.toISOString(),
         },
       },
-      select: {
-        id: true,
-        balance: true,
-        updatedAt: true,
-      },
-    });
-
-    const transaction = await tx.creditTransaction.create({
-      data: {
-        walletId: wallet.id,
-        type: CreditTxnType.ISSUE,
-        amount: parsed.data.amount,
-        memo,
-        referenceId: null,
-      },
-      select: {
-        id: true,
-        type: true,
-        amount: true,
-        memo: true,
-        createdAt: true,
-      },
-    });
-
-    return {
-      wallet: updatedWallet,
-      transaction,
-    };
-  });
-
-  return NextResponse.json(
-    {
-      ok: true,
-      target: {
-        id: target.id,
-        loginId: target.loginId,
-        displayName: target.displayName,
-      },
-      wallet: {
-        ...result.wallet,
-        updatedAt: result.wallet.updatedAt.toISOString(),
-      },
-      transaction: {
-        ...result.transaction,
-        createdAt: result.transaction.createdAt.toISOString(),
-      },
-    },
-    { status: 201 },
-  );
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error instanceof CreditLedgerError) {
+      if (error.code === "insufficient_balance") {
+        return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 400 });
+      }
+      return NextResponse.json({ ok: false, error: "invalid_amount" }, { status: 400 });
+    }
+    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
 }

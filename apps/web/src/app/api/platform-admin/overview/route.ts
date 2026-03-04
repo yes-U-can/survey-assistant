@@ -16,10 +16,27 @@ export async function GET() {
       _count: { _all: true },
     }),
     prisma.creditWallet.aggregate({
+      where: {
+        user: {
+          role: {
+            in: [UserRole.RESEARCH_ADMIN, UserRole.PLATFORM_ADMIN],
+          },
+        },
+      },
       _count: { _all: true },
       _sum: { balance: true },
     }),
-    prisma.creditTransaction.count(),
+    prisma.creditTransaction.count({
+      where: {
+        wallet: {
+          user: {
+            role: {
+              in: [UserRole.RESEARCH_ADMIN, UserRole.PLATFORM_ADMIN],
+            },
+          },
+        },
+      },
+    }),
     prisma.migrationJob.groupBy({
       by: ["status"],
       _count: { _all: true },

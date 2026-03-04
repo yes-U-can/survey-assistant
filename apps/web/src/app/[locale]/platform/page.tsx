@@ -35,86 +35,136 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     );
   }
 
-  const [userGroups, walletAgg, transactionCount, migrationGroups, wallets, transactions, jobs] =
-    await Promise.all([
-      prisma.user.groupBy({
-        by: ["role"],
-        _count: { _all: true },
-      }),
-      prisma.creditWallet.aggregate({
-        _count: { _all: true },
-        _sum: { balance: true },
-      }),
-      prisma.creditTransaction.count(),
-      prisma.migrationJob.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-      }),
-      prisma.creditWallet.findMany({
-        take: 20,
-        orderBy: { updatedAt: "desc" },
-        select: {
-          id: true,
-          balance: true,
-          updatedAt: true,
+  const adminRoles: UserRole[] = [UserRole.RESEARCH_ADMIN, UserRole.PLATFORM_ADMIN];
+
+  const [
+    userGroups,
+    walletAgg,
+    transactionCount,
+    migrationGroups,
+    adminUsers,
+    wallets,
+    transactions,
+    jobs,
+  ] = await Promise.all([
+    prisma.user.groupBy({
+      by: ["role"],
+      _count: { _all: true },
+    }),
+    prisma.creditWallet.aggregate({
+      where: {
+        user: {
+          role: { in: adminRoles },
+        },
+      },
+      _count: { _all: true },
+      _sum: { balance: true },
+    }),
+    prisma.creditTransaction.count({
+      where: {
+        wallet: {
           user: {
-            select: {
-              id: true,
-              role: true,
-              loginId: true,
-              displayName: true,
-              isActive: true,
-            },
+            role: { in: adminRoles },
           },
         },
-      }),
-      prisma.creditTransaction.findMany({
-        take: 20,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          type: true,
-          amount: true,
-          memo: true,
-          referenceId: true,
-          createdAt: true,
-          wallet: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  role: true,
-                  loginId: true,
-                  displayName: true,
-                },
+      },
+    }),
+    prisma.migrationJob.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
+    prisma.user.findMany({
+      where: {
+        role: { in: adminRoles },
+        isActive: true,
+      },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        role: true,
+        loginId: true,
+        displayName: true,
+        isActive: true,
+        createdAt: true,
+      },
+    }),
+    prisma.creditWallet.findMany({
+      where: {
+        user: {
+          role: { in: adminRoles },
+        },
+      },
+      take: 20,
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        balance: true,
+        updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            role: true,
+            loginId: true,
+            displayName: true,
+            isActive: true,
+          },
+        },
+      },
+    }),
+    prisma.creditTransaction.findMany({
+      where: {
+        wallet: {
+          user: {
+            role: { in: adminRoles },
+          },
+        },
+      },
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        memo: true,
+        referenceId: true,
+        createdAt: true,
+        wallet: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                role: true,
+                loginId: true,
+                displayName: true,
               },
             },
           },
         },
-      }),
-      prisma.migrationJob.findMany({
-        take: 50,
-        orderBy: { requestedAt: "desc" },
-        select: {
-          id: true,
-          sourceLabel: true,
-          sourceFormat: true,
-          status: true,
-          requestNote: true,
-          resultNote: true,
-          requestedAt: true,
-          completedAt: true,
-          requester: {
-            select: {
-              id: true,
-              loginId: true,
-              displayName: true,
-              role: true,
-            },
+      },
+    }),
+    prisma.migrationJob.findMany({
+      take: 50,
+      orderBy: { requestedAt: "desc" },
+      select: {
+        id: true,
+        sourceLabel: true,
+        sourceFormat: true,
+        status: true,
+        requestNote: true,
+        resultNote: true,
+        requestedAt: true,
+        completedAt: true,
+        requester: {
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            role: true,
           },
         },
-      }),
-    ]);
+      },
+    }),
+  ]);
 
   let participantCount = 0;
   let researchAdminCount = 0;
@@ -159,6 +209,11 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     migrationJobs: migrationCounts,
   };
 
+  const initialAdminUsers = adminUsers.map((user) => ({
+    ...user,
+    createdAt: user.createdAt.toISOString(),
+  }));
+
   const initialWallets = wallets.map((wallet) => ({
     id: wallet.id,
     balance: wallet.balance,
@@ -187,6 +242,7 @@ export default async function PlatformAdminPage({ params }: PageProps) {
       <PlatformAdminClient
         locale={locale}
         initialOverview={initialOverview}
+        initialAdminUsers={initialAdminUsers}
         initialWallets={initialWallets}
         initialTransactions={initialTransactions}
         initialJobs={initialJobs}

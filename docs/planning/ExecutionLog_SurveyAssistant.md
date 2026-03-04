@@ -589,7 +589,7 @@
    - `requirePlatformAdminSession` 추가
 2. Platform Admin API 추가
    - `GET /api/platform-admin/overview`
-   - `GET/POST /api/platform-admin/credits` (피검자 대상 크레딧 지급)
+   - `GET/POST /api/platform-admin/credits` (초기 베이스라인)
    - `GET /api/platform-admin/migration-jobs`
    - `PATCH /api/platform-admin/migration-jobs/{jobId}/status`
 3. Platform Admin 화면 추가
@@ -623,3 +623,54 @@
 1. Participant 설문 응답 UI(리커트 렌더러)와 응답 API 완전 연결
 2. CSV export MVP(패키지 결과 다운로드) 구현
 3. Platform Admin 크레딧 정책(차감/환불/정산) 확장 설계
+
+## 24) Work Session Entry (2026-03-04, Credit Model Correction to Admin Billing)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 크레딧 모델 의도 재확인(피검자 대상 아님) + 프로 방식으로 정렬
+- Working Branch: main
+
+### Planned
+1. 크레딧 모델을 관리자 과금 모델로 수정
+2. 거래 유형 확장(발행/사용/환불/보상/조정)
+3. 문서 정책 동기화 + 검증
+
+### Done
+1. 크레딧 원장 유틸 분리
+   - `src/lib/credit-ledger.ts`
+   - `ISSUE/SPEND/REFUND/REWARD/ADJUSTMENT` 공통 처리
+   - 잔액 부족(`insufficient_balance`) 차단
+2. Platform Admin credits API 수정
+   - 대상: 관리자 계정(`RESEARCH_ADMIN`, `PLATFORM_ADMIN`)
+   - `GET /api/platform-admin/credits`: 관리자 목록 + 관리자 지갑/거래 반환
+   - `POST /api/platform-admin/credits`: 5개 거래 유형 처리
+3. Platform Admin 콘솔 UI 수정
+   - "피검자 크레딧" 개념 제거
+   - 관리자 대상 거래 폼(대상 관리자/거래유형/금액/메모) 반영
+4. Platform 페이지 서버 프리로드 데이터 수정
+   - 관리자 기준 지갑/거래 집계로 정렬
+5. 계획 문서 보강
+   - `MasterPlan`에 플랫폼 제공 API 키 + 관리자 크레딧 정책 명시
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 크레딧은 "피검자 기능"이 아니라 "관리자 과금/운영 자산"으로 고정
+  - 거래 원장 최소 유형 5개 지원 고정
+- Changed decisions:
+  - 23번 세션의 임시 표현/해석(피검자 지급)은 폐기
+- Deferred decisions:
+  - 플랫폼 제공 API 키의 실제 요청 과금 단위(토큰/요청/모델별 단가) 정책
+
+### Risks / Blockers
+- Preview 환경변수 `PLATFORM_ADMIN_EMAILS`는 Vercel CLI 브랜치 정책으로 자동 일괄 반영이 제한됨(후속 자동화 필요)
+
+### Next Actions
+1. CSV export MVP 구현 (패키지 결과 다운로드)
+2. 관리자 AI 호출 경로에 `SPEND` 자동 차감 훅 연결
+3. Preview env 자동화 스크립트 또는 API 기반 반영 방식 확정

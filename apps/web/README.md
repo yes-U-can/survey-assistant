@@ -46,7 +46,7 @@ This app is linked to project `survey_sicp`.
 ## Platform Admin APIs (Current Baseline)
 - Overview: `GET /api/platform-admin/overview`
 - Credit ledger list: `GET /api/platform-admin/credits`
-- Issue credits to participant: `POST /api/platform-admin/credits`
+- Mutate admin credits (issue/spend/refund/reward/adjustment): `POST /api/platform-admin/credits`
 - Migration jobs list: `GET /api/platform-admin/migration-jobs`
 - Migration status update: `PATCH /api/platform-admin/migration-jobs/{jobId}/status`
 

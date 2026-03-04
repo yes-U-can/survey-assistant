@@ -4,6 +4,9 @@ import { FormEvent, useCallback, useMemo, useState } from "react";
 
 type LocaleCode = "ko" | "en";
 
+type CreditAction = "ISSUE" | "SPEND" | "REFUND" | "REWARD" | "ADJUSTMENT";
+type AdjustmentDirection = "INCREASE" | "DECREASE";
+
 type MigrationStatus =
   | "REQUESTED"
   | "ACCEPTED"
@@ -24,6 +27,15 @@ type Overview = {
     transactionCount: number;
   };
   migrationJobs: Record<MigrationStatus, number>;
+};
+
+type AdminUserItem = {
+  id: string;
+  role: string;
+  loginId: string | null;
+  displayName: string | null;
+  isActive: boolean;
+  createdAt: string;
 };
 
 type WalletItem = {
@@ -82,6 +94,7 @@ type JobDraftMap = Record<
 type Props = {
   locale: LocaleCode;
   initialOverview: Overview;
+  initialAdminUsers: AdminUserItem[];
   initialWallets: WalletItem[];
   initialTransactions: TransactionItem[];
   initialJobs: MigrationJobItem[];
@@ -96,23 +109,23 @@ const statusOptions: MigrationStatus[] = [
   "CANCELED",
 ];
 
+const creditActions: CreditAction[] = [
+  "ISSUE",
+  "SPEND",
+  "REFUND",
+  "REWARD",
+  "ADJUSTMENT",
+];
+
 const msg = {
   ko: {
     title: "플랫폼 어드민",
-    subtitle: "크레딧 원장과 마이그레이션 요청을 운영합니다.",
+    subtitle: "관리자 크레딧 원장과 마이그레이션 요청을 운영합니다.",
     refresh: "새로고침",
-    issueTitle: "피검자 크레딧 지급",
-    loginId: "피검자 ID",
-    amount: "지급 크레딧",
-    memo: "메모",
-    issueButton: "크레딧 지급",
     loading: "처리 중...",
-    okIssue: "크레딧이 지급되었습니다.",
     failDefault: "요청 처리에 실패했습니다.",
-    needLoginId: "피검자 ID를 입력해주세요.",
-    needAmount: "지급 크레딧은 1 이상이어야 합니다.",
     overview: "운영 현황",
-    wallets: "지갑 잔액",
+    wallets: "관리자 지갑 잔액",
     txns: "최근 크레딧 거래",
     migrations: "마이그레이션 요청",
     status: "상태",
@@ -122,42 +135,77 @@ const msg = {
     resultNote: "결과 메모",
     apply: "상태 반영",
     okStatus: "마이그레이션 상태가 변경되었습니다.",
+    creditTitle: "관리자 크레딧 거래",
+    targetUser: "대상 관리자",
+    action: "거래 유형",
+    amount: "금액",
+    memo: "메모",
+    submitCredit: "거래 실행",
+    okCredit: "크레딧 거래가 반영되었습니다.",
+    needTargetUser: "대상 관리자를 선택해주세요.",
+    needAmount: "금액은 1 이상이어야 합니다.",
+    noAdminUsers: "등록된 관리자 계정이 없습니다.",
+    adjustmentDirection: "조정 방향",
+    adjustmentIncrease: "증가(+)",
+    adjustmentDecrease: "감소(-)",
   },
   en: {
     title: "Platform Admin",
-    subtitle: "Operate credit ledger and migration workflows.",
+    subtitle: "Operate admin credit ledger and migration workflows.",
     refresh: "Refresh",
-    issueTitle: "Issue credits to participant",
-    loginId: "Participant ID",
-    amount: "Credit amount",
-    memo: "Memo",
-    issueButton: "Issue credits",
     loading: "Processing...",
-    okIssue: "Credits issued.",
     failDefault: "Request failed.",
-    needLoginId: "Enter participant ID.",
-    needAmount: "Credit amount must be at least 1.",
     overview: "Overview",
-    wallets: "Wallet balances",
-    txns: "Recent transactions",
+    wallets: "Admin wallet balances",
+    txns: "Recent credit transactions",
     migrations: "Migration requests",
     status: "Status",
     requester: "Requester",
     source: "Source",
-    note: "Note",
+    note: "Memo",
     resultNote: "Result note",
     apply: "Apply status",
     okStatus: "Migration status updated.",
+    creditTitle: "Admin credit mutation",
+    targetUser: "Target admin",
+    action: "Transaction type",
+    amount: "Amount",
+    memo: "Memo",
+    submitCredit: "Execute transaction",
+    okCredit: "Credit transaction applied.",
+    needTargetUser: "Select a target admin user.",
+    needAmount: "Amount must be at least 1.",
+    noAdminUsers: "No admin users available.",
+    adjustmentDirection: "Adjustment direction",
+    adjustmentIncrease: "Increase (+)",
+    adjustmentDecrease: "Decrease (-)",
   },
 } as const;
+
+function actionLabel(locale: LocaleCode, action: CreditAction) {
+  if (locale === "en") {
+    return action;
+  }
+  if (action === "ISSUE") return "발행(+)";
+  if (action === "SPEND") return "사용(-)";
+  if (action === "REFUND") return "환불(+)";
+  if (action === "REWARD") return "보상(+)";
+  return "조정(±)";
+}
 
 async function parseJson<T>(response: Response): Promise<T | null> {
   return (await response.json().catch(() => null)) as T | null;
 }
 
+function formatUserLabel(user: AdminUserItem) {
+  const name = user.displayName?.trim() ? user.displayName.trim() : user.loginId ?? user.id;
+  return `${name} (${user.role})`;
+}
+
 export function PlatformAdminClient({
   locale,
   initialOverview,
+  initialAdminUsers,
   initialWallets,
   initialTransactions,
   initialJobs,
@@ -165,6 +213,7 @@ export function PlatformAdminClient({
   const t = useMemo(() => msg[locale], [locale]);
 
   const [overview, setOverview] = useState<Overview | null>(initialOverview);
+  const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>(initialAdminUsers);
   const [wallets, setWallets] = useState<WalletItem[]>(initialWallets);
   const [transactions, setTransactions] = useState<TransactionItem[]>(initialTransactions);
   const [jobs, setJobs] = useState<MigrationJobItem[]>(initialJobs);
@@ -182,7 +231,9 @@ export function PlatformAdminClient({
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const [loginId, setLoginId] = useState("");
+  const [targetUserId, setTargetUserId] = useState(initialAdminUsers[0]?.id ?? "");
+  const [action, setAction] = useState<CreditAction>("ISSUE");
+  const [adjustmentDirection, setAdjustmentDirection] = useState<AdjustmentDirection>("INCREASE");
   const [amount, setAmount] = useState(100);
   const [memo, setMemo] = useState("");
 
@@ -199,6 +250,7 @@ export function PlatformAdminClient({
     const overviewJson = await parseJson<{ ok?: boolean; overview?: Overview }>(overviewRes);
     const creditsJson = await parseJson<{
       ok?: boolean;
+      adminUsers?: AdminUserItem[];
       wallets?: WalletItem[];
       transactions?: TransactionItem[];
     }>(creditsRes);
@@ -220,6 +272,11 @@ export function PlatformAdminClient({
     }
 
     setOverview(overviewJson.overview ?? null);
+    const loadedUsers = creditsJson.adminUsers ?? [];
+    setAdminUsers(loadedUsers);
+    if (!targetUserId && loadedUsers.length > 0) {
+      setTargetUserId(loadedUsers[0].id);
+    }
     setWallets(creditsJson.wallets ?? []);
     setTransactions(creditsJson.transactions ?? []);
     const loadedJobs = migrationJson.jobs ?? [];
@@ -236,31 +293,43 @@ export function PlatformAdminClient({
       return next;
     });
     setIsLoading(false);
-  }, [t.failDefault]);
+  }, [t.failDefault, targetUserId]);
 
-  const onIssueCredits = useCallback(
+  const onMutateCredits = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
       setMessage("");
 
-      if (!loginId.trim()) {
-        setMessage(t.needLoginId);
+      if (!targetUserId) {
+        setMessage(t.needTargetUser);
         return;
       }
-      if (!Number.isFinite(amount) || amount < 1) {
+      if (!Number.isFinite(amount) || Math.trunc(amount) < 1) {
         setMessage(t.needAmount);
         return;
       }
+
+      const normalizedAmount = Math.trunc(amount);
+      const payload =
+        action === "ADJUSTMENT"
+          ? {
+              targetUserId,
+              type: action,
+              amount: adjustmentDirection === "INCREASE" ? normalizedAmount : -normalizedAmount,
+              memo: memo.trim() || undefined,
+            }
+          : {
+              targetUserId,
+              type: action,
+              amount: normalizedAmount,
+              memo: memo.trim() || undefined,
+            };
 
       setIsLoading(true);
       const response = await fetch("/api/platform-admin/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loginId: loginId.trim(),
-          amount: Math.trunc(amount),
-          memo: memo.trim() || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -270,14 +339,24 @@ export function PlatformAdminClient({
         return;
       }
 
-      setLoginId("");
       setAmount(100);
       setMemo("");
-      setMessage(t.okIssue);
+      setMessage(t.okCredit);
       await refreshAll();
       setIsLoading(false);
     },
-    [amount, loginId, memo, refreshAll, t.failDefault, t.needAmount, t.needLoginId, t.okIssue],
+    [
+      action,
+      adjustmentDirection,
+      amount,
+      memo,
+      refreshAll,
+      t.failDefault,
+      t.needAmount,
+      t.needTargetUser,
+      t.okCredit,
+      targetUserId,
+    ],
   );
 
   const updateJobDraft = useCallback(
@@ -340,7 +419,7 @@ export function PlatformAdminClient({
             <li>Participants: {overview.users.participantCount}</li>
             <li>Research Admins: {overview.users.researchAdminCount}</li>
             <li>Platform Admins: {overview.users.platformAdminCount}</li>
-            <li>Wallets: {overview.credits.walletCount}</li>
+            <li>Admin Wallets: {overview.credits.walletCount}</li>
             <li>Total Credits: {overview.credits.totalBalance}</li>
             <li>Transactions: {overview.credits.transactionCount}</li>
             <li>Migration Requested: {overview.migrationJobs.REQUESTED}</li>
@@ -353,42 +432,88 @@ export function PlatformAdminClient({
       </section>
 
       <section style={{ marginTop: 24 }}>
-        <h2>{t.issueTitle}</h2>
-        <form onSubmit={onIssueCredits} style={{ display: "grid", gap: 8, maxWidth: 420 }}>
-          <label>
-            {t.loginId}
-            <input
-              value={loginId}
-              onChange={(event) => setLoginId(event.target.value)}
-              disabled={isLoading}
-              style={{ display: "block", width: "100%" }}
-            />
-          </label>
-          <label>
-            {t.amount}
-            <input
-              type="number"
-              min={1}
-              max={1_000_000}
-              value={amount}
-              onChange={(event) => setAmount(Number(event.target.value))}
-              disabled={isLoading}
-              style={{ display: "block", width: "100%" }}
-            />
-          </label>
-          <label>
-            {t.memo}
-            <input
-              value={memo}
-              onChange={(event) => setMemo(event.target.value)}
-              disabled={isLoading}
-              style={{ display: "block", width: "100%" }}
-            />
-          </label>
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? t.loading : t.issueButton}
-          </button>
-        </form>
+        <h2>{t.creditTitle}</h2>
+        {adminUsers.length === 0 ? (
+          <p>{t.noAdminUsers}</p>
+        ) : (
+          <form onSubmit={onMutateCredits} style={{ display: "grid", gap: 8, maxWidth: 540 }}>
+            <label>
+              {t.targetUser}
+              <select
+                value={targetUserId}
+                onChange={(event) => setTargetUserId(event.target.value)}
+                disabled={isLoading}
+                style={{ display: "block", width: "100%" }}
+              >
+                {adminUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {formatUserLabel(user)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              {t.action}
+              <select
+                value={action}
+                onChange={(event) => setAction(event.target.value as CreditAction)}
+                disabled={isLoading}
+                style={{ display: "block", width: "100%" }}
+              >
+                {creditActions.map((value) => (
+                  <option key={value} value={value}>
+                    {actionLabel(locale, value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              {t.amount}
+              <input
+                type="number"
+                min={1}
+                max={1_000_000}
+                value={amount}
+                onChange={(event) => setAmount(Number(event.target.value))}
+                disabled={isLoading}
+                style={{ display: "block", width: "100%" }}
+              />
+            </label>
+
+            {action === "ADJUSTMENT" ? (
+              <label>
+                {t.adjustmentDirection}
+                <select
+                  value={adjustmentDirection}
+                  onChange={(event) =>
+                    setAdjustmentDirection(event.target.value as AdjustmentDirection)
+                  }
+                  disabled={isLoading}
+                  style={{ display: "block", width: "100%" }}
+                >
+                  <option value="INCREASE">{t.adjustmentIncrease}</option>
+                  <option value="DECREASE">{t.adjustmentDecrease}</option>
+                </select>
+              </label>
+            ) : null}
+
+            <label>
+              {t.memo}
+              <input
+                value={memo}
+                onChange={(event) => setMemo(event.target.value)}
+                disabled={isLoading}
+                style={{ display: "block", width: "100%" }}
+              />
+            </label>
+
+            <button type="submit" disabled={isLoading}>
+              {isLoading ? t.loading : t.submitCredit}
+            </button>
+          </form>
+        )}
       </section>
 
       <section style={{ marginTop: 24 }}>
@@ -399,8 +524,7 @@ export function PlatformAdminClient({
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th align="left">Login ID</th>
-                <th align="left">Name</th>
+                <th align="left">User</th>
                 <th align="left">Role</th>
                 <th align="right">Balance</th>
                 <th align="left">Updated</th>
@@ -409,8 +533,7 @@ export function PlatformAdminClient({
             <tbody>
               {wallets.map((wallet) => (
                 <tr key={wallet.id}>
-                  <td>{wallet.user.loginId ?? "-"}</td>
-                  <td>{wallet.user.displayName ?? "-"}</td>
+                  <td>{wallet.user.loginId ?? wallet.user.displayName ?? wallet.user.id}</td>
                   <td>{wallet.user.role}</td>
                   <td align="right">{wallet.balance}</td>
                   <td>{new Date(wallet.updatedAt).toLocaleString()}</td>
@@ -440,7 +563,7 @@ export function PlatformAdminClient({
               {transactions.map((txn) => (
                 <tr key={txn.id}>
                   <td>{new Date(txn.createdAt).toLocaleString()}</td>
-                  <td>{txn.user.loginId ?? txn.user.displayName ?? "-"}</td>
+                  <td>{txn.user.loginId ?? txn.user.displayName ?? txn.user.id}</td>
                   <td>{txn.type}</td>
                   <td align="right">{txn.amount}</td>
                   <td>{txn.memo ?? "-"}</td>
@@ -476,7 +599,9 @@ export function PlatformAdminClient({
                 return (
                   <tr key={job.id}>
                     <td>{new Date(job.requestedAt).toLocaleString()}</td>
-                    <td>{job.requester.loginId ?? job.requester.displayName ?? "-"}</td>
+                    <td>
+                      {job.requester.loginId ?? job.requester.displayName ?? job.requester.id}
+                    </td>
                     <td>
                       {job.sourceLabel} ({job.sourceFormat})
                     </td>
