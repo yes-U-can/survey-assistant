@@ -43,7 +43,9 @@ This app is linked to project `survey_sicp`.
 - Template list/create: `GET/POST /api/admin/templates`
 - Package list/create: `GET/POST /api/admin/packages`
 - Package status update: `PATCH /api/admin/packages/{packageId}/status`
-- Package responses CSV export: `GET /api/admin/packages/{packageId}/export`
+- Package responses CSV export: `GET /api/admin/packages/{packageId}/export?from=&to=&attempt=`
+  - `from`, `to`: ISO datetime filter (`submittedAt`)
+  - `attempt`: attempt number filter (`attemptNo`)
 - AI analysis (BYOK/Managed with spend hook): `POST /api/admin/ai/analyze`
 
 ## Platform Admin APIs (Current Baseline)

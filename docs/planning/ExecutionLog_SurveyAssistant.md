@@ -864,3 +864,49 @@
 1. CSV export 필터(기간/attempt) 추가
 2. AI 차감 정책 고도화(토큰 기반 단가)
 3. 특수 템플릿 의뢰-배포 워크플로우(소스 공개 동의) 연결
+
+## 29) Work Session Entry (2026-03-04, Admin CSV Export Filters)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행
+- Working Branch: main
+
+### Planned
+1. CSV export API에 기간/응답회차 필터 추가
+2. 관리자 화면에서 필터를 설정해 다운로드하도록 연결
+3. 문서/검증 동기화
+
+### Done
+1. Export API 필터 지원 추가
+   - `GET /api/admin/packages/{packageId}/export`
+   - 쿼리 파라미터: `from`, `to`, `attempt`
+   - 유효성 검증: `invalid_from`, `invalid_to`, `invalid_range`, `invalid_attempt`
+   - 필터 적용 시 파일명 suffix `_filtered` 사용
+2. 관리자 대시보드 필터 UI 추가
+   - 패키지 섹션에 CSV 필터 필드셋(시작일시/종료일시/응답회차) 추가
+   - 패키지별 CSV 다운로드 링크가 필터 쿼리를 반영하도록 수정
+   - 기간 범위 오류 시 링크 비활성화 처리
+3. 문서 업데이트
+   - `apps/web/README.md`에 export 필터 쿼리 규약 반영
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - CSV export는 API/화면 모두 동일 필터 파라미터(`from`, `to`, `attempt`)를 표준으로 사용
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 필터 프리셋(최근 7일/30일) 및 wide format 동시 export 여부
+
+### Risks / Blockers
+- `datetime-local` 입력은 사용자 로컬시간 기반이므로, 결과 해석 시 UTC 변환 기준을 운영 문서에서 안내할 필요가 있음
+
+### Next Actions
+1. AI 차감 정책 고도화(요청당 고정 -> 토큰/모델 단가 기반)
+2. 특수 템플릿 의뢰-배포 워크플로우(소스 공개 동의) 연결
+3. CSV export 고급 옵션(와이드 포맷/컬럼 선택) 검토

@@ -52,6 +52,17 @@ function toStringValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function parseIsoDate(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed;
+}
+
 function flattenJson(value: unknown, prefix = "response"): FlatMap {
   const output: FlatMap = {};
 
@@ -99,10 +110,51 @@ function flattenJson(value: unknown, prefix = "response"): FlatMap {
   return output;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const session = await requireAdminSession();
   if (!session) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const fromRaw = url.searchParams.get("from");
+  const toRaw = url.searchParams.get("to");
+  const attemptRaw = url.searchParams.get("attempt");
+
+  const from = parseIsoDate(fromRaw);
+  const to = parseIsoDate(toRaw);
+
+  if (fromRaw && !from) {
+    return NextResponse.json({ ok: false, error: "invalid_from" }, { status: 400 });
+  }
+  if (toRaw && !to) {
+    return NextResponse.json({ ok: false, error: "invalid_to" }, { status: 400 });
+  }
+  if (from && to && to < from) {
+    return NextResponse.json({ ok: false, error: "invalid_range" }, { status: 400 });
+  }
+
+  let attempt: number | null = null;
+  if (attemptRaw) {
+    const parsedAttempt = Number.parseInt(attemptRaw, 10);
+    if (!Number.isInteger(parsedAttempt) || parsedAttempt < 1 || parsedAttempt > 500) {
+      return NextResponse.json({ ok: false, error: "invalid_attempt" }, { status: 400 });
+    }
+    attempt = parsedAttempt;
+  }
+
+  const responseWhere: {
+    attemptNo?: number;
+    submittedAt?: { gte?: Date; lte?: Date };
+  } = {};
+  if (attempt !== null) {
+    responseWhere.attemptNo = attempt;
+  }
+  if (from || to) {
+    responseWhere.submittedAt = {
+      ...(from ? { gte: from } : {}),
+      ...(to ? { lte: to } : {}),
+    };
   }
 
   const { packageId } = await context.params;
@@ -120,6 +172,7 @@ export async function GET(_request: Request, context: RouteContext) {
       code: true,
       title: true,
       responses: {
+        where: responseWhere,
         orderBy: [{ attemptNo: "asc" }, { submittedAt: "asc" }],
         select: {
           participantId: true,
@@ -186,7 +239,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const csvBody = `\uFEFF${lines.join("\r\n")}`;
-  const filename = `${safeFileName(targetPackage.code)}_responses.csv`;
+  const filename = `${safeFileName(targetPackage.code)}_responses${from || to || attempt !== null ? "_filtered" : ""}.csv`;
 
   return new Response(csvBody, {
     status: 200,

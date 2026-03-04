@@ -98,6 +98,13 @@ const msg = {
     setActive: "진행중으로",
     setClosed: "종료로",
     setArchived: "보관으로",
+    csvFilters: "CSV 필터",
+    csvFrom: "응답 시작일시",
+    csvTo: "응답 종료일시",
+    csvAttempt: "응답 회차",
+    csvAttemptHint: "비워두면 전체 회차",
+    csvInvalidRange: "CSV 필터 기간을 확인하세요. 종료일시는 시작일시 이후여야 합니다.",
+    exportCsv: "CSV",
   },
   en: {
     title: "Admin Home",
@@ -153,6 +160,13 @@ const msg = {
     setActive: "Set Active",
     setClosed: "Set Closed",
     setArchived: "Set Archived",
+    csvFilters: "CSV Filters",
+    csvFrom: "Submitted from",
+    csvTo: "Submitted to",
+    csvAttempt: "Attempt no",
+    csvAttemptHint: "Leave blank for all attempts",
+    csvInvalidRange: "Check CSV filter range. End datetime must be after start datetime.",
+    exportCsv: "Export CSV",
   },
 } as const;
 
@@ -232,6 +246,9 @@ export function AdminDashboardClient({
   const [aiResult, setAiResult] = useState("");
   const [aiMeta, setAiMeta] = useState("");
   const [aiIsRunning, setAiIsRunning] = useState(false);
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
+  const [exportAttempt, setExportAttempt] = useState("");
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
@@ -357,6 +374,50 @@ export function AdminDashboardClient({
       return undefined;
     }
     return date.toISOString();
+  };
+
+  const toIsoOrNull = (value: string) => {
+    if (!value.trim()) {
+      return null;
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    return date.toISOString();
+  };
+
+  const isExportRangeInvalid = useMemo(() => {
+    const from = toIsoOrNull(exportFrom);
+    const to = toIsoOrNull(exportTo);
+    if (!from || !to) {
+      return false;
+    }
+    return new Date(to).getTime() < new Date(from).getTime();
+  }, [exportFrom, exportTo]);
+
+  const buildExportHref = (packageId: string) => {
+    const params = new URLSearchParams();
+
+    const from = toIsoOrNull(exportFrom);
+    const to = toIsoOrNull(exportTo);
+    if (from) {
+      params.set("from", from);
+    }
+    if (to) {
+      params.set("to", to);
+    }
+
+    const parsedAttempt = Number.parseInt(exportAttempt, 10);
+    if (exportAttempt.trim() && Number.isInteger(parsedAttempt) && parsedAttempt > 0) {
+      params.set("attempt", String(parsedAttempt));
+    }
+
+    const query = params.toString();
+    if (!query) {
+      return `/api/admin/packages/${packageId}/export`;
+    }
+    return `/api/admin/packages/${packageId}/export?${query}`;
   };
 
   const onCreatePackage = async (event: FormEvent) => {
@@ -724,6 +785,44 @@ export function AdminDashboardClient({
           </button>
         </form>
 
+        <fieldset style={{ border: "1px solid #eee", padding: 10, marginTop: 14 }}>
+          <legend>{t.csvFilters}</legend>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <label>
+              {t.csvFrom}
+              <input
+                type="datetime-local"
+                value={exportFrom}
+                onChange={(event) => setExportFrom(event.target.value)}
+                style={{ marginLeft: 8 }}
+              />
+            </label>
+            <label>
+              {t.csvTo}
+              <input
+                type="datetime-local"
+                value={exportTo}
+                onChange={(event) => setExportTo(event.target.value)}
+                style={{ marginLeft: 8 }}
+              />
+            </label>
+            <label>
+              {t.csvAttempt}
+              <input
+                type="number"
+                min={1}
+                value={exportAttempt}
+                onChange={(event) => setExportAttempt(event.target.value)}
+                style={{ marginLeft: 8, width: 96 }}
+              />
+            </label>
+            <small>{t.csvAttemptHint}</small>
+          </div>
+          {isExportRangeInvalid ? (
+            <p style={{ marginTop: 8, color: "#b00020" }}>{t.csvInvalidRange}</p>
+          ) : null}
+        </fieldset>
+
         <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
           {packages.length === 0 ? (
             <p>{t.noPackage}</p>
@@ -768,7 +867,12 @@ export function AdminDashboardClient({
                     {t.setArchived}
                   </button>
                   <a
-                    href={`/api/admin/packages/${pkg.id}/export`}
+                    href={buildExportHref(pkg.id)}
+                    onClick={(event) => {
+                      if (isExportRangeInvalid) {
+                        event.preventDefault();
+                      }
+                    }}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -778,9 +882,11 @@ export function AdminDashboardClient({
                       textDecoration: "none",
                       color: "inherit",
                       fontSize: 13,
+                      opacity: isExportRangeInvalid ? 0.55 : 1,
+                      pointerEvents: isExportRangeInvalid ? "none" : "auto",
                     }}
                   >
-                    {locale === "ko" ? "CSV" : "Export CSV"}
+                    {t.exportCsv}
                   </a>
                 </div>
               </article>
