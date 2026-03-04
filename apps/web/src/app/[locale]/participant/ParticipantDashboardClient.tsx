@@ -612,10 +612,31 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
     text.surveySubmitted,
   ]);
 
+  const participantFlowSteps =
+    locale === "ko"
+      ? ["연구자에게 받은 참여코드를 입력합니다.", "진행 중인 패키지를 확인하고 응답을 시작합니다.", "응답 제출 후 남은 횟수와 최근 응답 시각을 확인합니다."]
+      : [
+          "Enter the participation code from your researcher.",
+          "Open an active package and start responding.",
+          "Submit response and check remaining count with last response time.",
+        ];
+
   return (
     <main className="sa-page">
       <h1>{text.title}</h1>
       <p>{text.subtitle}</p>
+
+      <section className="sa-role-flow">
+        <h2>{locale === "ko" ? "피검자 진행 순서" : "Participant flow"}</h2>
+        <ol className="sa-role-flow-list">
+          {participantFlowSteps.map((step, idx) => (
+            <li key={step}>
+              <span>{idx + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <form onSubmit={onEnroll} className="sa-participant-enroll-form">
         <label htmlFor="survey-code" style={{ display: "none" }}>

@@ -29,6 +29,11 @@ export default async function ParticipantHomePage({ params }: PageProps) {
             ? "피검자 계정으로 로그인해야 합니다."
             : "You need a participant account."}
         </p>
+        <p style={{ marginTop: 12 }}>
+          <Link href={`/${locale}/auth/participant`}>
+            {locale === "ko" ? "피검자 로그인으로 이동" : "Go to participant sign-in"}
+          </Link>
+        </p>
       </main>
     );
   }

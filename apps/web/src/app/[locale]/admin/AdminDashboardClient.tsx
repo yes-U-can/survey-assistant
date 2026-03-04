@@ -1196,11 +1196,30 @@ export function AdminDashboardClient({
     setAiIsRunning(false);
   };
 
+  const roleLabel =
+    locale === "ko"
+      ? viewerRole === "PLATFORM_ADMIN"
+        ? "현재 권한: 플랫폼 어드민 (관리자 기능 포함)"
+        : "현재 권한: 연구 관리자"
+      : viewerRole === "PLATFORM_ADMIN"
+        ? "Current role: Platform admin (includes research admin capabilities)"
+        : "Current role: Research admin";
+
+  const adminFlowSteps =
+    locale === "ko"
+      ? ["템플릿을 만들고 문항/스키마를 확정합니다.", "템플릿 묶음으로 설문 패키지를 생성하고 참여코드를 발급합니다.", "피검자가 코드로 참여한 응답을 CSV로 내려받아 분석합니다."]
+      : [
+          "Create templates and finalize question/schema.",
+          "Build a survey package from templates and issue participation code.",
+          "Download participant responses as CSV for analysis.",
+        ];
+
   return (
     <main className="sa-page sa-admin-grid" style={{ display: "grid", gap: 20 }}>
       <section>
         <h1>{t.title}</h1>
         <p>{t.subtitle}</p>
+        <p className="sa-role-pill">{roleLabel}</p>
         <button
           type="button"
           onClick={() => void refreshAll()}
@@ -1210,6 +1229,18 @@ export function AdminDashboardClient({
           {isLoading ? t.loading : t.refresh}
         </button>
         {message ? <p className="sa-inline-message">{message}</p> : null}
+      </section>
+
+      <section className="sa-role-flow">
+        <h2>{locale === "ko" ? "연구 운영 표준 흐름" : "Research operation flow"}</h2>
+        <ol className="sa-role-flow-list">
+          {adminFlowSteps.map((step, idx) => (
+            <li key={step}>
+              <span>{idx + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section>

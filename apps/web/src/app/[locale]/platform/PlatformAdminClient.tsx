@@ -867,14 +867,38 @@ export function PlatformAdminClient({
     [refreshAll, specialRequestDrafts, t.failDefault, t.requestUpdated],
   );
 
+  const roleLabel =
+    locale === "ko" ? "현재 권한: 플랫폼 어드민" : "Current role: Platform admin";
+  const platformFlowSteps =
+    locale === "ko"
+      ? ["관리자 크레딧 원장을 점검하고 필요한 발행/조정을 수행합니다.", "특수 템플릿 의뢰 큐를 처리하고 상태를 업데이트합니다.", "스토어 정산과 마이그레이션 요청 상태를 점검합니다."]
+      : [
+          "Review admin credit ledger and apply required issue/adjust actions.",
+          "Process special template request queue and update statuses.",
+          "Review store settlements and migration request statuses.",
+        ];
+
   return (
     <main className="sa-page">
       <h1>{t.title}</h1>
       <p>{t.subtitle}</p>
+      <p className="sa-role-pill">{roleLabel}</p>
       <button type="button" onClick={() => void refreshAll()} disabled={isLoading}>
         {isLoading ? t.loading : t.refresh}
       </button>
       {message ? <p className="sa-inline-message">{message}</p> : null}
+
+      <section className="sa-role-flow">
+        <h2>{locale === "ko" ? "플랫폼 운영 표준 흐름" : "Platform operation flow"}</h2>
+        <ol className="sa-role-flow-list">
+          {platformFlowSteps.map((step, idx) => (
+            <li key={step}>
+              <span>{idx + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <section style={{ marginTop: 24 }}>
         <h2>{t.overview}</h2>

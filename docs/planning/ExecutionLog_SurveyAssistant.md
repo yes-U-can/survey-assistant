@@ -1602,3 +1602,69 @@
 1. 플랫폼/관리자 핵심 시나리오 e2e(로그인 포함 제외) 자동화 추가
 2. OAuth 수동 검증 체크리스트를 릴리스 절차에 고정
 3. 릴리스 태그/체인지로그 자동화 스크립트 도입
+
+## 43) Work Session Entry (2026-03-04, UX remediation + role flow clarity)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "남은 4%까지 마무리하고, 역할/동선/UI를 실제 서비스 형태로 정리"
+- Working Branch: main
+
+### Planned
+1. 역할 동선(피검자/관리자/플랫폼)을 화면에서 즉시 이해되게 수정
+2. 공통 네비게이션/뒤로가기/로그인 UX 정리
+3. 검증 후 배포 반영
+
+### Done
+1. 공통 헤더 추가
+   - 파일: `apps/web/src/components/AppHeader.tsx`
+   - 적용: `apps/web/src/app/[locale]/layout.tsx`
+   - 내용: 이전 화면 버튼 + 역할별 빠른 진입 + ko/en 전환
+2. 홈 화면 역할 CTA 전면 개편
+   - 파일: `apps/web/src/app/[locale]/page.tsx`
+   - 내용: 피검자/연구관리자/플랫폼어드민 각각 3단계 흐름 + 행동 유도 문구
+3. 관리자 로그인 UX 정비
+   - 파일: `apps/web/src/components/GoogleSignInButton.tsx`
+   - 파일: `apps/web/src/app/[locale]/auth/admin/page.tsx`
+   - 내용: 표준형 Google 브랜드 버튼 적용, 로그인 흐름/오류 가이드 명시
+4. 피검자 인증 화면 UX 정비
+   - 파일: `apps/web/src/app/[locale]/auth/participant/ParticipantAuthClient.tsx`
+   - 내용: 익명형 가입 목적 설명, 단계 흐름, 필드 라벨/이동 링크 강화
+5. 대시보드 역할 흐름 명시
+   - 파일: `apps/web/src/app/[locale]/participant/ParticipantDashboardClient.tsx`
+   - 파일: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+   - 파일: `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+   - 내용: 역할별 3단계 운영 흐름 + 현재 권한 표시
+6. 접근권한 부족 화면 보정
+   - 파일: `apps/web/src/app/[locale]/participant/page.tsx`
+   - 파일: `apps/web/src/app/[locale]/admin/page.tsx`
+   - 파일: `apps/web/src/app/[locale]/platform/page.tsx`
+   - 내용: 올바른 로그인 경로로 즉시 이동 링크 제공
+7. 404 화면 개선
+   - 파일: `apps/web/src/app/not-found.tsx`
+8. 스타일 체계 확장
+   - 파일: `apps/web/src/app/globals.css`
+   - 내용: 헤더/CTA/흐름/인증카드/Google 버튼 스타일 추가
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm verify:local` PASS
+- `corepack pnpm smoke:web` PASS
+
+### Decision Updates
+- New decisions:
+  - 역할 분리는 "라우팅 + 권한검사 + 화면 상단 흐름 가이드" 3중 구조로 고정
+  - 관리자 OAuth 진입 버튼은 브랜드 표준형(아이콘 포함) 스타일로 고정
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - OAuth 브라우저 e2e 자동화(CI)는 출시 자동화 트랙으로 유지
+
+### Risks / Blockers
+- OAuth 전체 자동 e2e는 계정/동의 화면 관리 이슈로 수동 점검 루프와 병행 필요
+
+### Next Actions
+1. 운영자가 요청한 상세 UI 카피 톤(문장 단위) 2차 튜닝
+2. OAuth 시나리오 수동 회귀 체크리스트 문서화 강화
+3. 릴리스 태그/체인지로그 자동화 스크립트 도입

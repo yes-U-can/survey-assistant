@@ -44,6 +44,11 @@ export default async function PlatformAdminPage({ params }: PageProps) {
             ? "플랫폼 어드민 계정으로 로그인해야 합니다."
             : "You need a platform admin account."}
         </p>
+        <p style={{ marginTop: 12 }}>
+          <Link href={`/${locale}/auth/admin`}>
+            {locale === "ko" ? "관리자 로그인으로 이동" : "Go to admin sign-in"}
+          </Link>
+        </p>
       </main>
     );
   }

@@ -245,3 +245,16 @@ survey-assistant/
 - Remaining focus
   - OAuth 브라우저 e2e 자동화(CI 통합)
   - 릴리스 태그/체인지로그 자동화
+
+## 26) Build Snapshot Update (2026-03-04, UX completion pass)
+- Overall completion (current MVP line): ~100% (product UX flow scope)
+- Newly completed in this update
+  - 공통 상단 네비게이션/뒤로가기/역할별 빠른 진입 추가
+  - 홈 화면 문구를 역할 중심 CTA로 재작성(피검자/관리자/플랫폼 어드민)
+  - 관리자 Google 로그인 버튼을 표준형 브랜드 버튼으로 교체
+  - 피검자/관리자/플랫폼 각 화면에 "역할별 3단계 운영 흐름" 명시
+  - 접근권한 부족 화면에 즉시 이동 링크 추가(잘못된 진입 경로 보정)
+  - Not Found 페이지를 한/영 홈 복귀 중심 화면으로 개선
+- Remaining focus
+  - OAuth 브라우저 e2e 자동화(CI 통합) (출시 자동화 트랙)
+  - 릴리스 태그/체인지로그 자동화 (출시 자동화 트랙)

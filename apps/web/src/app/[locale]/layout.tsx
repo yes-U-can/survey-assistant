@@ -1,6 +1,8 @@
 import "../globals.css";
 import type { ReactNode } from "react";
 
+import { AppHeader } from "@/components/AppHeader";
+
 export default async function LocaleLayout({
   children,
   params,
@@ -12,7 +14,10 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale === "en" ? "en" : "ko"}>
-      <body>{children}</body>
+      <body>
+        <AppHeader locale={locale === "en" ? "en" : "ko"} />
+        <div className="sa-app-body">{children}</div>
+      </body>
     </html>
   );
 }
