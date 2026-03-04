@@ -23,6 +23,7 @@
   - `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
   - `PLATFORM_ADMIN_EMAILS` for `development`, `production`
+  - AI runtime: `OPENAI_API_KEY`, `AI_OPENAI_MODEL`, `AI_OPENAI_TEMPERATURE`, `AI_MANAGED_CREDIT_PER_REQUEST`
 
 ## 4) Neon
 - Organization: `SICP (org-spring-mountain-53946345)`

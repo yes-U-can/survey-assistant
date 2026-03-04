@@ -765,3 +765,54 @@
 1. 특수 템플릿 렌더러 플러그인 인터페이스 설계
 2. CSV export 필터(기간/attempt) 추가
 3. AI 사용 시 `SPEND` 자동 차감 훅 연결
+
+## 27) Work Session Entry (2026-03-04, AI Spend Hook + Admin AI Endpoint)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행
+- Working Branch: main
+
+### Planned
+1. 관리자 AI 분석 호출 경로 구현
+2. Managed 모드에서 자동 `SPEND` 차감 연결
+3. 관리자 화면에서 실행 가능한 최소 UI 연결
+
+### Done
+1. 관리자 AI 분석 API 추가
+   - `POST /api/admin/ai/analyze`
+   - 입력: packageId, question, mode(BYOK/MANAGED), provider(openai), apiKey(optional)
+   - 패키지 owner 검증 + 응답요약 컨텍스트 구성 후 OpenAI 호출
+2. 자동 크레딧 차감 훅 연결
+   - Managed 모드 성공 시 `CreditTxnType.SPEND` 기록
+   - `AI_MANAGED_CREDIT_PER_REQUEST` 기반 차감 (기본 1)
+   - 잔액 부족 시 `402 insufficient_balance`
+3. 관리자 UI 연결
+   - Admin dashboard에 AI 분석 실행 섹션 추가
+   - Managed/BYOK 전환, 패키지 선택, 질문 입력, 결과/메타 표시
+4. 환경변수 템플릿 보강
+   - `.env.example`에 `AI_OPENAI_MODEL`, `AI_OPENAI_TEMPERATURE`, `AI_MANAGED_CREDIT_PER_REQUEST` 추가
+5. 문서 업데이트
+   - `apps/web/README.md` Admin API 목록에 `POST /api/admin/ai/analyze` 반영
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - AI 비용 차감 단위는 일단 "요청당 고정 크레딧"으로 운영
+  - 토큰 기반 정밀 과금은 후속 단계로 이관
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 모델별/토큰별 차등 과금 정책
+
+### Risks / Blockers
+- OpenAI provider에 우선 연결했으므로 다중 provider 어댑터는 후속 구현 필요
+
+### Next Actions
+1. 특수 템플릿 렌더러 플러그인 인터페이스 설계/구현
+2. CSV export 필터(기간/attempt) 추가
+3. AI 차감 정책 고도화(토큰 기반 단가)

@@ -221,6 +221,17 @@ export function AdminDashboardClient({
   const [packageStartsAt, setPackageStartsAt] = useState("");
   const [packageEndsAt, setPackageEndsAt] = useState("");
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [aiMode, setAiMode] = useState<"BYOK" | "MANAGED">("MANAGED");
+  const [aiPackageId, setAiPackageId] = useState(initialPackages[0]?.id ?? "");
+  const [aiQuestion, setAiQuestion] = useState(
+    locale === "ko"
+      ? "이 패키지 응답 데이터의 핵심 경향과 해석 시 주의점을 요약해줘."
+      : "Summarize key trends in this package and interpretation caveats.",
+  );
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [aiResult, setAiResult] = useState("");
+  const [aiMeta, setAiMeta] = useState("");
+  const [aiIsRunning, setAiIsRunning] = useState(false);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
@@ -244,8 +255,14 @@ export function AdminDashboardClient({
       return;
     }
 
-    setTemplates(tplJson.templates ?? []);
-    setPackages(pkgJson.packages ?? []);
+    const nextTemplates = tplJson.templates ?? [];
+    const nextPackages = pkgJson.packages ?? [];
+
+    setTemplates(nextTemplates);
+    setPackages(nextPackages);
+    setAiPackageId((prev) =>
+      prev && nextPackages.some((pkg) => pkg.id === prev) ? prev : (nextPackages[0]?.id ?? ""),
+    );
     setIsLoading(false);
   }, [t.failDefault]);
 
@@ -412,6 +429,70 @@ export function AdminDashboardClient({
     await refreshAll();
     setMessage(t.successStatus);
     setIsLoading(false);
+  };
+
+  const onRunAiAnalysis = async (event: FormEvent) => {
+    event.preventDefault();
+    setMessage("");
+    setAiMeta("");
+
+    if (!aiPackageId || !aiQuestion.trim()) {
+      setMessage(
+        locale === "ko"
+          ? "AI 분석을 위해 패키지와 질문을 입력하세요."
+          : "Select a package and enter a question.",
+      );
+      return;
+    }
+
+    if (aiMode === "BYOK" && !aiApiKey.trim()) {
+      setMessage(locale === "ko" ? "BYOK 모드에서는 API 키가 필요합니다." : "BYOK mode requires API key.");
+      return;
+    }
+
+    setAiIsRunning(true);
+    setAiResult("");
+
+    const response = await fetch("/api/admin/ai/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        packageId: aiPackageId,
+        question: aiQuestion.trim(),
+        mode: aiMode,
+        provider: "openai",
+        apiKey: aiMode === "BYOK" ? aiApiKey.trim() : undefined,
+      }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | {
+          ok?: boolean;
+          error?: string;
+          answer?: string;
+          model?: string;
+          usage?: { totalTokens?: number | null };
+          credits?: { charged?: number; balanceAfter?: number } | null;
+        }
+      | null;
+
+    if (!response.ok || !payload?.ok || !payload.answer) {
+      setMessage(payload?.error ?? t.failDefault);
+      setAiIsRunning(false);
+      return;
+    }
+
+    setAiResult(payload.answer);
+    const usageText =
+      typeof payload.usage?.totalTokens === "number"
+        ? `tokens=${payload.usage.totalTokens}`
+        : "tokens=unknown";
+    const creditText =
+      payload.credits && typeof payload.credits.charged === "number"
+        ? `credits_charged=${payload.credits.charged}, balance=${payload.credits.balanceAfter ?? "unknown"}`
+        : "credits_charged=0";
+    setAiMeta(`model=${payload.model ?? "unknown"}, ${usageText}, ${creditText}`);
+    setAiIsRunning(false);
   };
 
   return (
@@ -706,6 +787,82 @@ export function AdminDashboardClient({
             ))
           )}
         </div>
+      </section>
+
+      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+        <h2>{locale === "ko" ? "AI 분석" : "AI Analysis"}</h2>
+        <form onSubmit={onRunAiAnalysis} style={{ display: "grid", gap: 10, marginTop: 8 }}>
+          <label>
+            {locale === "ko" ? "패키지" : "Package"}
+            <select
+              value={aiPackageId}
+              onChange={(event) => setAiPackageId(event.target.value)}
+              style={{ marginLeft: 8, minWidth: 280 }}
+            >
+              {packages.map((pkg) => (
+                <option key={pkg.id} value={pkg.id}>
+                  {pkg.title} ({pkg.code})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {locale === "ko" ? "모드" : "Mode"}
+            <select
+              value={aiMode}
+              onChange={(event) => setAiMode(event.target.value as "BYOK" | "MANAGED")}
+              style={{ marginLeft: 8 }}
+            >
+              <option value="MANAGED">
+                {locale === "ko" ? "Managed (플랫폼 키/크레딧 차감)" : "Managed (platform key + credits)"}
+              </option>
+              <option value="BYOK">{locale === "ko" ? "BYOK (내 키)" : "BYOK (your key)"}</option>
+            </select>
+          </label>
+          {aiMode === "BYOK" ? (
+            <label>
+              OpenAI API Key
+              <input
+                type="password"
+                value={aiApiKey}
+                onChange={(event) => setAiApiKey(event.target.value)}
+                style={{ marginLeft: 8, minWidth: 420 }}
+              />
+            </label>
+          ) : null}
+          <label style={{ display: "grid", gap: 6 }}>
+            {locale === "ko" ? "질문" : "Question"}
+            <textarea
+              value={aiQuestion}
+              onChange={(event) => setAiQuestion(event.target.value)}
+              rows={3}
+            />
+          </label>
+          <button type="submit" disabled={aiIsRunning || isLoading} style={{ width: 180 }}>
+            {aiIsRunning
+              ? locale === "ko"
+                ? "AI 분석 실행 중..."
+                : "Running AI analysis..."
+              : locale === "ko"
+                ? "AI 분석 실행"
+                : "Run AI analysis"}
+          </button>
+        </form>
+        {aiMeta ? <p style={{ marginTop: 10, fontSize: 13 }}>{aiMeta}</p> : null}
+        {aiResult ? (
+          <pre
+            style={{
+              marginTop: 10,
+              whiteSpace: "pre-wrap",
+              border: "1px solid #eee",
+              borderRadius: 8,
+              padding: 10,
+              background: "#fafafa",
+            }}
+          >
+            {aiResult}
+          </pre>
+        ) : null}
       </section>
     </main>
   );

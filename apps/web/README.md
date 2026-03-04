@@ -44,6 +44,7 @@ This app is linked to project `survey_sicp`.
 - Package list/create: `GET/POST /api/admin/packages`
 - Package status update: `PATCH /api/admin/packages/{packageId}/status`
 - Package responses CSV export: `GET /api/admin/packages/{packageId}/export`
+- AI analysis (BYOK/Managed with spend hook): `POST /api/admin/ai/analyze`
 
 ## Platform Admin APIs (Current Baseline)
 - Overview: `GET /api/platform-admin/overview`
