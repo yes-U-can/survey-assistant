@@ -23,6 +23,9 @@ corepack pnpm dev
 ## Locale
 - Default redirect: `/` -> `/ko`
 - Supported locales: `/ko`, `/en`
+- Mobile policy:
+  - Participant flow: mobile + desktop supported
+  - Admin / Platform Admin / Admin sign-in: desktop-only (mobile shows policy notice)
 
 ## Vercel
 This app is linked to project `survey_sicp`.

@@ -244,3 +244,30 @@ textarea {
   margin-top: 10px;
   color: var(--muted-foreground);
 }
+
+.sa-desktop-only {
+  display: block;
+}
+
+.sa-mobile-policy-block {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .sa-desktop-only {
+    display: none !important;
+  }
+
+  .sa-mobile-policy-block {
+    display: block;
+  }
+
+  .sa-mobile-policy-card {
+    margin-top: 16px;
+    background: color-mix(in srgb, var(--surface) 94%, var(--brand-200));
+    border: 1px solid color-mix(in srgb, var(--brand-700) 22%, white);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-700) 10%, transparent);
+  }
+}

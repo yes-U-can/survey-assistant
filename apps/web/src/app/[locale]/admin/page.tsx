@@ -304,33 +304,53 @@ export default async function AdminHomePage({ params }: PageProps) {
     createdAt: item.createdAt.toISOString(),
   }));
 
+  const mobileBlockedTitle =
+    locale === "ko" ? "관리자 기능은 PC 웹 전용입니다." : "Admin features are desktop-only.";
+  const mobileBlockedBody =
+    locale === "ko"
+      ? "피검자 화면은 모바일 지원이 가능하지만, 관리자/플랫폼 운영 화면은 보안과 운영 안정성을 위해 PC에서만 사용할 수 있습니다."
+      : "Participant screens support mobile, but admin/platform operations are restricted to desktop for security and operational stability.";
+  const mobileBlockedLink = locale === "ko" ? "홈으로 이동" : "Back to home";
+
   return (
     <>
-      <AdminDashboardClient
-        locale={locale}
-        viewerRole={session.user.role}
-        initialTemplates={initialTemplates}
-        initialPackages={initialPackages}
-        initialSpecialRequests={initialSpecialRequests}
-        initialOwnedSpecialTemplates={initialOwnedSpecialTemplates}
-        initialMyListings={initialMyListings}
-        initialMarketListings={initialMarketListings}
-        initialPurchases={initialPurchases}
-        initialSales={initialSales}
-      />
-      <footer className="sa-footer">
-        <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-        <span className="sa-divider">|</span>
-        {session.user.role === UserRole.PLATFORM_ADMIN ? (
-          <>
-            <Link href={`/${locale}/platform`}>
-              {locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}
-            </Link>
-            <span className="sa-divider">|</span>
-          </>
-        ) : null}
-        <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
-      </footer>
+      <div className="sa-desktop-only">
+        <AdminDashboardClient
+          locale={locale}
+          viewerRole={session.user.role}
+          initialTemplates={initialTemplates}
+          initialPackages={initialPackages}
+          initialSpecialRequests={initialSpecialRequests}
+          initialOwnedSpecialTemplates={initialOwnedSpecialTemplates}
+          initialMyListings={initialMyListings}
+          initialMarketListings={initialMarketListings}
+          initialPurchases={initialPurchases}
+          initialSales={initialSales}
+        />
+        <footer className="sa-footer">
+          <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
+          <span className="sa-divider">|</span>
+          {session.user.role === UserRole.PLATFORM_ADMIN ? (
+            <>
+              <Link href={`/${locale}/platform`}>
+                {locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}
+              </Link>
+              <span className="sa-divider">|</span>
+            </>
+          ) : null}
+          <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
+        </footer>
+      </div>
+
+      <main className="sa-page sa-mobile-policy-block">
+        <section className="sa-mobile-policy-card">
+          <h1>{mobileBlockedTitle}</h1>
+          <p>{mobileBlockedBody}</p>
+          <p style={{ marginTop: 12 }}>
+            <Link href={`/${locale}`}>{mobileBlockedLink}</Link>
+          </p>
+        </section>
+      </main>
     </>
   );
 }

@@ -26,13 +26,19 @@ export default async function LocaleHome({
         <li>
           <Link className="sa-home-card" href={`/${locale}/auth/admin`}>
             <strong>{locale === "ko" ? "관리자 로그인" : "Admin sign-in"}</strong>
-            <small>{locale === "ko" ? "Google 계정으로 접속" : "Continue with Google"}</small>
+            <small>
+              {locale === "ko" ? "Google 계정으로 접속 (PC 전용)" : "Continue with Google (desktop only)"}
+            </small>
           </Link>
         </li>
         <li>
           <Link className="sa-home-card" href={`/${locale}/platform`}>
             <strong>{locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}</strong>
-            <small>{locale === "ko" ? "운영/정산/마이그레이션 관리" : "Operate settlements and migrations"}</small>
+            <small>
+              {locale === "ko"
+                ? "운영/정산/마이그레이션 관리 (PC 전용)"
+                : "Operate settlements and migrations (desktop only)"}
+            </small>
           </Link>
         </li>
       </ul>

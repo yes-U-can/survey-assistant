@@ -371,29 +371,49 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     totalPlatformFeeCredits: row._sum.platformFeeCredits ?? 0,
   }));
 
+  const mobileBlockedTitle =
+    locale === "ko" ? "플랫폼 어드민 기능은 PC 웹 전용입니다." : "Platform admin is desktop-only.";
+  const mobileBlockedBody =
+    locale === "ko"
+      ? "운영/정산/마이그레이션 관리 기능은 모바일에서 제공하지 않습니다. PC 브라우저에서 접속해 주세요."
+      : "Operations, settlements, and migration controls are not available on mobile. Please use a desktop browser.";
+  const mobileBlockedLink = locale === "ko" ? "홈으로 이동" : "Back to home";
+
   return (
     <>
-      <PlatformAdminClient
-        locale={locale}
-        initialOverview={initialOverview}
-        initialAdminUsers={initialAdminUsers}
-        initialWallets={initialWallets}
-        initialTransactions={initialTransactions}
-        initialJobs={initialJobs}
-        initialSpecialRequests={initialSpecialRequests}
-        initialSettlementSummary={initialSettlementSummary}
-        initialSettlementPurchases={initialSettlementPurchases}
-        initialSellerSettlements={initialSellerSettlements}
-      />
-      <footer className="sa-footer">
-        <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-        <span className="sa-divider">|</span>
-        <Link href={`/${locale}/admin`}>
-          {locale === "ko" ? "관리자 콘솔" : "Admin console"}
-        </Link>
-        <span className="sa-divider">|</span>
-        <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
-      </footer>
+      <div className="sa-desktop-only">
+        <PlatformAdminClient
+          locale={locale}
+          initialOverview={initialOverview}
+          initialAdminUsers={initialAdminUsers}
+          initialWallets={initialWallets}
+          initialTransactions={initialTransactions}
+          initialJobs={initialJobs}
+          initialSpecialRequests={initialSpecialRequests}
+          initialSettlementSummary={initialSettlementSummary}
+          initialSettlementPurchases={initialSettlementPurchases}
+          initialSellerSettlements={initialSellerSettlements}
+        />
+        <footer className="sa-footer">
+          <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
+          <span className="sa-divider">|</span>
+          <Link href={`/${locale}/admin`}>
+            {locale === "ko" ? "관리자 콘솔" : "Admin console"}
+          </Link>
+          <span className="sa-divider">|</span>
+          <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
+        </footer>
+      </div>
+
+      <main className="sa-page sa-mobile-policy-block">
+        <section className="sa-mobile-policy-card">
+          <h1>{mobileBlockedTitle}</h1>
+          <p>{mobileBlockedBody}</p>
+          <p style={{ marginTop: 12 }}>
+            <Link href={`/${locale}`}>{mobileBlockedLink}</Link>
+          </p>
+        </section>
+      </main>
     </>
   );
 }

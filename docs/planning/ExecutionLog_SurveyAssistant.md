@@ -1180,3 +1180,52 @@
 1. 관리자 의뢰/스토어 흐름 UX 미세조정(필드 그룹화/가독성)
 2. 피검자 설문 응답 화면 모바일 터치 영역 최적화
 3. 변경사항 커밋/푸시 후 배포 확인
+
+## 35) Work Session Entry (2026-03-04, Mobile Scope Policy Enforcement)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 모바일은 피검자만 지원, 관리자/어드민은 PC 웹 전용
+- Working Branch: main
+
+### Planned
+1. 관리자/플랫폼/관리자 로그인 경로에 모바일 차단 UI 반영
+2. 피검자 흐름은 모바일 지원 유지
+3. 문서/로그 동기화 및 회귀 검증
+
+### Done
+1. 모바일 정책 스타일 클래스 추가
+   - 파일: `apps/web/src/app/globals.css`
+   - `sa-desktop-only`, `sa-mobile-policy-block`, `sa-mobile-policy-card` 추가
+   - `@media (max-width: 1023px)`에서 desktop 섹션 숨김 + 정책 안내 노출
+2. 모바일 차단 적용 라우트
+   - 관리자 로그인: `apps/web/src/app/[locale]/auth/admin/page.tsx`
+   - 관리자 콘솔: `apps/web/src/app/[locale]/admin/page.tsx`
+   - 플랫폼 어드민 콘솔: `apps/web/src/app/[locale]/platform/page.tsx`
+3. 홈 화면 안내 문구 보강
+   - 파일: `apps/web/src/app/[locale]/page.tsx`
+   - 관리자/플랫폼 카드에 `desktop only` 명시
+4. 운영 문서 동기화
+   - 파일: `apps/web/README.md`
+   - mobile policy 항목 추가
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 모바일 범위는 participant 전용으로 확정
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 없음
+
+### Risks / Blockers
+- 현재 blocker 없음
+
+### Next Actions
+1. 피검자 모바일 설문 응답 UI(터치영역/간격/입력 피드백) 고도화
+2. 관리자/플랫폼 데스크톱 화면의 정보 밀도 개선
+3. 지속적 회귀 검증 + 실행로그 업데이트
