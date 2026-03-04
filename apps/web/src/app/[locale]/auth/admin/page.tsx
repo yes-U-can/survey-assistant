@@ -90,7 +90,7 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
 
   return (
     <>
-      <main className="sa-page sa-desktop-only" style={{ maxWidth: 760 }}>
+      <main className="sa-page sa-desktop-only sa-auth-shell" style={{ maxWidth: 920 }}>
         <section className="sa-auth-hero">
           <h1>{t.title}</h1>
           <p>{t.subtitle}</p>

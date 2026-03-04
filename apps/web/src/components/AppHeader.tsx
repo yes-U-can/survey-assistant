@@ -21,6 +21,7 @@ function switchLocalePath(pathname: string, nextLocale: LocaleCode) {
 export function AppHeader({ locale }: Props) {
   const router = useRouter();
   const pathname = usePathname() ?? `/${locale}`;
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   const t =
     locale === "ko"
@@ -31,6 +32,9 @@ export function AppHeader({ locale }: Props) {
           participant: "설문 응답",
           admin: "연구 관리자",
           platform: "플랫폼 운영",
+          participantHint: "응답 참여",
+          adminHint: "연구 운영",
+          platformHint: "서비스 운영",
           switchLocale: "EN",
         }
       : {
@@ -40,6 +44,9 @@ export function AppHeader({ locale }: Props) {
           participant: "Respond",
           admin: "Research Admin",
           platform: "Platform Admin",
+          participantHint: "Participant",
+          adminHint: "Research",
+          platformHint: "Platform",
           switchLocale: "KO",
         };
 
@@ -70,13 +77,25 @@ export function AppHeader({ locale }: Props) {
           >
             {t.back}
           </button>
-          <Link className="sa-nav-chip" href={`/${locale}/auth/participant`}>
+          <Link
+            className={`sa-nav-chip ${isActive(`/${locale}/auth/participant`) ? "is-active" : ""}`}
+            href={`/${locale}/auth/participant`}
+          >
+            <small>{t.participantHint}</small>
             {t.participant}
           </Link>
-          <Link className="sa-nav-chip" href={`/${locale}/auth/admin`}>
+          <Link
+            className={`sa-nav-chip ${isActive(`/${locale}/auth/admin`) ? "is-active" : ""}`}
+            href={`/${locale}/auth/admin`}
+          >
+            <small>{t.adminHint}</small>
             {t.admin}
           </Link>
-          <Link className="sa-nav-chip" href={`/${locale}/platform`}>
+          <Link
+            className={`sa-nav-chip ${isActive(`/${locale}/platform`) ? "is-active" : ""}`}
+            href={`/${locale}/platform`}
+          >
+            <small>{t.platformHint}</small>
             {t.platform}
           </Link>
           <Link className="sa-nav-chip sa-nav-chip-emphasis" href={switchHref}>

@@ -149,7 +149,7 @@ export function ParticipantAuthClient({ locale }: Props) {
   };
 
   return (
-    <main className="sa-page sa-auth-grid" style={{ maxWidth: 960 }}>
+    <main className="sa-page sa-auth-shell" style={{ maxWidth: 1060 }}>
       <section className="sa-auth-hero">
         <h1>{t.title}</h1>
         <p>{t.subtitle}</p>
@@ -169,67 +169,69 @@ export function ParticipantAuthClient({ locale }: Props) {
         </div>
       </section>
 
-      <section className="sa-auth-card">
-        <h2>{t.signupTitle}</h2>
-        <form onSubmit={onSignup} style={{ display: "grid", gap: 10 }}>
-          <label className="sa-field-label">
-            {t.idLabel}
-            <input
-              value={signupId}
-              onChange={(event) => setSignupId(event.target.value)}
-              placeholder={t.idPlaceholder}
-              required
-            />
-          </label>
-          <label className="sa-field-label">
-            {t.passwordLabel}
-            <input
-              value={signupPassword}
-              onChange={(event) => setSignupPassword(event.target.value)}
-              placeholder={t.passwordLabel}
-              type="password"
-              required
-            />
-          </label>
-          <label className="sa-field-label">
-            {t.nameLabel}
-            <input
-              value={signupName}
-              onChange={(event) => setSignupName(event.target.value)}
-              placeholder={t.namePlaceholder}
-            />
-          </label>
-          <button type="submit">{t.signupButton}</button>
-        </form>
-        <p className="sa-inline-message">{signupMessage}</p>
-      </section>
+      <div className="sa-auth-grid">
+        <section className="sa-auth-card">
+          <h2>{t.signupTitle}</h2>
+          <form onSubmit={onSignup} style={{ display: "grid", gap: 10 }}>
+            <label className="sa-field-label">
+              {t.idLabel}
+              <input
+                value={signupId}
+                onChange={(event) => setSignupId(event.target.value)}
+                placeholder={t.idPlaceholder}
+                required
+              />
+            </label>
+            <label className="sa-field-label">
+              {t.passwordLabel}
+              <input
+                value={signupPassword}
+                onChange={(event) => setSignupPassword(event.target.value)}
+                placeholder={t.passwordLabel}
+                type="password"
+                required
+              />
+            </label>
+            <label className="sa-field-label">
+              {t.nameLabel}
+              <input
+                value={signupName}
+                onChange={(event) => setSignupName(event.target.value)}
+                placeholder={t.namePlaceholder}
+              />
+            </label>
+            <button type="submit">{t.signupButton}</button>
+          </form>
+          <p className="sa-inline-message">{signupMessage}</p>
+        </section>
 
-      <section className="sa-auth-card">
-        <h2>{t.loginTitle}</h2>
-        <form onSubmit={onLogin} style={{ display: "grid", gap: 10 }}>
-          <label className="sa-field-label">
-            {t.idLabel}
-            <input
-              value={loginId}
-              onChange={(event) => setLoginId(event.target.value)}
-              placeholder={t.idPlaceholder}
-              required
-            />
-          </label>
-          <label className="sa-field-label">
-            {t.passwordLabel}
-            <input
-              value={loginPassword}
-              onChange={(event) => setLoginPassword(event.target.value)}
-              placeholder={t.passwordLabel}
-              type="password"
-              required
-            />
-          </label>
-          <button type="submit">{t.loginButton}</button>
-        </form>
-        <p className="sa-inline-message">{loginMessage}</p>
-      </section>
+        <section className="sa-auth-card">
+          <h2>{t.loginTitle}</h2>
+          <form onSubmit={onLogin} style={{ display: "grid", gap: 10 }}>
+            <label className="sa-field-label">
+              {t.idLabel}
+              <input
+                value={loginId}
+                onChange={(event) => setLoginId(event.target.value)}
+                placeholder={t.idPlaceholder}
+                required
+              />
+            </label>
+            <label className="sa-field-label">
+              {t.passwordLabel}
+              <input
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder={t.passwordLabel}
+                type="password"
+                required
+              />
+            </label>
+            <button type="submit">{t.loginButton}</button>
+          </form>
+          <p className="sa-inline-message">{loginMessage}</p>
+        </section>
+      </div>
     </main>
   );
 }
