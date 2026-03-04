@@ -533,7 +533,7 @@ export function AdminDashboardClient({
           answer?: string;
           model?: string;
           usage?: { totalTokens?: number | null };
-          credits?: { charged?: number; balanceAfter?: number } | null;
+          credits?: { charged?: number; balanceAfter?: number; policyMode?: string } | null;
         }
       | null;
 
@@ -550,7 +550,7 @@ export function AdminDashboardClient({
         : "tokens=unknown";
     const creditText =
       payload.credits && typeof payload.credits.charged === "number"
-        ? `credits_charged=${payload.credits.charged}, balance=${payload.credits.balanceAfter ?? "unknown"}`
+        ? `credits_charged=${payload.credits.charged}, balance=${payload.credits.balanceAfter ?? "unknown"}, policy=${payload.credits.policyMode ?? "unknown"}`
         : "credits_charged=0";
     setAiMeta(`model=${payload.model ?? "unknown"}, ${usageText}, ${creditText}`);
     setAiIsRunning(false);

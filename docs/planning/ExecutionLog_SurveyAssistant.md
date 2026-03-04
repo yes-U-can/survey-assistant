@@ -910,3 +910,53 @@
 1. AI 차감 정책 고도화(요청당 고정 -> 토큰/모델 단가 기반)
 2. 특수 템플릿 의뢰-배포 워크플로우(소스 공개 동의) 연결
 3. CSV export 고급 옵션(와이드 포맷/컬럼 선택) 검토
+
+## 30) Work Session Entry (2026-03-04, Managed AI Token-Based Credit Charge)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행
+- Working Branch: main
+
+### Planned
+1. Managed AI 과금 정책을 토큰 기반으로 고도화
+2. 기존 요청당 고정 과금과의 하위호환 유지
+3. 문서/정책 기록 동기화
+
+### Done
+1. 관리자 AI 분석 API 과금 로직 고도화
+   - 파일: `apps/web/src/app/api/admin/ai/analyze/route.ts`
+   - 정책:
+     - 기본: `input/output per 1K tokens` 기반 차감
+     - floor: `AI_MANAGED_CREDIT_MIN_PER_REQUEST`
+     - fallback: `AI_MANAGED_CREDIT_PER_REQUEST`
+   - 결과 메타에 `policyMode` 포함
+2. 관리자 UI 메타 표시 확장
+   - 파일: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+   - AI 결과 메타에 `policy=<...>` 표시
+3. 환경변수/계획 문서 업데이트
+   - `.env.example` 신규 항목 추가
+   - `apps/web/README.md`에 Managed 과금 변수 설명 추가
+   - `MasterPlan` 섹션 21에 토큰 기반 과금 원칙 명시
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - Managed AI 과금 기본값을 토큰 단가 기반으로 전환
+  - 요청당 고정값은 하위호환/fallback 용도로 유지
+- Changed decisions:
+  - 27번 세션의 "요청당 고정 과금 우선" 결정을 "토큰 기반 우선"으로 변경
+- Deferred decisions:
+  - 모델별 차등 단가 테이블(예: `gpt-4.1-mini` vs 상위 모델) 운영 방식
+
+### Risks / Blockers
+- AI 호출 후 차감 시점이므로, 사용량 대비 잔액이 부족한 케이스에서 사후 `insufficient_balance`가 발생할 수 있음(후속: 사전 hold/reservation 설계 필요)
+
+### Next Actions
+1. 특수 템플릿 의뢰-배포 워크플로우(소스 공개 동의) 연결
+2. CSV export 고급 옵션(와이드 포맷/컬럼 선택) 검토
+3. Managed AI 크레딧 사전 hold/reservation 설계

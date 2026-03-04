@@ -194,3 +194,4 @@ survey-assistant/
 - 편의 옵션: API 키 발급/관리 부담이 큰 사용자에게는 플랫폼 제공 키를 크레딧 결제로 사용할 수 있게 한다.
 - 크레딧은 피검자가 아니라 관리자(연구자 계정) 운영 자산으로 관리한다.
 - 원장 거래 유형은 최소 `ISSUE`, `SPEND`, `REFUND`, `REWARD`, `ADJUSTMENT`를 지원한다.
+- Managed AI 과금은 토큰 단가 기반(`input/output per 1K tokens`)을 기본으로 하고, 최소 차감 floor와 요청당 fallback 정책을 함께 둔다.

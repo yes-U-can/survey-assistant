@@ -47,6 +47,10 @@ This app is linked to project `survey_sicp`.
   - `from`, `to`: ISO datetime filter (`submittedAt`)
   - `attempt`: attempt number filter (`attemptNo`)
 - AI analysis (BYOK/Managed with spend hook): `POST /api/admin/ai/analyze`
+  - Managed credit charge:
+    - Token pricing (preferred): `AI_MANAGED_CREDIT_PER_1K_INPUT_TOKENS`, `AI_MANAGED_CREDIT_PER_1K_OUTPUT_TOKENS`
+    - Minimum floor: `AI_MANAGED_CREDIT_MIN_PER_REQUEST`
+    - Backward fallback: `AI_MANAGED_CREDIT_PER_REQUEST`
 
 ## Platform Admin APIs (Current Baseline)
 - Overview: `GET /api/platform-admin/overview`
