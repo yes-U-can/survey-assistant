@@ -1,36 +1,13 @@
-import { PackageStatus, UserRole } from "@prisma/client";
-import { getServerSession } from "next-auth";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { PackageStatus } from "@prisma/client";
+import { NextResponse } from "next/server";
 
-import { ParticipantDashboardClient } from "./ParticipantDashboardClient";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireParticipantSession } from "@/lib/session-guard";
 
-type PageProps = {
-  params: Promise<{ locale: string }>;
-};
-
-export default async function ParticipantHomePage({ params }: PageProps) {
-  const { locale: rawLocale } = await params;
-  const locale = rawLocale === "en" ? "en" : "ko";
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
-    redirect(`/${locale}/auth/participant`);
-  }
-
-  if (session.user.role !== UserRole.PARTICIPANT) {
-    return (
-      <main style={{ padding: 24, fontFamily: "sans-serif" }}>
-        <h1>{locale === "ko" ? "접근 권한 없음" : "Access Denied"}</h1>
-        <p>
-          {locale === "ko"
-            ? "피검자 계정으로 로그인해야 합니다."
-            : "You need a participant account."}
-        </p>
-      </main>
-    );
+export async function GET() {
+  const session = await requireParticipantSession();
+  if (!session) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
@@ -53,7 +30,7 @@ export default async function ParticipantHomePage({ params }: PageProps) {
     },
   });
 
-  const initialPackages = enrollments.map((entry) => {
+  const packages = enrollments.map((entry) => {
     const maxResponses = entry.surveyPackage.maxResponsesPerParticipant;
     const completed = entry.completedCount;
     const remaining = Math.max(maxResponses - completed, 0);
@@ -80,16 +57,13 @@ export default async function ParticipantHomePage({ params }: PageProps) {
     };
   });
 
-  return (
-    <>
-      <ParticipantDashboardClient locale={locale} initialPackages={initialPackages} />
-      <footer style={{ padding: "0 24px 24px", fontFamily: "sans-serif" }}>
-        <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-        <span style={{ margin: "0 8px" }}>|</span>
-        <Link href="/api/auth/signout">
-          {locale === "ko" ? "로그아웃" : "Sign out"}
-        </Link>
-      </footer>
-    </>
-  );
+  return NextResponse.json({
+    ok: true,
+    packages,
+    summary: {
+      enrolledCount: packages.length,
+      openCount: packages.filter((pkg) => pkg.canRespondNow).length,
+    },
+  });
 }
+

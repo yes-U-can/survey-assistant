@@ -34,6 +34,8 @@ This app is linked to project `survey_sicp`.
 - Admin / Platform Admin: Google sign-in (`/api/auth/signin/google`)
 - Participant: credentials sign-in (`participant-credentials`)
 - Participant signup endpoint: `POST /api/auth/participant/signup`
+- Participant package enrollment endpoint: `POST /api/participant/packages/enroll`
+- Participant progress endpoint: `GET /api/participant/packages`
 
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.

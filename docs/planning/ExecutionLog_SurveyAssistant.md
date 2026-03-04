@@ -383,3 +383,44 @@
 1. Auth 페이지 UX 개선(에러 메시지/상태/세션 표시)
 2. Participant 패키지 등록/진행현황 API 착수
 3. Admin 템플릿/패키지 CRUD 첫 엔드포인트 착수
+
+## 18) Work Session Entry (2026-03-04, Participant Code Enrollment + Progress)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "시작해" 이후 참가자 핵심 기능 구현 착수
+- Working Branch: main
+
+### Planned
+1. 참가자 설문코드 등록 API 구현
+2. 참가자 진행현황 조회 API 구현
+3. 참가자 홈 화면을 실제 대시보드로 교체
+
+### Done
+1. 참가자 세션 가드 유틸 추가
+   - `src/lib/session-guard.ts`
+2. 참가자 진행현황 API 추가
+   - `GET /api/participant/packages`
+3. 참가자 설문코드 등록 API 추가
+   - `POST /api/participant/packages/enroll`
+4. 참가자 홈 화면 교체
+   - 코드 등록 폼
+   - 등록된 패키지 목록
+   - 완료/남은 횟수
+   - 최근 응답 일시
+   - 현재 응답 가능 여부
+5. 문서 업데이트
+   - `apps/web/README.md` API 목록 반영
+
+### Verification
+- `pnpm --filter web lint` PASS
+- `pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Risks / Blockers
+- 응답 제출 API가 아직 없어서 `completedCount`/`lastRespondedAt` 갱신은 다음 단계 구현 필요
+
+### Next Actions
+1. 응답 제출 API 구현으로 `completedCount`/`lastRespondedAt` 자동 갱신
+2. 관리자 템플릿/패키지 CRUD 엔드포인트 착수
+3. CSV export MVP 연결
