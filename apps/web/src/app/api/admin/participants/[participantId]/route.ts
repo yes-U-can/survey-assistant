@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -6,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
 const patchSchema = z.object({
-  action: z.enum(["ACTIVATE", "DEACTIVATE"]),
+  action: z.enum(["ACTIVATE", "DEACTIVATE", "ANONYMIZE"]),
 });
 
 export async function PATCH(
@@ -34,11 +35,37 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: "participant_not_found" }, { status: 404 });
   }
 
-  const nextIsActive = parsed.data.action === "ACTIVATE";
+  const action = parsed.data.action;
+  const current = await prisma.user.findUnique({
+    where: { id: participantId },
+    select: {
+      id: true,
+      loginId: true,
+      role: true,
+    },
+  });
+  if (!current || current.role !== UserRole.PARTICIPANT) {
+    return NextResponse.json({ ok: false, error: "participant_not_found" }, { status: 404 });
+  }
+
+  if (action === "ANONYMIZE" && current.loginId === null) {
+    return NextResponse.json({ ok: false, error: "already_anonymized" }, { status: 409 });
+  }
 
   const updated = await prisma.user.update({
     where: { id: participantId },
-    data: { isActive: nextIsActive },
+    data:
+      action === "ANONYMIZE"
+        ? {
+            isActive: false,
+            loginId: null,
+            passwordHash: null,
+            displayName: null,
+            googleSub: null,
+          }
+        : {
+            isActive: action === "ACTIVATE",
+          },
     select: {
       id: true,
       loginId: true,
@@ -71,6 +98,7 @@ export async function PATCH(
       displayName: updated.displayName,
       locale: updated.locale,
       isActive: updated.isActive,
+      isAnonymized: updated.loginId === null,
       enrollmentCount: updated._count.enrollments,
       responseCount: updated._count.responses,
       lastRespondedAt: lastResponse._max.submittedAt?.toISOString() ?? null,

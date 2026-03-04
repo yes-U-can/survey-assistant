@@ -386,6 +386,7 @@ export default async function AdminHomePage({ params }: PageProps) {
     displayName: item.displayName,
     locale: item.locale,
     isActive: item.isActive,
+    isAnonymized: item.loginId === null,
     enrollmentCount: item._count.enrollments,
     responseCount: item._count.responses,
     lastRespondedAt: participantResponseMap.get(item.id) ?? null,

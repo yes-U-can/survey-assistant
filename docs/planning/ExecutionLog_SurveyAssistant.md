@@ -1384,3 +1384,60 @@
 1. participant 계정 "거부/말소" 정책 확정(soft-delete/anonymize 설계)
 2. 관리자/플랫폼 데스크톱 화면 정보 밀도 개선
 3. 변경사항 커밋/푸시 및 배포 확인
+
+## 39) Work Session Entry (2026-03-04, Participant Soft-Anonymize + Prod Deploy)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 긴 작업 단위로 남은 범위를 한 번에 밀어붙여 진행
+- Working Branch: main
+
+### Planned
+1. participant 계정 관리의 "말소" 정책 공백 보완
+2. 소프트 익명화(데이터 보존 + 로그인 식별정보 제거) 액션 추가
+3. 검증 후 main push + production 배포 확인
+
+### Done
+1. participant 계정 PATCH 액션 확장
+   - `ANONYMIZE` 액션 추가 (`ACTIVATE`/`DEACTIVATE`/`ANONYMIZE`)
+   - 파일: `apps/web/src/app/api/admin/participants/[participantId]/route.ts`
+   - 동작:
+     - 응답/등록 데이터는 유지
+     - `isActive=false`, `loginId/passwordHash/displayName/googleSub` 제거
+2. participant 응답 payload 확장
+   - `isAnonymized` 필드 추가
+   - 파일:
+     - `apps/web/src/app/api/admin/participants/route.ts`
+     - `apps/web/src/app/[locale]/admin/page.tsx`
+3. 관리자 UI 액션 확장
+   - participant 상태 표시를 `활성/비활성/익명화됨`으로 표시
+   - `말소(익명화)` 버튼 + 확인 다이얼로그 추가
+   - 파일: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+4. 문서 갱신
+   - 파일: `apps/web/README.md`
+   - participant PATCH API에 `ANONYMIZE` 정책 명시
+5. 배포
+   - `main` push 완료
+   - Vercel production alias `https://surveysicp.vercel.app` 최신 배포 반영 확인
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+- `GET https://surveysicp.vercel.app/api/health/db` -> `200 {"ok":true,"db":"connected"}`
+
+### Decision Updates
+- New decisions:
+  - participant "말소"는 hard delete가 아니라 soft anonymize를 기본 정책으로 채택
+- Changed decisions:
+  - 기존 "말소 정책 보류" 상태를 MVP 수준에서 해소
+- Deferred decisions:
+  - 법적 보존기한/감사 대응을 위한 추가 익명화 로그 정책
+
+### Risks / Blockers
+- 익명화 정책은 현재 "로그인 식별정보 제거" 중심 MVP이며, 법무/컴플라이언스 세부 요건은 추가 확정 필요
+
+### Next Actions
+1. 관리자/플랫폼 데스크톱 정보 밀도 개선(표 레이아웃/필드 그룹 정돈)
+2. 특수 템플릿 제작 산출 코드 공개 고지 문구를 의뢰 화면에 법적 문안 수준으로 고정
+3. e2e 시나리오(의뢰->스토어->구매->정산, participant 계정 복원/익명화) 자동화 범위 확정

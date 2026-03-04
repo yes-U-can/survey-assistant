@@ -131,6 +131,7 @@ type ParticipantAccountItem = {
   displayName: string | null;
   locale: "ko" | "en";
   isActive: boolean;
+  isAnonymized: boolean;
   enrollmentCount: number;
   responseCount: number;
   lastRespondedAt: string | null;
@@ -450,6 +451,22 @@ function formatMaybeDate(locale: LocaleCode, value: string | null) {
     timeStyle: "short",
   });
   return formatter.format(new Date(value));
+}
+
+function participantStatusLabel(
+  locale: LocaleCode,
+  participant: Pick<ParticipantAccountItem, "isActive" | "isAnonymized">,
+) {
+  if (participant.isAnonymized) {
+    return locale === "ko" ? "익명화됨" : "Anonymized";
+  }
+  return participant.isActive
+    ? locale === "ko"
+      ? "활성"
+      : "Active"
+    : locale === "ko"
+      ? "비활성"
+      : "Inactive";
 }
 
 export function AdminDashboardClient({
@@ -985,14 +1002,28 @@ export function AdminDashboardClient({
     setIsLoading(false);
   };
 
-  const onSetParticipantActive = async (participantId: string, nextIsActive: boolean) => {
+  const onParticipantAction = async (
+    participantId: string,
+    action: "ACTIVATE" | "DEACTIVATE" | "ANONYMIZE",
+  ) => {
+    if (action === "ANONYMIZE") {
+      const ok = window.confirm(
+        locale === "ko"
+          ? "이 계정을 익명화하면 로그인 식별 정보(ID/비밀번호/표시이름)가 제거됩니다. 계속할까요?"
+          : "This will anonymize login identifiers (ID/password/display name). Continue?",
+      );
+      if (!ok) {
+        return;
+      }
+    }
+
     setIsLoading(true);
     setMessage("");
 
     const response = await fetch(`/api/admin/participants/${participantId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: nextIsActive ? "ACTIVATE" : "DEACTIVATE" }),
+      body: JSON.stringify({ action }),
     });
 
     if (!response.ok) {
@@ -1688,23 +1719,40 @@ export function AdminDashboardClient({
                   <td>{participant.loginId ?? "-"}</td>
                   <td>{participant.displayName ?? "-"}</td>
                   <td>{participant.locale}</td>
-                  <td>
-                    {participant.isActive ? t.participantActive : t.participantInactive}
-                  </td>
+                  <td>{participantStatusLabel(locale, participant)}</td>
                   <td align="right">{participant.enrollmentCount}</td>
                   <td align="right">{participant.responseCount}</td>
                   <td>{formatMaybeDate(locale, participant.lastRespondedAt)}</td>
                   <td>{formatMaybeDate(locale, participant.createdAt)}</td>
                   <td>
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() =>
-                        void onSetParticipantActive(participant.id, !participant.isActive)
-                      }
-                    >
-                      {participant.isActive ? t.participantDeactivate : t.participantRestore}
-                    </button>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {!participant.isAnonymized ? (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() =>
+                            void onParticipantAction(
+                              participant.id,
+                              participant.isActive ? "DEACTIVATE" : "ACTIVATE",
+                            )
+                          }
+                        >
+                          {participant.isActive ? t.participantDeactivate : t.participantRestore}
+                        </button>
+                      ) : null}
+                      {!participant.isAnonymized ? (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          style={{ color: "#b00020", borderColor: "#b00020" }}
+                          onClick={() => void onParticipantAction(participant.id, "ANONYMIZE")}
+                        >
+                          {locale === "ko" ? "말소(익명화)" : "Anonymize"}
+                        </button>
+                      ) : (
+                        <span>-</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

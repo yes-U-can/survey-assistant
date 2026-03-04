@@ -198,3 +198,17 @@ survey-assistant/
 - 원장 거래 유형은 최소 `ISSUE`, `SPEND`, `REFUND`, `REWARD`, `ADJUSTMENT`를 지원한다.
 - Managed AI 과금은 요청 시작 시 즉시 `SPEND` 차감하고, 실패/예외 시 `REFUND`로 자동 복구한다.
 - 토큰 사용량은 과금 기준이 아니라 로그/모니터링 지표로 유지한다.
+
+## 22) Build Snapshot (2026-03-04)
+- Overall completion (current MVP line): ~85%
+- Completed
+  - Participant: 가입/로그인, 코드 등록, 응답 제출, 응답 진행현황/모바일 UX
+  - Research Admin: 템플릿/패키지 관리, CSV 다운로드, 특수템플릿 의뢰, 스토어 등록/구매
+  - Platform Admin: 크레딧 원장 관리, 의뢰 큐 상태 처리, 스토어 정산 요약
+  - Auth/Policy: 관리자 Google SSO, participant 익명형 가입, 관리자/플랫폼 모바일 차단
+  - Billing: AI managed 모드 즉시 차감 + 실패 환불
+  - Participant ops: 계정 비활성/복원 + 소프트 익명화(말소) MVP
+- Remaining focus
+  - 관리자/플랫폼 PC 화면의 정보 밀도 및 운영 UX 고도화
+  - 법무/컴플라이언스 수준의 익명화/보존 로그 정책 명문화
+  - e2e 자동화(핵심 운영 시나리오) 및 릴리스 체크리스트 강화

@@ -64,7 +64,8 @@ This app is linked to project `survey_sicp`.
 - Store listing update: `PATCH /api/admin/store/listings/{listingId}`
 - Store purchases: `GET/POST /api/admin/store/purchases`
 - Participant accounts list: `GET /api/admin/participants`
-- Participant account status update: `PATCH /api/admin/participants/{participantId}` (`ACTIVATE`/`DEACTIVATE`)
+- Participant account status update: `PATCH /api/admin/participants/{participantId}` (`ACTIVATE`/`DEACTIVATE`/`ANONYMIZE`)
+  - `ANONYMIZE` is soft anonymization: response/enrollment data is preserved, login identifiers are cleared.
 
 ## Platform Admin APIs (Current Baseline)
 - Overview: `GET /api/platform-admin/overview`

@@ -67,6 +67,7 @@ export async function GET(request: Request) {
       displayName: item.displayName,
       locale: item.locale,
       isActive: item.isActive,
+      isAnonymized: item.loginId === null,
       enrollmentCount: item._count.enrollments,
       responseCount: item._count.responses,
       lastRespondedAt: lastResponseMap.get(item.id) ?? null,
