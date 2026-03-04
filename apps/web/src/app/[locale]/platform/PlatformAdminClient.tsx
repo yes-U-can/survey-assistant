@@ -23,6 +23,9 @@ type SpecialRequestStatus =
   | "REJECTED"
   | "CANCELED";
 
+type AdminInviteStatus = "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
+type AdminInviteRole = "RESEARCH_ADMIN" | "PLATFORM_ADMIN";
+
 type Overview = {
   users: {
     participantCount: number;
@@ -109,6 +112,28 @@ type SpecialRequestItem = {
   };
 };
 
+type AdminInviteActor = {
+  id: string;
+  role: string;
+  email: string | null;
+  displayName: string | null;
+};
+
+type AdminInviteItem = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  note: string | null;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  invitedBy: AdminInviteActor | null;
+  acceptedBy: AdminInviteActor | null;
+};
+
 type SettlementSummary = {
   purchaseCount: number;
   totalPriceCredits: number;
@@ -190,6 +215,15 @@ type SpecialRequestDraftMap = Record<
   }
 >;
 
+type AdminInviteDraftMap = Record<
+  string,
+  {
+    status: AdminInviteStatus;
+    role: AdminInviteRole;
+    note: string;
+  }
+>;
+
 type Props = {
   locale: LocaleCode;
   initialOverview: Overview;
@@ -198,6 +232,7 @@ type Props = {
   initialTransactions: TransactionItem[];
   initialJobs: MigrationJobItem[];
   initialSpecialRequests?: SpecialRequestItem[];
+  initialAdminInvites?: AdminInviteItem[];
   initialSettlementSummary?: SettlementSummary;
   initialSettlementPurchases?: SettlementPurchaseItem[];
   initialSellerSettlements?: SellerSettlementItem[];
@@ -221,6 +256,10 @@ const specialRequestStatusOptions: SpecialRequestStatus[] = [
   "REJECTED",
   "CANCELED",
 ];
+
+const adminInviteStatusOptions: AdminInviteStatus[] = ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"];
+const adminInviteMutableStatusOptions: AdminInviteStatus[] = ["PENDING", "REVOKED", "EXPIRED"];
+const adminInviteRoleOptions: AdminInviteRole[] = ["RESEARCH_ADMIN", "PLATFORM_ADMIN"];
 
 const creditActions: CreditAction[] = [
   "ISSUE",
@@ -269,6 +308,23 @@ const msg = {
     requestAdminNote: "어드민 메모",
     requestApply: "의뢰 상태 반영",
     requestUpdated: "의뢰 상태가 변경되었습니다.",
+    adminInvites: "관리자 초대",
+    inviteEmail: "이메일",
+    inviteRole: "권한",
+    inviteStatus: "상태",
+    inviteCreatedAt: "생성일시",
+    inviteExpiresAt: "만료시각",
+    inviteInvitedBy: "초대자",
+    inviteAcceptedBy: "수락자",
+    inviteNote: "메모",
+    inviteCreate: "초대 생성",
+    inviteApply: "초대 반영",
+    inviteCreated: "초대를 생성했습니다.",
+    inviteUpdated: "초대가 업데이트되었습니다.",
+    inviteFilter: "초대 상태 필터",
+    inviteNeedEmail: "초대할 이메일을 입력해주세요.",
+    inviteExpiresInDays: "만료(일)",
+    noInvites: "등록된 초대가 없습니다.",
     settlements: "스토어 정산",
     settlementSummary: "정산 요약",
     settlementRecent: "최근 구매",
@@ -334,6 +390,23 @@ const msg = {
     requestAdminNote: "Admin note",
     requestApply: "Apply request status",
     requestUpdated: "Request status updated.",
+    adminInvites: "Admin invites",
+    inviteEmail: "Email",
+    inviteRole: "Role",
+    inviteStatus: "Status",
+    inviteCreatedAt: "Created at",
+    inviteExpiresAt: "Expires at",
+    inviteInvitedBy: "Invited by",
+    inviteAcceptedBy: "Accepted by",
+    inviteNote: "Note",
+    inviteCreate: "Create invite",
+    inviteApply: "Apply invite update",
+    inviteCreated: "Invite created.",
+    inviteUpdated: "Invite updated.",
+    inviteFilter: "Invite status filter",
+    inviteNeedEmail: "Enter an email to invite.",
+    inviteExpiresInDays: "Expiry (days)",
+    noInvites: "No invites found.",
     settlements: "Store settlements",
     settlementSummary: "Settlement summary",
     settlementRecent: "Recent purchases",
@@ -414,6 +487,41 @@ function migrationStatusLabel(locale: LocaleCode, status: MigrationStatus) {
   return "취소";
 }
 
+function normalizeAdminInviteStatus(status: string): AdminInviteStatus {
+  if (status === "ACCEPTED") return "ACCEPTED";
+  if (status === "REVOKED") return "REVOKED";
+  if (status === "EXPIRED") return "EXPIRED";
+  return "PENDING";
+}
+
+function normalizeAdminInviteRole(role: string): AdminInviteRole {
+  return role === "PLATFORM_ADMIN" ? "PLATFORM_ADMIN" : "RESEARCH_ADMIN";
+}
+
+function adminInviteStatusLabel(locale: LocaleCode, status: AdminInviteStatus) {
+  if (locale === "en") {
+    return status;
+  }
+  if (status === "PENDING") return "대기";
+  if (status === "ACCEPTED") return "수락됨";
+  if (status === "REVOKED") return "회수됨";
+  return "만료";
+}
+
+function adminInviteRoleLabel(locale: LocaleCode, role: AdminInviteRole) {
+  if (locale === "en") {
+    return role === "PLATFORM_ADMIN" ? "Platform admin" : "Research admin";
+  }
+  return role === "PLATFORM_ADMIN" ? "플랫폼 어드민" : "연구 관리자";
+}
+
+function displayInviteActor(actor: AdminInviteActor | null | undefined) {
+  if (!actor) {
+    return "-";
+  }
+  return actor.displayName?.trim() || actor.email?.trim() || actor.id;
+}
+
 export function PlatformAdminClient({
   locale,
   initialOverview,
@@ -422,6 +530,7 @@ export function PlatformAdminClient({
   initialTransactions,
   initialJobs,
   initialSpecialRequests = [],
+  initialAdminInvites = [],
   initialSettlementSummary = {
     purchaseCount: 0,
     totalPriceCredits: 0,
@@ -447,6 +556,7 @@ export function PlatformAdminClient({
   const [transactions, setTransactions] = useState<TransactionItem[]>(initialTransactions);
   const [jobs, setJobs] = useState<MigrationJobItem[]>(initialJobs);
   const [specialRequests, setSpecialRequests] = useState<SpecialRequestItem[]>(initialSpecialRequests);
+  const [adminInvites, setAdminInvites] = useState<AdminInviteItem[]>(initialAdminInvites);
   const [settlementSummary, setSettlementSummary] = useState<SettlementSummary>(
     initialSettlementSummary,
   );
@@ -474,6 +584,17 @@ export function PlatformAdminClient({
     }
     return initialMap;
   });
+  const [adminInviteDrafts, setAdminInviteDrafts] = useState<AdminInviteDraftMap>(() => {
+    const initialMap: AdminInviteDraftMap = {};
+    for (const invite of initialAdminInvites) {
+      initialMap[invite.id] = {
+        status: normalizeAdminInviteStatus(invite.status),
+        role: normalizeAdminInviteRole(invite.role),
+        note: invite.note ?? "",
+      };
+    }
+    return initialMap;
+  });
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -483,11 +604,23 @@ export function PlatformAdminClient({
   const [adjustmentDirection, setAdjustmentDirection] = useState<AdjustmentDirection>("INCREASE");
   const [amount, setAmount] = useState(100);
   const [memo, setMemo] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<AdminInviteRole>("RESEARCH_ADMIN");
+  const [inviteNote, setInviteNote] = useState("");
+  const [inviteExpiresInDays, setInviteExpiresInDays] = useState(7);
   const [nowMs, setNowMs] = useState(0);
+  const [adminInviteFilter, setAdminInviteFilter] = useState<"ALL" | AdminInviteStatus>("ALL");
   const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
     "ALL",
   );
   const [migrationFilter, setMigrationFilter] = useState<"ALL" | MigrationStatus>("ALL");
+
+  const filteredInvites = useMemo(() => {
+    if (adminInviteFilter === "ALL") {
+      return adminInvites;
+    }
+    return adminInvites.filter((invite) => invite.status === adminInviteFilter);
+  }, [adminInviteFilter, adminInvites]);
 
   const filteredSpecialRequests = useMemo(() => {
     if (specialRequestFilter === "ALL") {
@@ -623,13 +756,15 @@ export function PlatformAdminClient({
     setIsLoading(true);
     setMessage("");
 
-    const [overviewRes, creditsRes, migrationRes, specialRes, settlementRes] = await Promise.all([
+    const [overviewRes, creditsRes, migrationRes, specialRes, invitesRes, settlementRes] =
+      await Promise.all([
       fetch("/api/platform-admin/overview", { cache: "no-store" }),
       fetch("/api/platform-admin/credits?limit=20", { cache: "no-store" }),
       fetch("/api/platform-admin/migration-jobs?limit=50", { cache: "no-store" }),
       fetch("/api/platform-admin/special-requests?limit=50", { cache: "no-store" }),
+      fetch("/api/platform-admin/admin-invites?limit=100", { cache: "no-store" }),
       fetch("/api/platform-admin/store/settlements?limit=50", { cache: "no-store" }),
-    ]);
+      ]);
 
     const overviewJson = await parseJson<{ ok?: boolean; overview?: Overview }>(overviewRes);
     const creditsJson = await parseJson<{
@@ -644,6 +779,7 @@ export function PlatformAdminClient({
     const specialJson = await parseJson<{ ok?: boolean; requests?: SpecialRequestItem[] }>(
       specialRes,
     );
+    const inviteJson = await parseJson<{ ok?: boolean; invites?: AdminInviteItem[] }>(invitesRes);
     const settlementJson = await parseJson<{
       ok?: boolean;
       summary?: SettlementSummary;
@@ -656,11 +792,13 @@ export function PlatformAdminClient({
       !creditsRes.ok ||
       !migrationRes.ok ||
       !specialRes.ok ||
+      !invitesRes.ok ||
       !settlementRes.ok ||
       !overviewJson?.ok ||
       !creditsJson?.ok ||
       !migrationJson?.ok ||
       !specialJson?.ok ||
+      !inviteJson?.ok ||
       !settlementJson?.ok
     ) {
       setMessage(t.failDefault);
@@ -680,6 +818,8 @@ export function PlatformAdminClient({
     setJobs(loadedJobs);
     const loadedRequests = specialJson.requests ?? [];
     setSpecialRequests(loadedRequests);
+    const loadedInvites = inviteJson.invites ?? [];
+    setAdminInvites(loadedInvites);
     setSettlementSummary(
       settlementJson.summary ?? {
         purchaseCount: 0,
@@ -708,6 +848,18 @@ export function PlatformAdminClient({
         next[request.id] = {
           status: existing?.status ?? request.status,
           adminNote: existing?.adminNote ?? (request.adminNote ?? ""),
+        };
+      }
+      return next;
+    });
+    setAdminInviteDrafts((prev) => {
+      const next: AdminInviteDraftMap = {};
+      for (const invite of loadedInvites) {
+        const existing = prev[invite.id];
+        next[invite.id] = {
+          status: existing?.status ?? normalizeAdminInviteStatus(invite.status),
+          role: existing?.role ?? normalizeAdminInviteRole(invite.role),
+          note: existing?.note ?? (invite.note ?? ""),
         };
       }
       return next;
@@ -803,6 +955,119 @@ export function PlatformAdminClient({
       }));
     },
     [],
+  );
+
+  const updateAdminInviteDraft = useCallback(
+    (inviteId: string, patch: Partial<AdminInviteDraftMap[string]>) => {
+      setAdminInviteDrafts((prev) => ({
+        ...prev,
+        [inviteId]: {
+          status: patch.status ?? prev[inviteId]?.status ?? "PENDING",
+          role: patch.role ?? prev[inviteId]?.role ?? "RESEARCH_ADMIN",
+          note: patch.note ?? prev[inviteId]?.note ?? "",
+        },
+      }));
+    },
+    [],
+  );
+
+  const onCreateInvite = useCallback(
+    async (event: FormEvent) => {
+      event.preventDefault();
+      setMessage("");
+
+      const normalizedEmail = inviteEmail.trim().toLowerCase();
+      if (!normalizedEmail) {
+        setMessage(t.inviteNeedEmail);
+        return;
+      }
+
+      const expiresInDays = Number.isFinite(inviteExpiresInDays)
+        ? Math.min(365, Math.max(1, Math.trunc(inviteExpiresInDays)))
+        : 7;
+
+      setIsLoading(true);
+      const response = await fetch("/api/platform-admin/admin-invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          role: inviteRole,
+          note: inviteNote.trim() || undefined,
+          expiresAt: new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await parseJson<{ error?: string }>(response);
+        setMessage(body?.error ?? t.failDefault);
+        setIsLoading(false);
+        return;
+      }
+
+      setInviteEmail("");
+      setInviteRole("RESEARCH_ADMIN");
+      setInviteNote("");
+      setInviteExpiresInDays(7);
+      setMessage(t.inviteCreated);
+      await refreshAll();
+      setIsLoading(false);
+    },
+    [
+      inviteEmail,
+      inviteExpiresInDays,
+      inviteNote,
+      inviteRole,
+      refreshAll,
+      t.failDefault,
+      t.inviteCreated,
+      t.inviteNeedEmail,
+    ],
+  );
+
+  const onUpdateAdminInvite = useCallback(
+    async (inviteId: string) => {
+      const draft = adminInviteDrafts[inviteId];
+      if (!draft) {
+        return;
+      }
+
+      const payload: {
+        status?: "PENDING" | "REVOKED" | "EXPIRED";
+        role: AdminInviteRole;
+        note: string;
+      } = {
+        role: draft.role,
+        note: draft.note,
+      };
+
+      if (
+        draft.status === "PENDING" ||
+        draft.status === "REVOKED" ||
+        draft.status === "EXPIRED"
+      ) {
+        payload.status = draft.status;
+      }
+
+      setIsLoading(true);
+      const response = await fetch(`/api/platform-admin/admin-invites/${inviteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await parseJson<{ error?: string }>(response);
+        setMessage(body?.error ?? t.failDefault);
+        setIsLoading(false);
+        return;
+      }
+
+      setMessage(t.inviteUpdated);
+      await refreshAll();
+      setIsLoading(false);
+    },
+    [adminInviteDrafts, refreshAll, t.failDefault, t.inviteUpdated],
   );
 
   const onUpdateJob = useCallback(
@@ -973,6 +1238,186 @@ export function PlatformAdminClient({
               </article>
             ))}
           </div>
+        )}
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <h2>{t.adminInvites}</h2>
+        <form onSubmit={onCreateInvite} style={{ display: "grid", gap: 8, maxWidth: 560 }}>
+          <label>
+            {t.inviteEmail}
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+              disabled={isLoading}
+              style={{ display: "block", width: "100%" }}
+              placeholder="name@example.com"
+            />
+          </label>
+
+          <label>
+            {t.inviteRole}
+            <select
+              value={inviteRole}
+              onChange={(event) => setInviteRole(event.target.value as AdminInviteRole)}
+              disabled={isLoading}
+              style={{ display: "block", width: "100%" }}
+            >
+              {adminInviteRoleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {adminInviteRoleLabel(locale, role)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            {t.inviteExpiresInDays}
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={inviteExpiresInDays}
+              onChange={(event) => setInviteExpiresInDays(Number(event.target.value))}
+              disabled={isLoading}
+              style={{ display: "block", width: "100%" }}
+            />
+          </label>
+
+          <label>
+            {t.inviteNote}
+            <input
+              value={inviteNote}
+              onChange={(event) => setInviteNote(event.target.value)}
+              disabled={isLoading}
+              style={{ display: "block", width: "100%" }}
+            />
+          </label>
+
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? t.loading : t.inviteCreate}
+          </button>
+        </form>
+
+        <div style={{ marginTop: 14, marginBottom: 8 }}>
+          <label>
+            {t.inviteFilter}
+            <select
+              value={adminInviteFilter}
+              onChange={(event) =>
+                setAdminInviteFilter(event.target.value as "ALL" | AdminInviteStatus)
+              }
+              disabled={isLoading}
+              style={{ marginLeft: 8 }}
+            >
+              <option value="ALL">{t.filterAll}</option>
+              {adminInviteStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {adminInviteStatusLabel(locale, status)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {filteredInvites.length === 0 ? (
+          <p>{t.noInvites}</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th align="left">{t.inviteCreatedAt}</th>
+                <th align="left">{t.inviteEmail}</th>
+                <th align="left">{t.inviteRole}</th>
+                <th align="left">{t.inviteStatus}</th>
+                <th align="left">{t.inviteExpiresAt}</th>
+                <th align="left">{t.inviteInvitedBy}</th>
+                <th align="left">{t.inviteAcceptedBy}</th>
+                <th align="left">{t.inviteNote}</th>
+                <th align="left">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredInvites.map((invite) => {
+                const draft = adminInviteDrafts[invite.id] ?? {
+                  status: normalizeAdminInviteStatus(invite.status),
+                  role: normalizeAdminInviteRole(invite.role),
+                  note: invite.note ?? "",
+                };
+                const canMutateStatus = draft.status !== "ACCEPTED";
+
+                return (
+                  <tr key={invite.id}>
+                    <td>{new Date(invite.createdAt).toLocaleString()}</td>
+                    <td>{invite.email}</td>
+                    <td>
+                      <select
+                        value={draft.role}
+                        onChange={(event) =>
+                          updateAdminInviteDraft(invite.id, {
+                            role: event.target.value as AdminInviteRole,
+                          })
+                        }
+                        disabled={isLoading}
+                      >
+                        {adminInviteRoleOptions.map((role) => (
+                          <option key={role} value={role}>
+                            {adminInviteRoleLabel(locale, role)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        value={draft.status}
+                        onChange={(event) =>
+                          updateAdminInviteDraft(invite.id, {
+                            status: event.target.value as AdminInviteStatus,
+                          })
+                        }
+                        disabled={isLoading || !canMutateStatus}
+                      >
+                        {canMutateStatus
+                          ? adminInviteMutableStatusOptions.map((status) => (
+                              <option key={status} value={status}>
+                                {adminInviteStatusLabel(locale, status)}
+                              </option>
+                            ))
+                          : [normalizeAdminInviteStatus(invite.status)].map((status) => (
+                              <option key={status} value={status}>
+                                {adminInviteStatusLabel(locale, status)}
+                              </option>
+                            ))}
+                      </select>
+                    </td>
+                    <td>{new Date(invite.expiresAt).toLocaleString()}</td>
+                    <td>{displayInviteActor(invite.invitedBy)}</td>
+                    <td>{displayInviteActor(invite.acceptedBy)}</td>
+                    <td>
+                      <input
+                        value={draft.note}
+                        onChange={(event) =>
+                          updateAdminInviteDraft(invite.id, { note: event.target.value })
+                        }
+                        disabled={isLoading}
+                        style={{ width: "100%" }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => void onUpdateAdminInvite(invite.id)}
+                        disabled={isLoading}
+                      >
+                        {t.inviteApply}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </section>
 

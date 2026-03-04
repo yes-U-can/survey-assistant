@@ -41,7 +41,7 @@ __pycache__/
 # Local data (DO NOT PUBLISH)
 archive/sicp-legacy/**/yesucan.sql
 archive/sicp-legacy/**/yesucan_*.sql/**
-archive/gas-prototype/**/25.12.20 πÈæ˜ µ•¿Ã≈Õ/**
+archive/gas-prototype/**/25.12.20 Î∞±ÏóÖ Îç∞Ïù¥ÌÑ∞/**
 archive/response-exports/**
 archive/private-migration-assets/**
 archive/**/DB/**
@@ -58,3 +58,6 @@ archive/**/.viminfo
 # Keep only explicit placeholders if needed in future
 !/archive/.gitkeep
 .vercel
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/.playwright/

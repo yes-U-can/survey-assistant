@@ -34,3 +34,14 @@ Script:
 1. Full browser automation for OAuth redirect flow
 2. Migration job file ingest end-to-end fixtures
 3. Refund dispute workflow automation
+
+대신 OAuth는 수동 체크리스트로 고정:
+- `docs/planning/OAuthManualChecklist_20260304.md`
+
+## Playwright Smoke (Added 2026-03-04)
+- Config: `apps/web/playwright.config.ts`
+- Spec: `apps/web/e2e/smoke.spec.ts`
+- Command: `corepack pnpm --filter web e2e:smoke`
+- Current status:
+  - unauthenticated admin API 401: automated
+  - seeded participant full flow: implemented, runs when `DATABASE_URL` is available to the e2e process

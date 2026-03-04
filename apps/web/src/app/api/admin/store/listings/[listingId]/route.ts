@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { notFoundOrNoAccessResponse, withSellerScope } from "@/lib/admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
@@ -35,10 +36,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const updated = await prisma.templateStoreListing.updateMany({
-    where: {
+    where: withSellerScope(session.user.id, {
       id: listingId,
-      sellerId: session.user.id,
-    },
+    }),
     data: {
       ...(parsed.data.priceCredits !== undefined ? { priceCredits: parsed.data.priceCredits } : {}),
       ...(parsed.data.isActive !== undefined ? { isActive: parsed.data.isActive } : {}),
@@ -46,7 +46,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (updated.count === 0) {
-    return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   const listing = await prisma.templateStoreListing.findUnique({
@@ -72,7 +72,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!listing) {
-    return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   return NextResponse.json({

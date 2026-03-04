@@ -6,6 +6,15 @@
 3. API 키/토큰/시크릿은 `.env`로만 관리하고 커밋 금지.
 4. 샘플 데이터는 반드시 비식별/가명처리본만 사용.
 
+## Runtime Security Baseline
+- Response headers:
+  - `Content-Security-Policy`
+  - `Strict-Transport-Security` (production)
+  - `X-Content-Type-Options`, `X-Frame-Options`
+  - `Referrer-Policy`, `Permissions-Policy`
+- Critical mutating APIs write structured audit logs (`apps/web/src/lib/audit-log.ts`)
+- Audit logs must never include raw secrets/passwords/tokens
+
 ## Auth Model (Planned)
 - 관리자/어드민: Google SSO
 - 피검자: 익명형 가입(기관 내부 식별자 기반, 최소 개인정보)

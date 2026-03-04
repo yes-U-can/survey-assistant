@@ -1,10 +1,11 @@
-import { Locale, UserRole } from "@prisma/client";
+﻿import { AdminInviteStatus, Locale, UserRole } from "@prisma/client";
 import { compare } from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 
 import { prisma } from "@/lib/prisma";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 type AuthUser = {
   id: string;
@@ -13,20 +14,262 @@ type AuthUser = {
   name?: string | null;
 };
 
-const platformAdminEmails = new Set(
+const bootstrapPlatformAdminEmails = new Set(
   (process.env.PLATFORM_ADMIN_EMAILS ?? "")
     .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter((email) => email.length > 0),
+    .map((email) => normalizeEmail(email))
+    .filter((email): email is string => Boolean(email)),
 );
 
-function resolveGoogleAdminRole(email: string | null | undefined): UserRole {
-  if (!email) {
-    return UserRole.RESEARCH_ADMIN;
+const participantLoginRateLimit = {
+  limit: parseIntEnv("AUTH_PARTICIPANT_LOGIN_RATE_LIMIT", 10, 1, 1000),
+  windowSec: parseIntEnv("AUTH_PARTICIPANT_LOGIN_WINDOW_SEC", 60, 1, 86_400),
+};
+
+const sessionPolicy = {
+  maxAge: parseIntEnv("AUTH_SESSION_MAX_AGE_SEC", 60 * 60 * 24 * 7, 60, 60 * 60 * 24 * 365),
+  updateAge: parseIntEnv("AUTH_SESSION_UPDATE_AGE_SEC", 60 * 60 * 24, 60, 60 * 60 * 24 * 30),
+};
+
+function parseIntEnv(name: string, fallback: number, min: number, max: number) {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
   }
-  return platformAdminEmails.has(email.trim().toLowerCase())
-    ? UserRole.PLATFORM_ADMIN
-    : UserRole.RESEARCH_ADMIN;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  const value = Math.trunc(parsed);
+  return Math.max(min, Math.min(max, value));
+}
+
+function normalizeEmail(input: string | null | undefined) {
+  const value = input?.trim().toLowerCase();
+  if (!value) {
+    return null;
+  }
+  return value;
+}
+
+function buildAdminDenyRedirect(error: string) {
+  return `/auth/admin?error=${encodeURIComponent(error)}`;
+}
+
+function extractRequestHeader(
+  headers: Headers | Record<string, string | string[] | undefined> | undefined,
+  key: string,
+) {
+  if (!headers) {
+    return null;
+  }
+
+  if (headers instanceof Headers) {
+    return headers.get(key);
+  }
+
+  const directValue = headers[key] ?? headers[key.toLowerCase()];
+  if (Array.isArray(directValue)) {
+    return directValue[0] ?? null;
+  }
+  return directValue ?? null;
+}
+
+function resolveLoginIp(headers: Headers | Record<string, string | string[] | undefined> | undefined) {
+  const fromForwarded = extractRequestHeader(headers, "x-forwarded-for");
+  if (fromForwarded) {
+    const first = fromForwarded.split(",")[0]?.trim();
+    if (first) {
+      return first.toLowerCase();
+    }
+  }
+
+  const fromRealIp = extractRequestHeader(headers, "x-real-ip");
+  if (fromRealIp?.trim()) {
+    return fromRealIp.trim().toLowerCase();
+  }
+
+  return "unknown";
+}
+
+async function checkParticipantLoginRateLimit(params: {
+  loginId: string;
+  headers: Headers | Record<string, string | string[] | undefined> | undefined;
+}) {
+  const ip = resolveLoginIp(params.headers);
+  const decision = await consumeRateLimit({
+    bucketKey: `auth:participant-login:${ip}:${params.loginId.toLowerCase()}`,
+    limit: participantLoginRateLimit.limit,
+    windowSec: participantLoginRateLimit.windowSec,
+  });
+
+  if (!decision.allowed) {
+    throw new Error(`rate_limited:${decision.retryAfterSec}`);
+  }
+}
+
+async function validateGoogleAdminSignIn(params: {
+  googleSub: string;
+  email: string | null;
+  displayName: string;
+}) {
+  const now = new Date();
+
+  const byGoogleSub = await prisma.user.findUnique({
+    where: { googleSub: params.googleSub },
+    select: {
+      id: true,
+      role: true,
+      isActive: true,
+    },
+  });
+
+  if (byGoogleSub) {
+    if (
+      byGoogleSub.role !== UserRole.RESEARCH_ADMIN &&
+      byGoogleSub.role !== UserRole.PLATFORM_ADMIN
+    ) {
+      return buildAdminDenyRedirect("account_role_not_admin");
+    }
+    if (!byGoogleSub.isActive) {
+      return buildAdminDenyRedirect("admin_inactive");
+    }
+
+    await prisma.user.update({
+      where: { id: byGoogleSub.id },
+      data: {
+        email: params.email,
+        displayName: params.displayName,
+        disabledReason: null,
+        lastLoginAt: now,
+      },
+    });
+    return true;
+  }
+
+  if (!params.email) {
+    return buildAdminDenyRedirect("admin_email_required");
+  }
+
+  const byEmail = await prisma.user.findUnique({
+    where: { email: params.email },
+    select: {
+      id: true,
+      role: true,
+      isActive: true,
+    },
+  });
+
+  if (byEmail) {
+    if (byEmail.role !== UserRole.RESEARCH_ADMIN && byEmail.role !== UserRole.PLATFORM_ADMIN) {
+      return buildAdminDenyRedirect("account_role_not_admin");
+    }
+    if (!byEmail.isActive) {
+      return buildAdminDenyRedirect("admin_inactive");
+    }
+
+    await prisma.user.update({
+      where: { id: byEmail.id },
+      data: {
+        googleSub: params.googleSub,
+        displayName: params.displayName,
+        lastLoginAt: now,
+        disabledReason: null,
+      },
+    });
+    return true;
+  }
+
+  if (bootstrapPlatformAdminEmails.has(params.email)) {
+    await prisma.user.create({
+      data: {
+        role: UserRole.PLATFORM_ADMIN,
+        email: params.email,
+        googleSub: params.googleSub,
+        displayName: params.displayName,
+        locale: Locale.ko,
+        isActive: true,
+        lastLoginAt: now,
+      },
+    });
+    return true;
+  }
+
+  const invite = await prisma.adminInvite.findFirst({
+    where: {
+      email: params.email,
+      status: AdminInviteStatus.PENDING,
+      expiresAt: { gt: now },
+      revokedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!invite) {
+    return buildAdminDenyRedirect("admin_not_invited");
+  }
+
+  if (invite.role !== UserRole.RESEARCH_ADMIN && invite.role !== UserRole.PLATFORM_ADMIN) {
+    return buildAdminDenyRedirect("invite_role_invalid");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        role: invite.role,
+        email: params.email as string,
+        googleSub: params.googleSub,
+        displayName: params.displayName,
+        locale: Locale.ko,
+        isActive: true,
+        lastLoginAt: now,
+      },
+      select: { id: true },
+    });
+
+    await tx.adminInvite.update({
+      where: { id: invite.id },
+      data: {
+        status: AdminInviteStatus.ACCEPTED,
+        acceptedAt: now,
+        acceptedById: created.id,
+      },
+    });
+  });
+
+  return true;
+}
+
+async function refreshGoogleTokenClaims(googleSub: string) {
+  return prisma.user.findUnique({
+    where: { googleSub },
+    select: {
+      id: true,
+      role: true,
+      locale: true,
+      displayName: true,
+      isActive: true,
+    },
+  });
+}
+
+async function refreshTokenClaimsByUserId(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      locale: true,
+      displayName: true,
+      isActive: true,
+    },
+  });
 }
 
 const participantCredentials = CredentialsProvider({
@@ -36,13 +279,18 @@ const participantCredentials = CredentialsProvider({
     loginId: { label: "ID", type: "text" },
     password: { label: "Password", type: "password" },
   },
-  async authorize(credentials): Promise<AuthUser | null> {
+  async authorize(credentials, req): Promise<AuthUser | null> {
     const loginId = credentials?.loginId?.trim();
     const password = credentials?.password ?? "";
 
     if (!loginId || !password) {
-      return null;
+      throw new Error("participant_invalid_credentials");
     }
+
+    await checkParticipantLoginRateLimit({
+      loginId,
+      headers: req?.headers as Headers | Record<string, string | string[] | undefined> | undefined,
+    });
 
     const user = await prisma.user.findUnique({
       where: { loginId },
@@ -56,18 +304,27 @@ const participantCredentials = CredentialsProvider({
       },
     });
 
-    if (!user || !user.passwordHash || !user.isActive) {
-      return null;
+    if (!user || !user.passwordHash) {
+      throw new Error("participant_invalid_credentials");
     }
 
     if (user.role !== UserRole.PARTICIPANT) {
-      return null;
+      throw new Error("participant_invalid_credentials");
+    }
+
+    if (!user.isActive) {
+      throw new Error("participant_inactive");
     }
 
     const ok = await compare(password, user.passwordHash);
     if (!ok) {
-      return null;
+      throw new Error("participant_invalid_credentials");
     }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
 
     return {
       id: user.id,
@@ -90,7 +347,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: sessionPolicy.maxAge,
+    updateAge: sessionPolicy.updateAge,
+  },
   providers,
   callbacks: {
     async signIn({ account, profile }) {
@@ -100,35 +361,24 @@ export const authOptions: NextAuthOptions = {
 
       const googleSub = account.providerAccountId;
       if (!googleSub) {
-        return false;
+        return buildAdminDenyRedirect("google_sub_missing");
       }
 
-      const rawName =
-        typeof profile?.name === "string"
-          ? profile.name
-          : typeof profile?.email === "string"
-            ? profile.email
-            : "Research Admin";
-      const rawEmail = typeof profile?.email === "string" ? profile.email : null;
-      const resolvedRole = resolveGoogleAdminRole(rawEmail);
+      const email = normalizeEmail(typeof profile?.email === "string" ? profile.email : null);
+      const displayName =
+        typeof profile?.name === "string" && profile.name.trim()
+          ? profile.name.trim()
+          : email ?? "Research Admin";
 
-      await prisma.user.upsert({
-        where: { googleSub },
-        update: {
-          role: resolvedRole,
-          displayName: rawName,
-          isActive: true,
-        },
-        create: {
-          role: resolvedRole,
+      try {
+        return await validateGoogleAdminSignIn({
           googleSub,
-          displayName: rawName,
-          locale: Locale.ko,
-          isActive: true,
-        },
-      });
-
-      return true;
+          email,
+          displayName,
+        });
+      } catch {
+        return buildAdminDenyRedirect("auth_internal_error");
+      }
     },
     async jwt({ token, account, user }) {
       if (account?.provider === "participant-credentials" && user) {
@@ -142,23 +392,31 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "google") {
         const googleSub = account.providerAccountId;
         if (googleSub) {
-          const dbUser = await prisma.user.findUnique({
-            where: { googleSub },
-            select: {
-              id: true,
-              role: true,
-              locale: true,
-              displayName: true,
-            },
-          });
-
-          if (dbUser) {
-            token.uid = dbUser.id;
-            token.role = dbUser.role;
-            token.locale = dbUser.locale;
-            token.name = dbUser.displayName ?? token.name;
+          const dbUser = await refreshGoogleTokenClaims(googleSub);
+          if (!dbUser || !dbUser.isActive) {
+            delete token.uid;
+            delete token.role;
+            return token;
           }
+
+          token.uid = dbUser.id;
+          token.role = dbUser.role;
+          token.locale = dbUser.locale;
+          token.name = dbUser.displayName ?? token.name;
         }
+      }
+
+      if (!account?.provider && typeof token.uid === "string") {
+        const dbUser = await refreshTokenClaimsByUserId(token.uid);
+        if (!dbUser || !dbUser.isActive) {
+          delete token.uid;
+          delete token.role;
+          return token;
+        }
+
+        token.role = dbUser.role;
+        token.locale = dbUser.locale;
+        token.name = dbUser.displayName ?? token.name;
       }
 
       return token;
@@ -171,7 +429,11 @@ export const authOptions: NextAuthOptions = {
       if (typeof token.uid === "string") {
         session.user.id = token.uid;
       }
-      if (token.role === UserRole.PARTICIPANT || token.role === UserRole.RESEARCH_ADMIN || token.role === UserRole.PLATFORM_ADMIN) {
+      if (
+        token.role === UserRole.PARTICIPANT ||
+        token.role === UserRole.RESEARCH_ADMIN ||
+        token.role === UserRole.PLATFORM_ADMIN
+      ) {
         session.user.role = token.role;
       }
       if (token.locale === Locale.ko || token.locale === Locale.en) {
@@ -181,5 +443,9 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  pages: {
+    error: "/auth/admin",
+  },
   secret: process.env.NEXTAUTH_SECRET,
 };
+

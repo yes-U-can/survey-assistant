@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { LegalLinks } from "@/components/LegalLinks";
+
 type RoleLane = {
   href: string;
   title: string;
@@ -110,6 +112,11 @@ export default async function LocaleHome({
           </li>
         ))}
       </ul>
+
+      <footer className="sa-footer" style={{ paddingTop: 18 }}>
+        <Link href={`/${locale}`}>{locale === "ko" ? "홈" : "Home"}</Link>
+        <LegalLinks locale={locale} />
+      </footer>
     </main>
   );
 }

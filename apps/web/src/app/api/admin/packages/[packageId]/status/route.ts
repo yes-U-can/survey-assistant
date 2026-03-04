@@ -2,6 +2,7 @@ import { PackageStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { notFoundOrNoAccessResponse, withOwnerScope } from "@/lib/admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
@@ -27,12 +28,12 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const target = await prisma.surveyPackage.findFirst({
-    where: { id: packageId, ownerId: session.user.id },
+    where: withOwnerScope(session.user.id, { id: packageId }),
     select: { id: true },
   });
 
   if (!target) {
-    return NextResponse.json({ ok: false, error: "package_not_found" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   const updated = await prisma.surveyPackage.update({
@@ -63,4 +64,3 @@ export async function PATCH(request: Request, { params }: Params) {
     },
   });
 }
-

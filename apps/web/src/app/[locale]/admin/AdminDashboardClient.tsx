@@ -1153,10 +1153,14 @@ export function AdminDashboardClient({
 
     setAiIsRunning(true);
     setAiResult("");
+    const idempotencyKey = `ai_${aiPackageId}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
     const response = await fetch("/api/admin/ai/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idempotencyKey,
+      },
       body: JSON.stringify({
         packageId: aiPackageId,
         question: aiQuestion.trim(),
@@ -1170,6 +1174,7 @@ export function AdminDashboardClient({
       | {
           ok?: boolean;
           error?: string;
+          retryAfterSec?: number;
           answer?: string;
           model?: string;
           usage?: { totalTokens?: number | null };
@@ -1178,7 +1183,17 @@ export function AdminDashboardClient({
       | null;
 
     if (!response.ok || !payload?.ok || !payload.answer) {
-      setMessage(payload?.error ?? t.failDefault);
+      if (payload?.error === "rate_limited") {
+        setMessage(
+          locale === "ko"
+            ? `요청이 너무 많습니다. ${payload.retryAfterSec ?? 0}초 후 다시 시도해주세요.`
+            : `Too many requests. Try again in ${payload.retryAfterSec ?? 0} seconds.`,
+        );
+      } else if (payload?.error === "missing_idempotency_key") {
+        setMessage(locale === "ko" ? "요청 키 생성에 실패했습니다." : "Failed to prepare request key.");
+      } else {
+        setMessage(payload?.error ?? t.failDefault);
+      }
       setAiIsRunning(false);
       return;
     }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { signIn } from "next-auth/react";
 
+import { LegalLinks } from "@/components/LegalLinks";
+
 type Props = {
   locale: "ko" | "en";
 };
@@ -65,6 +67,40 @@ export function ParticipantAuthClient({ locale }: Props) {
     [locale],
   );
 
+  const resolveSignupError = (errorCode: string | null, retryAfterSec: number | null) => {
+    if (errorCode === "login_id_taken") {
+      return locale === "ko" ? "이미 사용 중인 ID입니다." : "This ID is already in use.";
+    }
+    if (errorCode === "rate_limited") {
+      if (locale === "ko") {
+        return `요청이 너무 많습니다. ${retryAfterSec ?? 0}초 후 다시 시도해주세요.`;
+      }
+      return `Too many attempts. Try again in ${retryAfterSec ?? 0} seconds.`;
+    }
+    return t.signupFail;
+  };
+
+  const resolveLoginError = (errorCode: string | null) => {
+    if (
+      !errorCode ||
+      errorCode === "participant_invalid_credentials" ||
+      errorCode === "CredentialsSignin"
+    ) {
+      return locale === "ko" ? "ID 또는 비밀번호가 올바르지 않습니다." : "Invalid ID or password.";
+    }
+    if (errorCode === "participant_inactive") {
+      return locale === "ko" ? "비활성화된 계정입니다." : "This account is inactive.";
+    }
+    if (errorCode.startsWith("rate_limited:")) {
+      const sec = Number(errorCode.split(":")[1] ?? "0");
+      if (locale === "ko") {
+        return `로그인 시도가 너무 많습니다. ${Number.isFinite(sec) ? sec : 0}초 후 다시 시도해주세요.`;
+      }
+      return `Too many sign-in attempts. Try again in ${Number.isFinite(sec) ? sec : 0} seconds.`;
+    }
+    return t.loginFail;
+  };
+
   const onSignup = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSignupMessage("");
@@ -87,7 +123,10 @@ export function ParticipantAuthClient({ locale }: Props) {
       return;
     }
 
-    setSignupMessage(t.signupFail);
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; retryAfterSec?: number }
+      | null;
+    setSignupMessage(resolveSignupError(payload?.error ?? null, payload?.retryAfterSec ?? null));
   };
 
   const onLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -106,7 +145,7 @@ export function ParticipantAuthClient({ locale }: Props) {
       return;
     }
 
-    setLoginMessage(t.loginFail);
+    setLoginMessage(resolveLoginError(result?.error ?? null));
   };
 
   return (
@@ -126,6 +165,7 @@ export function ParticipantAuthClient({ locale }: Props) {
         <div className="sa-auth-links">
           <Link href={`/${locale}/auth/admin`}>{t.toAdmin}</Link>
           <Link href={`/${locale}`}>{t.toHome}</Link>
+          <LegalLinks locale={locale} />
         </div>
       </section>
 

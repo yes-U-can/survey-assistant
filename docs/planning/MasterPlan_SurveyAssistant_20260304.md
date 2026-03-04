@@ -258,3 +258,81 @@ survey-assistant/
 - Remaining focus
   - OAuth 브라우저 e2e 자동화(CI 통합) (출시 자동화 트랙)
   - 릴리스 태그/체인지로그 자동화 (출시 자동화 트랙)
+
+## 27) Build Snapshot Update (2026-03-04, Consistency Recovery Reset)
+- Scope type: 운영 안정성 복구(인증/세션/권한/원장/검증)
+- Completed in this update
+  - Auth.js 유지 전제에서 관리자 초대 기반 통제 추가
+    - 모델: `AdminInvite`, enum: `AdminInviteStatus`
+    - API: `GET/POST /api/platform-admin/admin-invites`, `PATCH /api/platform-admin/admin-invites/{inviteId}`
+    - Google 관리자 로그인 정책:
+      - 활성 기존 관리자 허용
+      - 유효 초대 수락 시 계정 생성/승격 허용
+      - 그 외 계정 차단(`admin_not_invited`)
+      - `PLATFORM_ADMIN_EMAILS`는 부트스트랩(초기 진입) 용도로만 사용
+      - 비활성 관리자 차단
+  - 세션 정책 명시
+    - `AUTH_SESSION_MAX_AGE_SEC`, `AUTH_SESSION_UPDATE_AGE_SEC`
+    - `lastLoginAt` 기록 추가
+  - 로그아웃 UX 정규화
+    - `/api/auth/signout` 링크 제거
+    - 공통 `LogoutButton` + `signOut({ callbackUrl })` 사용
+  - 인증 페이지 동선 보정
+    - 로그인 상태에서 `/auth/*` 접근 시 역할 홈 자동 리다이렉트
+    - 로그인 실패 코드별 메시지 분기(피검자/관리자)
+  - 관리자 데이터 경계 강제 유틸 도입
+    - `withOwnerScope`, `withRequesterScope`, `withSellerScope`
+    - 경계 위반 응답 통일: `404 not_found_or_no_access`
+  - 크레딧 원장 정합성 강화
+    - `CreditTransaction.idempotencyKey`(unique) 추가
+    - 음수 잔액 방지 DB 체크(`CreditWallet_balance_non_negative`)
+    - 차감 원자성 강화(조건부 차감) + idempotent replay 처리
+    - AI 과금/환불 및 스토어 구매 정산에 idempotency 키 적용
+  - 남용 방지 최소선 추가
+    - 모델: `RateLimitBucket`
+    - 적용:
+      - 피검자 가입
+      - 피검자 credentials 로그인
+      - 코드 등록(enroll)
+      - 관리자 AI 분석 호출
+      - 특수 템플릿 의뢰 등록
+    - 초과 시 `429 rate_limited + retryAfterSec`
+  - 검증 루프 보강
+    - Playwright 스모크 테스트 추가(`apps/web/e2e/smoke.spec.ts`)
+    - 설정 추가(`apps/web/playwright.config.ts`)
+- Current known gap
+  - OAuth 브라우저 전체 플로우 자동화는 수동 체크리스트와 병행 필요
+
+## 28) Build Snapshot Update (2026-03-04, Platform Admin Invite UI Completion)
+- Scope type: 리셋 플랜 후속 UI 정합성 마무리
+- Completed in this update
+  - Platform Admin 콘솔에 관리자 초대 운영 UI 연결
+    - 초대 생성(이메일/권한/메모/만료일수)
+    - 초대 상태 필터
+    - 초대 상태/권한/메모 수정
+  - 서버 초기 데이터 로딩 + 클라이언트 refresh 루프에 `adminInvites` 연동
+    - `apps/web/src/app/[locale]/platform/page.tsx`
+    - `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+  - 플랫폼 페이지 깨진 한글 문자열 정리
+    - 접근권한/모바일 정책/푸터 텍스트 교정
+- Current known gap
+  - OAuth 브라우저 전체 플로우 자동화는 여전히 수동 체크리스트 병행 필요
+
+## 29) Build Snapshot Update (2026-03-04, Deployment Baseline Hardening)
+- Scope type: 배포 표준/운영 기본기 보강
+- Completed in this update
+  - 웹 보안 헤더 기본 세트 적용(`next.config.ts`)
+    - CSP, HSTS(production), XFO, XCTO, Referrer/Permissions policy
+  - 구조화 감사 로그 유틸 추가(`src/lib/audit-log.ts`)
+  - 핵심 변경 API 감사 로그 연동
+    - participant signup/enroll
+    - admin AI analyze / store purchase / special request
+    - platform admin invite / migration status / special request status / credit mutation
+  - 법적 페이지 추가(ko/en)
+    - `/{locale}/legal/privacy`
+    - `/{locale}/legal/terms`
+  - 백업/복구 및 장애대응 런북 추가
+    - `OpsRunbook_BackupRecovery_20260304.md`
+    - `OpsRunbook_IncidentResponse_20260304.md`
+- Current known gap
+  - OAuth 브라우저 전체 자동화(CI) 대신 수동 체크리스트 병행 정책 유지

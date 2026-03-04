@@ -1,7 +1,10 @@
-import { TemplateType, UserRole } from "@prisma/client";
+﻿import { TemplateType, UserRole } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+import { LegalLinks } from "@/components/LegalLinks";
+import { LogoutButton } from "@/components/LogoutButton";
 
 import { AdminDashboardClient } from "./AdminDashboardClient";
 import { authOptions } from "@/lib/auth";
@@ -28,15 +31,15 @@ export default async function AdminHomePage({ params }: PageProps) {
   ) {
     return (
       <main className="sa-page">
-        <h1>{locale === "ko" ? "접근 권한 없음" : "Access Denied"}</h1>
+        <h1>{locale === "ko" ? "?묎렐 沅뚰븳 ?놁쓬" : "Access Denied"}</h1>
         <p>
           {locale === "ko"
-            ? "관리자 또는 플랫폼 어드민 계정으로 로그인해야 합니다."
+            ? "愿由ъ옄 ?먮뒗 ?뚮옯???대뱶誘?怨꾩젙?쇰줈 濡쒓렇?명빐???⑸땲??"
             : "You need a research admin or platform admin account."}
         </p>
         <p style={{ marginTop: 12 }}>
           <Link href={`/${locale}/auth/admin`}>
-            {locale === "ko" ? "관리자 로그인으로 이동" : "Go to admin sign-in"}
+            {locale === "ko" ? "愿由ъ옄 濡쒓렇?몄쑝濡??대룞" : "Go to admin sign-in"}
           </Link>
         </p>
       </main>
@@ -400,12 +403,12 @@ export default async function AdminHomePage({ params }: PageProps) {
   }));
 
   const mobileBlockedTitle =
-    locale === "ko" ? "관리자 기능은 PC 웹 전용입니다." : "Admin features are desktop-only.";
+    locale === "ko" ? "愿由ъ옄 湲곕뒫? PC ???꾩슜?낅땲??" : "Admin features are desktop-only.";
   const mobileBlockedBody =
     locale === "ko"
-      ? "피검자 화면은 모바일 지원이 가능하지만, 관리자/플랫폼 운영 화면은 보안과 운영 안정성을 위해 PC에서만 사용할 수 있습니다."
+      ? "?쇨????붾㈃? 紐⑤컮??吏?먯씠 媛?ν븯吏留? 愿由ъ옄/?뚮옯???댁쁺 ?붾㈃? 蹂댁븞怨??댁쁺 ?덉젙?깆쓣 ?꾪빐 PC?먯꽌留??ъ슜?????덉뒿?덈떎."
       : "Participant screens support mobile, but admin/platform operations are restricted to desktop for security and operational stability.";
-  const mobileBlockedLink = locale === "ko" ? "홈으로 이동" : "Back to home";
+  const mobileBlockedLink = locale === "ko" ? "?덉쑝濡??대룞" : "Back to home";
 
   return (
     <>
@@ -425,16 +428,17 @@ export default async function AdminHomePage({ params }: PageProps) {
         />
         <footer className="sa-footer">
           <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
+          <LegalLinks locale={locale} />
           <span className="sa-divider">|</span>
           {session.user.role === UserRole.PLATFORM_ADMIN ? (
             <>
               <Link href={`/${locale}/platform`}>
-                {locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}
+                {locale === "ko" ? "?뚮옯???대뱶誘?肄섏넄" : "Platform admin console"}
               </Link>
               <span className="sa-divider">|</span>
             </>
           ) : null}
-          <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
+          <LogoutButton locale={locale} className="sa-link-button" />
         </footer>
       </div>
 
@@ -450,3 +454,5 @@ export default async function AdminHomePage({ params }: PageProps) {
     </>
   );
 }
+
+

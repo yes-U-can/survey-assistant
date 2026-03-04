@@ -37,6 +37,22 @@
 - 로컬 검증: `corepack pnpm verify:local`
 - Push 전 자동검증 훅 설치: `corepack pnpm hooks:install`
 
+## Consistency Recovery (2026-03-04)
+- 인증/권한:
+  - Auth.js 유지
+  - 관리자 Google 로그인은 초대 기반(`AdminInvite`)으로 통제
+  - `PLATFORM_ADMIN_EMAILS`는 초기 부트스트랩 용도로만 사용
+- 세션/로그아웃:
+  - 세션 수명 정책(`AUTH_SESSION_MAX_AGE_SEC`, `AUTH_SESSION_UPDATE_AGE_SEC`) 명시
+  - `/api/auth/signout` 링크 제거, 공통 `LogoutButton` 사용
+- 경계/원장:
+  - `/api/admin/*` 소유권 경계 위반 응답 통일: `404 not_found_or_no_access`
+  - 원장 idempotency(`CreditTransaction.idempotencyKey`) 및 음수잔액 방지 적용
+- 남용 방지:
+  - 가입/로그인/코드등록/AI분석/특수의뢰 엔드포인트 rate limit 적용
+
 ## Ops Docs
 - 릴리스 체크리스트: `docs/planning/ReleaseReadinessChecklist_20260304.md`
 - 특수 템플릿 운영 런북: `docs/planning/OpsRunbook_SpecialTemplateWorkflow_20260304.md`
+- 백업/복구 런북: `docs/planning/OpsRunbook_BackupRecovery_20260304.md`
+- 장애 대응 런북: `docs/planning/OpsRunbook_IncidentResponse_20260304.md`

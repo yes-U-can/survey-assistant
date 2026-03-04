@@ -2,6 +2,7 @@ import { TemplateType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { notFoundOrNoAccessResponse, withOwnerScope, withSellerScope } from "@/lib/admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
@@ -25,11 +26,10 @@ export async function GET(request: Request) {
 
   const [ownedSpecialTemplates, myListings, purchasedRows] = await Promise.all([
     prisma.template.findMany({
-      where: {
-        ownerId: session.user.id,
+      where: withOwnerScope(session.user.id, {
         type: TemplateType.SPECIAL,
         isArchived: false,
-      },
+      }),
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       },
     }),
     prisma.templateStoreListing.findMany({
-      where: { sellerId: session.user.id },
+      where: withSellerScope(session.user.id),
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -141,12 +141,11 @@ export async function POST(request: Request) {
   }
 
   const ownedTemplate = await prisma.template.findFirst({
-    where: {
+    where: withOwnerScope(session.user.id, {
       id: parsed.data.templateId,
-      ownerId: session.user.id,
       type: TemplateType.SPECIAL,
       isArchived: false,
-    },
+    }),
     select: {
       id: true,
       title: true,
@@ -156,7 +155,7 @@ export async function POST(request: Request) {
   });
 
   if (!ownedTemplate) {
-    return NextResponse.json({ ok: false, error: "template_not_found_or_not_special" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   const existing = await prisma.templateStoreListing.findUnique({

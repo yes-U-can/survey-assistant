@@ -33,9 +33,22 @@ This app is linked to project `survey_sicp`.
 - Root Directory: `apps/web`
 - Framework Preset: `Next.js`
 
+## Security Baseline
+- Response headers:
+  - `Content-Security-Policy`
+  - `Strict-Transport-Security` (production only)
+  - `X-Content-Type-Options`, `X-Frame-Options`
+  - `Referrer-Policy`, `Permissions-Policy`
+- `poweredByHeader` disabled
+- Mutating APIs emit structured audit logs (`src/lib/audit-log.ts`)
+
 ## Auth (Current Baseline)
 - Admin / Platform Admin: Google sign-in (`/api/auth/signin/google`)
 - Participant: credentials sign-in (`participant-credentials`)
+- Admin onboarding policy:
+  - Existing active admin account: allowed
+  - Valid invite required for new Google admin login
+  - Uninvited admin login is blocked (`admin_not_invited`)
 - Participant signup endpoint: `POST /api/auth/participant/signup`
 - Participant package enrollment endpoint: `POST /api/participant/packages/enroll`
 - Participant progress endpoint: `GET /api/participant/packages`
@@ -48,6 +61,8 @@ This app is linked to project `survey_sicp`.
 - If you access a random deployment URL (`https://surveysicp-*.vercel.app`), Google can return `redirect_uri_mismatch`.
   - Use canonical domain `https://surveysicp.vercel.app` for admin login.
   - App-level canonical redirect is enforced from `src/proxy.ts` using `NEXTAUTH_URL`.
+- Manual release verification checklist:
+  - `docs/planning/OAuthManualChecklist_20260304.md`
 
 ## Admin APIs (Current Baseline)
 - Template list/create: `GET/POST /api/admin/templates`
@@ -70,6 +85,8 @@ This app is linked to project `survey_sicp`.
   - `ANONYMIZE` is soft anonymization: response/enrollment data is preserved, login identifiers are cleared.
 
 ## Platform Admin APIs (Current Baseline)
+- Admin invite list/create: `GET/POST /api/platform-admin/admin-invites`
+- Admin invite update: `PATCH /api/platform-admin/admin-invites/{inviteId}`
 - Overview: `GET /api/platform-admin/overview`
 - Credit ledger list: `GET /api/platform-admin/credits`
 - Mutate admin credits (issue/spend/refund/reward/adjustment): `POST /api/platform-admin/credits`
@@ -89,6 +106,12 @@ This app is linked to project `survey_sicp`.
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.
 
+## Session/Auth Env
+- `AUTH_SESSION_MAX_AGE_SEC` (default `604800`)
+- `AUTH_SESSION_UPDATE_AGE_SEC` (default `86400`)
+- `AUTH_PARTICIPANT_LOGIN_RATE_LIMIT` (default `10`)
+- `AUTH_PARTICIPANT_LOGIN_WINDOW_SEC` (default `60`)
+
 ## Platform Alert Thresholds (Optional)
 - `PLATFORM_ALERT_MIN_TOTAL_CREDITS` (default `500`)
 - `PLATFORM_ALERT_MAX_OPEN_SPECIAL_REQUESTS` (default `12`)
@@ -96,3 +119,15 @@ Do not commit `.env*` real values. Use root `.env.example` as template.
 - `PLATFORM_ALERT_MAX_FAILED_MIGRATIONS` (default `3`)
 - `PLATFORM_ALERT_STALE_SPECIAL_REQUEST_DAYS` (default `14`)
 - `PLATFORM_ALERT_MAX_STALE_SPECIAL_REQUESTS` (default `0`)
+
+## E2E Smoke
+- Run: `corepack pnpm --filter web e2e:smoke`
+- File: `apps/web/e2e/smoke.spec.ts`
+
+## Legal Pages
+- `/{locale}/legal/privacy`
+- `/{locale}/legal/terms`
+
+## Ops Runbooks
+- `docs/planning/OpsRunbook_BackupRecovery_20260304.md`
+- `docs/planning/OpsRunbook_IncidentResponse_20260304.md`

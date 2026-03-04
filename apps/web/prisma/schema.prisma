@@ -65,15 +65,25 @@ enum SpecialTemplateRequestStatus {
   CANCELED
 }
 
+enum AdminInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 model User {
   id           String   @id @default(cuid())
   role         UserRole
   loginId      String?  @unique
+  email        String?  @unique
   googleSub    String?  @unique
   passwordHash String?
   displayName  String?
   locale       Locale   @default(ko)
   isActive     Boolean  @default(true)
+  disabledReason String?
+  lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -87,6 +97,8 @@ model User {
   storeListings            TemplateStoreListing[]   @relation("TemplateListingSeller")
   storePurchasesAsBuyer    TemplatePurchase[]       @relation("TemplatePurchaseBuyer")
   storePurchasesAsSeller   TemplatePurchase[]       @relation("TemplatePurchaseSeller")
+  adminInvitesIssued       AdminInvite[]            @relation("AdminInviteInviter")
+  acceptedAdminInvites     AdminInvite[]            @relation("AdminInviteAcceptedBy")
 }
 
 model CreditWallet {
@@ -105,6 +117,7 @@ model CreditTransaction {
   walletId    String
   type        CreditTxnType
   amount      Int
+  idempotencyKey String?    @unique
   memo        String?
   createdAt   DateTime      @default(now())
   referenceId String?
@@ -261,4 +274,34 @@ model TemplatePurchase {
   @@unique([listingId, buyerId])
   @@index([buyerId, createdAt])
   @@index([sellerId, createdAt])
+}
+
+model AdminInvite {
+  id           String            @id @default(cuid())
+  email        String
+  role         UserRole
+  status       AdminInviteStatus @default(PENDING)
+  note         String?
+  invitedById  String
+  acceptedById String?
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  invitedBy  User  @relation("AdminInviteInviter", fields: [invitedById], references: [id], onDelete: Restrict)
+  acceptedBy User? @relation("AdminInviteAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([email, status, expiresAt])
+  @@index([invitedById, createdAt])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  bucketKey   String   @unique
+  windowStart DateTime
+  hitCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

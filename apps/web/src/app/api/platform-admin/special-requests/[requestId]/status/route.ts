@@ -2,6 +2,7 @@ import { SpecialTemplateRequestStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { writeAuditLog } from "@/lib/audit-log";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdminSession } from "@/lib/session-guard";
 
@@ -33,17 +34,46 @@ function mapStatus(input: z.infer<typeof updateStatusSchema>["status"]) {
 export async function PATCH(request: Request, context: RouteContext) {
   const session = await requirePlatformAdminSession();
   if (!session) {
+    writeAuditLog({
+      action: "platform.special_request.update_status",
+      result: "FAILURE",
+      request,
+      targetType: "special_template_request",
+      statusCode: 401,
+      errorCode: "unauthorized",
+    });
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const { requestId } = await context.params;
   if (!requestId) {
+    writeAuditLog({
+      action: "platform.special_request.update_status",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "special_template_request",
+      statusCode: 400,
+      errorCode: "missing_request_id",
+    });
     return NextResponse.json({ ok: false, error: "missing_request_id" }, { status: 400 });
   }
 
   const body = await request.json().catch(() => null);
   const parsed = updateStatusSchema.safeParse(body);
   if (!parsed.success) {
+    writeAuditLog({
+      action: "platform.special_request.update_status",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "special_template_request",
+      targetId: requestId,
+      statusCode: 400,
+      errorCode: "invalid_payload",
+    });
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
   }
 
@@ -56,6 +86,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (updated.count === 0) {
+    writeAuditLog({
+      action: "platform.special_request.update_status",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "special_template_request",
+      targetId: requestId,
+      statusCode: 404,
+      errorCode: "request_not_found",
+    });
     return NextResponse.json({ ok: false, error: "request_not_found" }, { status: 404 });
   }
 
@@ -83,8 +124,33 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!row) {
+    writeAuditLog({
+      action: "platform.special_request.update_status",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "special_template_request",
+      targetId: requestId,
+      statusCode: 404,
+      errorCode: "request_not_found",
+    });
     return NextResponse.json({ ok: false, error: "request_not_found" }, { status: 404 });
   }
+
+  writeAuditLog({
+    action: "platform.special_request.update_status",
+    result: "SUCCESS",
+    request,
+    actorId: session.user.id,
+    actorRole: session.user.role,
+    targetType: "special_template_request",
+    targetId: row.id,
+    statusCode: 200,
+    detail: {
+      status: row.status,
+    },
+  });
 
   return NextResponse.json({
     ok: true,

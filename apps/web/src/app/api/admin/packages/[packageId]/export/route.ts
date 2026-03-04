@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { notFoundOrNoAccessResponse, withOwnerScope } from "@/lib/admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
@@ -163,10 +164,9 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const targetPackage = await prisma.surveyPackage.findFirst({
-    where: {
+    where: withOwnerScope(session.user.id, {
       id: packageId,
-      ownerId: session.user.id,
-    },
+    }),
     select: {
       id: true,
       code: true,
@@ -198,7 +198,7 @@ export async function GET(request: Request, context: RouteContext) {
   });
 
   if (!targetPackage) {
-    return NextResponse.json({ ok: false, error: "package_not_found" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   const records: Record<string, string>[] = [];

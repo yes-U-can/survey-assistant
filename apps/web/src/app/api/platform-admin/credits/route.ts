@@ -2,6 +2,7 @@ import { CreditTxnType, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { writeAuditLog } from "@/lib/audit-log";
 import { applyCreditMutationWithPrisma, CreditLedgerError } from "@/lib/credit-ledger";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdminSession } from "@/lib/session-guard";
@@ -136,12 +137,30 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await requirePlatformAdminSession();
   if (!session) {
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "FAILURE",
+      request,
+      targetType: "credit_wallet",
+      statusCode: 401,
+      errorCode: "unauthorized",
+    });
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
   const parsed = mutateCreditSchema.safeParse(body);
   if (!parsed.success) {
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "credit_wallet",
+      statusCode: 400,
+      errorCode: "invalid_payload",
+    });
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
   }
 
@@ -157,15 +176,48 @@ export async function POST(request: Request) {
   });
 
   if (!target) {
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "user",
+      targetId: parsed.data.targetUserId,
+      statusCode: 404,
+      errorCode: "target_not_found",
+    });
     return NextResponse.json({ ok: false, error: "target_not_found" }, { status: 404 });
   }
   if (target.role !== UserRole.RESEARCH_ADMIN && target.role !== UserRole.PLATFORM_ADMIN) {
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "user",
+      targetId: target.id,
+      statusCode: 400,
+      errorCode: "target_role_not_supported",
+    });
     return NextResponse.json(
       { ok: false, error: "target_role_not_supported" },
       { status: 400 },
     );
   }
   if (!target.isActive) {
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "user",
+      targetId: target.id,
+      statusCode: 400,
+      errorCode: "target_inactive",
+    });
     return NextResponse.json({ ok: false, error: "target_inactive" }, { status: 400 });
   }
 
@@ -192,6 +244,22 @@ export async function POST(request: Request) {
       referenceId: null,
     });
 
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "SUCCESS",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "user",
+      targetId: target.id,
+      statusCode: 201,
+      detail: {
+        mutationType: parsed.data.type,
+        amount,
+        transactionId: result.transaction.id,
+      },
+    });
+
     return NextResponse.json(
       {
         ok: true,
@@ -215,10 +283,44 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof CreditLedgerError) {
       if (error.code === "insufficient_balance") {
+        writeAuditLog({
+          action: "platform.credit.mutate",
+          result: "FAILURE",
+          request,
+          actorId: session.user.id,
+          actorRole: session.user.role,
+          targetType: "user",
+          targetId: target.id,
+          statusCode: 400,
+          errorCode: "insufficient_balance",
+        });
         return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 400 });
       }
+      writeAuditLog({
+        action: "platform.credit.mutate",
+        result: "FAILURE",
+        request,
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        targetType: "user",
+        targetId: target.id,
+        statusCode: 400,
+        errorCode: "invalid_amount",
+      });
       return NextResponse.json({ ok: false, error: "invalid_amount" }, { status: 400 });
     }
+    writeAuditLog({
+      action: "platform.credit.mutate",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "user",
+      targetId: target.id,
+      statusCode: 500,
+      errorCode: "internal_error",
+      severity: "ERROR",
+    });
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

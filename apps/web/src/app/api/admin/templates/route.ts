@@ -2,6 +2,7 @@ import { Prisma, TemplateType, TemplateVisibility, UserRole } from "@prisma/clie
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { withOwnerScope } from "@/lib/admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
@@ -43,10 +44,9 @@ export async function GET() {
   }
 
   const templates = await prisma.template.findMany({
-    where: {
-      ownerId: session.user.id,
+    where: withOwnerScope(session.user.id, {
       isArchived: false,
-    },
+    }),
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,

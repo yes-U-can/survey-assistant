@@ -2,8 +2,11 @@ import { CreditTxnType, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { writeAuditLog } from "@/lib/audit-log";
+import { notFoundOrNoAccessResponse, withOwnerScope } from "@/lib/admin-scope";
 import { applyCreditMutationWithPrisma, CreditLedgerError } from "@/lib/credit-ledger";
 import { prisma } from "@/lib/prisma";
+import { consumeRateLimit, getRequestIp, rateLimitedResponse } from "@/lib/rate-limit";
 import { requireAdminSession } from "@/lib/session-guard";
 
 const analyzeSchema = z
@@ -207,20 +210,76 @@ async function runOpenAiChat(params: {
 export async function POST(request: Request) {
   const session = await requireAdminSession();
   if (!session) {
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      targetType: "survey_package",
+      statusCode: 401,
+      errorCode: "unauthorized",
+    });
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const ip = getRequestIp(request);
+  const rateDecision = await consumeRateLimit({
+    bucketKey: `admin:ai-analyze:${ip}:${session.user.id}`,
+    limit: 30,
+    windowSec: 60,
+  });
+  if (!rateDecision.allowed) {
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "survey_package",
+      statusCode: 429,
+      errorCode: "rate_limited",
+      detail: {
+        retryAfterSec: rateDecision.retryAfterSec,
+      },
+    });
+    return rateLimitedResponse(rateDecision.retryAfterSec);
   }
 
   const body = await request.json().catch(() => null);
   const parsed = analyzeSchema.safeParse(body);
   if (!parsed.success) {
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "survey_package",
+      statusCode: 400,
+      errorCode: "invalid_payload",
+    });
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
   }
 
+  const idempotencySeed = request.headers.get("x-idempotency-key")?.trim() ?? null;
+  if (parsed.data.mode === "MANAGED" && !idempotencySeed) {
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "survey_package",
+      targetId: parsed.data.packageId,
+      statusCode: 400,
+      errorCode: "missing_idempotency_key",
+    });
+    return NextResponse.json({ ok: false, error: "missing_idempotency_key" }, { status: 400 });
+  }
+
   const targetPackage = await prisma.surveyPackage.findFirst({
-    where: {
+    where: withOwnerScope(session.user.id, {
       id: parsed.data.packageId,
-      ownerId: session.user.id,
-    },
+    }),
     select: {
       id: true,
       code: true,
@@ -247,7 +306,18 @@ export async function POST(request: Request) {
   });
 
   if (!targetPackage) {
-    return NextResponse.json({ ok: false, error: "package_not_found" }, { status: 404 });
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "survey_package",
+      targetId: parsed.data.packageId,
+      statusCode: 404,
+      errorCode: "not_found_or_no_access",
+    });
+    return notFoundOrNoAccessResponse();
   }
 
   const [responseCount, participantCount, recentResponses] = await Promise.all([
@@ -279,29 +349,34 @@ export async function POST(request: Request) {
     1_000_000,
   );
 
-  if (parsed.data.mode === "MANAGED") {
-    const balance = await prisma.creditWallet.findUnique({
-      where: { userId: session.user.id },
-      select: { balance: true },
-    });
-    if ((balance?.balance ?? 0) < managedChargePerRequest) {
-      return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
-    }
-  }
-
   const apiKey =
     parsed.data.mode === "BYOK"
       ? parsed.data.apiKey ?? null
       : process.env.OPENAI_API_KEY ?? null;
 
   if (!apiKey) {
+    const errorCode =
+      parsed.data.mode === "BYOK"
+        ? "missing_byok_api_key"
+        : "missing_managed_provider_api_key";
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "survey_package",
+      targetId: targetPackage.id,
+      statusCode: 400,
+      errorCode,
+      detail: {
+        mode: parsed.data.mode,
+      },
+    });
     return NextResponse.json(
       {
         ok: false,
-        error:
-          parsed.data.mode === "BYOK"
-            ? "missing_byok_api_key"
-            : "missing_managed_provider_api_key",
+        error: errorCode,
       },
       { status: 400 },
     );
@@ -379,6 +454,7 @@ export async function POST(request: Request) {
         amount: managedChargePerRequest,
         memo: `managed_ai_charge_start:${targetPackage.code}`,
         referenceId: targetPackage.id,
+        idempotencyKey: `ai_spend:${session.user.id}:${idempotencySeed}`,
       });
 
       managedChargeMutation = {
@@ -388,8 +464,34 @@ export async function POST(request: Request) {
       };
     } catch (error) {
       if (error instanceof CreditLedgerError && error.code === "insufficient_balance") {
+        writeAuditLog({
+          action: "admin.ai.analyze",
+          result: "FAILURE",
+          request,
+          actorId: session.user.id,
+          actorRole: session.user.role,
+          targetType: "survey_package",
+          targetId: targetPackage.id,
+          statusCode: 402,
+          errorCode: "insufficient_balance",
+          detail: {
+            mode: parsed.data.mode,
+          },
+        });
         return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
       }
+      writeAuditLog({
+        action: "admin.ai.analyze",
+        result: "FAILURE",
+        request,
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        targetType: "survey_package",
+        targetId: targetPackage.id,
+        statusCode: 500,
+        errorCode: "credit_ledger_error",
+        severity: "ERROR",
+      });
       return NextResponse.json({ ok: false, error: "credit_ledger_error" }, { status: 500 });
     }
   }
@@ -411,6 +513,24 @@ export async function POST(request: Request) {
           amount: managedChargeMutation.charged,
           memo: `managed_ai_refund:${targetPackage.code}`,
           referenceId: managedChargeMutation.transactionId,
+          idempotencyKey: `ai_refund:${session.user.id}:${idempotencySeed}`,
+        });
+
+        writeAuditLog({
+          action: "admin.ai.analyze",
+          result: "FAILURE",
+          request,
+          actorId: session.user.id,
+          actorRole: session.user.role,
+          targetType: "survey_package",
+          targetId: targetPackage.id,
+          statusCode: aiResult.status,
+          errorCode: aiResult.error,
+          detail: {
+            mode: parsed.data.mode,
+            refunded: true,
+            refundTransactionId: refund.transaction.id,
+          },
         });
 
         return NextResponse.json(
@@ -423,6 +543,21 @@ export async function POST(request: Request) {
           { status: aiResult.status },
         );
       } catch {
+        writeAuditLog({
+          action: "admin.ai.analyze",
+          result: "FAILURE",
+          request,
+          actorId: session.user.id,
+          actorRole: session.user.role,
+          targetType: "survey_package",
+          targetId: targetPackage.id,
+          statusCode: 500,
+          errorCode: "refund_failed_after_provider_error",
+          severity: "ERROR",
+          detail: {
+            providerError: aiResult.error,
+          },
+        });
         return NextResponse.json(
           {
             ok: false,
@@ -433,6 +568,20 @@ export async function POST(request: Request) {
       }
     }
 
+    writeAuditLog({
+      action: "admin.ai.analyze",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "survey_package",
+      targetId: targetPackage.id,
+      statusCode: aiResult.status,
+      errorCode: aiResult.error,
+      detail: {
+        mode: parsed.data.mode,
+      },
+    });
     return NextResponse.json({ ok: false, error: aiResult.error }, { status: aiResult.status });
   }
 
@@ -446,6 +595,24 @@ export async function POST(request: Request) {
           refunded: false,
         }
       : null;
+
+  writeAuditLog({
+    action: "admin.ai.analyze",
+    result: "SUCCESS",
+    request,
+    actorId: session.user.id,
+    actorRole: session.user.role,
+    targetType: "survey_package",
+    targetId: targetPackage.id,
+    statusCode: 200,
+    detail: {
+      mode: parsed.data.mode,
+      provider: parsed.data.provider,
+      model,
+      chargedCredits: creditMutation?.charged ?? 0,
+      refunded: creditMutation?.refunded ?? false,
+    },
+  });
 
   return NextResponse.json({
     ok: true,

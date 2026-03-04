@@ -1,16 +1,28 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { LegalLinks } from "@/components/LegalLinks";
+import { authOptions } from "@/lib/auth";
+import { normalizeLocale, resolveRoleHome } from "@/lib/role-home";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ callbackUrl?: string }>;
+  searchParams?: Promise<{ callbackUrl?: string; error?: string }>;
 };
 
 export default async function AdminSignInPage({ params, searchParams }: PageProps) {
   const { locale: rawLocale } = await params;
-  const locale = rawLocale === "en" ? "en" : "ko";
+  const locale = normalizeLocale(rawLocale);
+  const session = await getServerSession(authOptions);
+  if (session?.user?.id) {
+    redirect(resolveRoleHome(locale, session.user.role));
+  }
+
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const authError =
+    typeof resolvedSearchParams.error === "string" ? resolvedSearchParams.error : null;
 
   const fallbackCallback = `/${locale}/admin`;
   const rawCallbackUrl = resolvedSearchParams.callbackUrl;
@@ -53,6 +65,29 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
             "Admin and platform-admin functions are not supported on mobile. Please sign in from a desktop browser.",
         };
 
+  const errorMessage =
+    authError === "admin_not_invited"
+      ? locale === "ko"
+        ? "초대되지 않은 관리자 계정입니다."
+        : "This Google account is not invited for admin access."
+      : authError === "admin_inactive"
+        ? locale === "ko"
+          ? "비활성화된 관리자 계정입니다."
+          : "This admin account is inactive."
+        : authError === "account_role_not_admin"
+          ? locale === "ko"
+            ? "해당 계정은 관리자 권한이 없습니다."
+            : "This account is not an admin account."
+          : authError === "rate_limited"
+            ? locale === "ko"
+              ? "요청이 너무 많습니다. 잠시 후 다시 시도하세요."
+              : "Too many attempts. Please try again later."
+            : authError
+              ? locale === "ko"
+                ? "로그인에 실패했습니다. 잠시 후 다시 시도하세요."
+                : "Sign-in failed. Please try again."
+              : null;
+
   return (
     <>
       <main className="sa-page sa-desktop-only" style={{ maxWidth: 760 }}>
@@ -81,10 +116,16 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
               {t.setupMissing}
             </p>
           )}
+          {errorMessage ? (
+            <p className="sa-inline-message" style={{ marginTop: 12 }}>
+              {errorMessage}
+            </p>
+          ) : null}
 
           <div className="sa-auth-links">
             <Link href={`/${locale}/auth/participant`}>{t.toParticipant}</Link>
             <Link href={`/${locale}`}>{t.toHome}</Link>
+            <LegalLinks locale={locale} />
           </div>
         </section>
       </main>

@@ -2,6 +2,7 @@ import { PackageMode, PackageStatus, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { notFoundOrNoAccessResponse, withOwnerScope } from "@/lib/admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
 
@@ -37,7 +38,7 @@ export async function GET() {
   }
 
   const packages = await prisma.surveyPackage.findMany({
-    where: { ownerId: session.user.id },
+    where: withOwnerScope(session.user.id),
     orderBy: { updatedAt: "desc" },
     include: {
       templates: {
@@ -91,19 +92,15 @@ export async function POST(request: Request) {
 
   const templateIds = [...new Set(parsed.data.templateIds)];
   const ownedTemplates = await prisma.template.findMany({
-    where: {
+    where: withOwnerScope(session.user.id, {
       id: { in: templateIds },
-      ownerId: session.user.id,
       isArchived: false,
-    },
+    }),
     select: { id: true },
   });
 
   if (ownedTemplates.length !== templateIds.length) {
-    return NextResponse.json(
-      { ok: false, error: "template_scope_violation" },
-      { status: 400 },
-    );
+    return notFoundOrNoAccessResponse();
   }
 
   try {
@@ -164,4 +161,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
-

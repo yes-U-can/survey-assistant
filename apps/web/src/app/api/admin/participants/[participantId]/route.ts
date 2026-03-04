@@ -2,6 +2,7 @@ import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { notFoundOrNoAccessResponse } from "@/lib/admin-scope";
 import { canAdminManageParticipant } from "@/lib/participant-admin-scope";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
@@ -32,7 +33,7 @@ export async function PATCH(
     participantId,
   );
   if (!manageable) {
-    return NextResponse.json({ ok: false, error: "participant_not_found" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   const action = parsed.data.action;
@@ -45,7 +46,7 @@ export async function PATCH(
     },
   });
   if (!current || current.role !== UserRole.PARTICIPANT) {
-    return NextResponse.json({ ok: false, error: "participant_not_found" }, { status: 404 });
+    return notFoundOrNoAccessResponse();
   }
 
   if (action === "ANONYMIZE" && current.loginId === null) {
@@ -58,13 +59,16 @@ export async function PATCH(
       action === "ANONYMIZE"
         ? {
             isActive: false,
+            disabledReason: "anonymized",
             loginId: null,
             passwordHash: null,
             displayName: null,
+            email: null,
             googleSub: null,
           }
         : {
             isActive: action === "ACTIVATE",
+            disabledReason: action === "ACTIVATE" ? null : "deactivated_by_admin",
           },
     select: {
       id: true,

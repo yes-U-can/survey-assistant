@@ -1,7 +1,10 @@
-import { PackageStatus, UserRole } from "@prisma/client";
+﻿import { PackageStatus, UserRole } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+import { LegalLinks } from "@/components/LegalLinks";
+import { LogoutButton } from "@/components/LogoutButton";
 
 import { ParticipantDashboardClient } from "./ParticipantDashboardClient";
 import { authOptions } from "@/lib/auth";
@@ -23,15 +26,15 @@ export default async function ParticipantHomePage({ params }: PageProps) {
   if (session.user.role !== UserRole.PARTICIPANT) {
     return (
       <main className="sa-page">
-        <h1>{locale === "ko" ? "접근 권한 없음" : "Access Denied"}</h1>
+        <h1>{locale === "ko" ? "?묎렐 沅뚰븳 ?놁쓬" : "Access Denied"}</h1>
         <p>
           {locale === "ko"
-            ? "피검자 계정으로 로그인해야 합니다."
+            ? "?쇨???怨꾩젙?쇰줈 濡쒓렇?명빐???⑸땲??"
             : "You need a participant account."}
         </p>
         <p style={{ marginTop: 12 }}>
           <Link href={`/${locale}/auth/participant`}>
-            {locale === "ko" ? "피검자 로그인으로 이동" : "Go to participant sign-in"}
+            {locale === "ko" ? "?쇨???濡쒓렇?몄쑝濡??대룞" : "Go to participant sign-in"}
           </Link>
         </p>
       </main>
@@ -90,11 +93,12 @@ export default async function ParticipantHomePage({ params }: PageProps) {
       <ParticipantDashboardClient locale={locale} initialPackages={initialPackages} />
       <footer className="sa-footer">
         <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
+        <LegalLinks locale={locale} />
         <span className="sa-divider">|</span>
-        <Link href="/api/auth/signout">
-          {locale === "ko" ? "로그아웃" : "Sign out"}
-        </Link>
+        <LogoutButton locale={locale} className="sa-link-button" />
       </footer>
     </>
   );
 }
+
+

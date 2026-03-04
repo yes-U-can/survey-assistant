@@ -473,6 +473,23 @@ textarea {
   color: color-mix(in srgb, var(--brand-700) 38%, white);
 }
 
+.sa-link-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  color: var(--brand-700);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sa-link-button:hover {
+  text-decoration: underline;
+}
+
 .sa-inline-message {
   margin-top: 10px;
   color: var(--muted-foreground);

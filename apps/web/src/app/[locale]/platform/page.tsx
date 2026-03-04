@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { LegalLinks } from "@/components/LegalLinks";
+import { LogoutButton } from "@/components/LogoutButton";
+
 import { PlatformAdminClient } from "./PlatformAdminClient";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -65,6 +68,7 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     transactions,
     jobs,
     specialRequests,
+    adminInvites,
     settlementAggregate,
     settlementPurchases,
     sellerSettlementGroups,
@@ -205,6 +209,38 @@ export default async function PlatformAdminPage({ params }: PageProps) {
             loginId: true,
             displayName: true,
             role: true,
+          },
+        },
+      },
+    }),
+    prisma.adminInvite.findMany({
+      take: 100,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        note: true,
+        expiresAt: true,
+        acceptedAt: true,
+        revokedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        invitedBy: {
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            displayName: true,
+          },
+        },
+        acceptedBy: {
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            displayName: true,
           },
         },
       },
@@ -364,6 +400,28 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     updatedAt: item.updatedAt.toISOString(),
   }));
 
+  const initialAdminInvites = adminInvites.map((invite) => ({
+    id: invite.id,
+    email: invite.email,
+    role: invite.role === UserRole.PLATFORM_ADMIN ? "PLATFORM_ADMIN" : "RESEARCH_ADMIN",
+    status:
+      invite.status === "ACCEPTED"
+        ? "ACCEPTED"
+        : invite.status === "REVOKED"
+          ? "REVOKED"
+          : invite.status === "EXPIRED"
+            ? "EXPIRED"
+            : "PENDING",
+    note: invite.note,
+    expiresAt: invite.expiresAt.toISOString(),
+    acceptedAt: invite.acceptedAt?.toISOString() ?? null,
+    revokedAt: invite.revokedAt?.toISOString() ?? null,
+    createdAt: invite.createdAt.toISOString(),
+    updatedAt: invite.updatedAt.toISOString(),
+    invitedBy: invite.invitedBy,
+    acceptedBy: invite.acceptedBy,
+  }));
+
   const initialSettlementSummary = {
     purchaseCount: settlementAggregate._count._all,
     totalPriceCredits: settlementAggregate._sum.priceCredits ?? 0,
@@ -399,7 +457,7 @@ export default async function PlatformAdminPage({ params }: PageProps) {
   };
 
   const mobileBlockedTitle =
-    locale === "ko" ? "플랫폼 어드민 기능은 PC 웹 전용입니다." : "Platform admin is desktop-only.";
+    locale === "ko" ? "플랫폼 어드민 기능은 PC 전용입니다." : "Platform admin is desktop-only.";
   const mobileBlockedBody =
     locale === "ko"
       ? "운영/정산/마이그레이션 관리 기능은 모바일에서 제공하지 않습니다. PC 브라우저에서 접속해 주세요."
@@ -417,6 +475,7 @@ export default async function PlatformAdminPage({ params }: PageProps) {
           initialTransactions={initialTransactions}
           initialJobs={initialJobs}
           initialSpecialRequests={initialSpecialRequests}
+          initialAdminInvites={initialAdminInvites}
           initialSettlementSummary={initialSettlementSummary}
           initialSettlementPurchases={initialSettlementPurchases}
           initialSellerSettlements={initialSellerSettlements}
@@ -424,12 +483,13 @@ export default async function PlatformAdminPage({ params }: PageProps) {
         />
         <footer className="sa-footer">
           <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
+          <LegalLinks locale={locale} />
           <span className="sa-divider">|</span>
           <Link href={`/${locale}/admin`}>
             {locale === "ko" ? "관리자 콘솔" : "Admin console"}
           </Link>
           <span className="sa-divider">|</span>
-          <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
+          <LogoutButton locale={locale} className="sa-link-button" />
         </footer>
       </div>
 

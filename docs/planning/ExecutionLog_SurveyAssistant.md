@@ -1668,3 +1668,281 @@
 1. 운영자가 요청한 상세 UI 카피 톤(문장 단위) 2차 튜닝
 2. OAuth 시나리오 수동 회귀 체크리스트 문서화 강화
 3. 릴리스 태그/체인지로그 자동화 스크립트 도입
+
+## 44) Work Session Entry (2026-03-04, Consistency Recovery Reset Implementation)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 기록 기반 리셋 플랜을 코드로 실제 반영(인증/세션/권한/원장/검증)
+- Working Branch: main
+
+### Planned
+1. 관리자 인증 정책을 초대 기반으로 고정
+2. 세션/로그아웃/인증 동선을 SaaS 운영 기준으로 보정
+3. 관리자 데이터 경계 및 원장 정합성 강화
+4. 최소 rate limit + 테스트/문서 동기화
+
+### Done
+1. Prisma/DB
+- `User.email`, `User.lastLoginAt`, `User.disabledReason` 추가
+- `CreditTransaction.idempotencyKey`(unique) 추가
+- `AdminInvite`, `RateLimitBucket` 모델 추가
+- `CreditWallet` 음수 잔액 방지 체크 제약 추가
+- 마이그레이션 적용 완료: `20260304110500_hardening_auth_scope_ledger`
+
+2. Auth.js 하드닝
+- 관리자 Google 로그인:
+  - 기존 활성 관리자만 자동 허용
+  - 유효한 초대(`AdminInvite`)가 있을 때만 신규 생성/승격
+  - 무초대 계정 차단(`admin_not_invited`)
+  - 부트스트랩: `PLATFORM_ADMIN_EMAILS`는 초기 진입용 유지
+  - 비활성 관리자 차단
+- 피검자 credentials 로그인:
+  - 실패 코드 세분화(`participant_invalid_credentials`, `participant_inactive`, `rate_limited:*`)
+  - 로그인 성공 시 `lastLoginAt` 업데이트
+- 세션 정책 명시:
+  - `AUTH_SESSION_MAX_AGE_SEC`
+  - `AUTH_SESSION_UPDATE_AGE_SEC`
+
+3. 세션/로그아웃 UX
+- `/api/auth/signout` 링크 제거
+- `LogoutButton` 컴포넌트 도입(`signOut({ callbackUrl })`)
+- `/auth/admin`, `/auth/participant` 접근 시 로그인 상태면 역할 홈 즉시 리다이렉트
+
+4. 관리자 데이터 경계
+- 유틸 추가: `src/lib/admin-scope.ts`
+  - `withOwnerScope`, `withRequesterScope`, `withSellerScope`
+  - `notFoundOrNoAccessResponse`
+- `/api/admin/*` 경계 위반 응답 통일: `404 not_found_or_no_access`
+
+5. 원장/과금 정합성
+- `src/lib/credit-ledger.ts` 재구성:
+  - 원자적 차감(조건부 debit)
+  - idempotency replay 처리
+  - 음수 잔액 불가
+- 적용:
+  - `POST /api/admin/ai/analyze` (즉시 차감 + 실패 환불 + idempotency)
+  - `POST /api/admin/store/purchases` (구매 정산 idempotency)
+
+6. Rate limiting 최소선
+- 적용 엔드포인트:
+  - `POST /api/auth/participant/signup`
+  - participant credentials 로그인(Auth.js authorize)
+  - `POST /api/participant/packages/enroll`
+  - `POST /api/admin/ai/analyze`
+  - `POST /api/admin/special-requests`
+- 공통 응답: `429 rate_limited + retryAfterSec`
+
+7. 검증 체계
+- Playwright 스모크 추가:
+  - 파일: `apps/web/e2e/smoke.spec.ts`
+  - 설정: `apps/web/playwright.config.ts`
+- 검증 명령:
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm verify:local` PASS
+  - `corepack pnpm smoke:web` PASS
+  - `corepack pnpm --filter web e2e:smoke` PASS (1 passed, 1 skipped)
+
+### Verification
+- DB migration status: up-to-date
+- App route build map에 신규 API 노출 확인:
+  - `/api/platform-admin/admin-invites`
+  - `/api/platform-admin/admin-invites/[inviteId]`
+
+### Decision Updates
+- New decisions:
+  - 관리자 온보딩은 초대 기반을 기본으로 고정
+  - `/api/admin/*` 경계 위반은 404 단일 코드(`not_found_or_no_access`)로 통일
+  - AI/스토어 정산 과금은 idempotency 키를 표준 적용
+- Changed decisions:
+  - 기존 “이메일 allowlist 자동 승격”에서 “부트스트랩 한정”으로 축소
+- Deferred decisions:
+  - OAuth 브라우저 풀시나리오 자동화(CI)
+
+### Risks / Blockers
+- Playwright seeded full flow는 `DATABASE_URL`이 e2e 프로세스에 주입되지 않으면 skip됨
+- OAuth 제공자 연동 테스트는 수동 체크리스트 병행이 필요
+
+### Next Actions
+1. Platform Admin UI에 `AdminInvite` 운영 섹션(목록/생성/상태수정) 연결
+2. OAuth 수동 체크리스트와 e2e 결과를 Release Checklist에 고정
+3. `/api/admin/*` 경계 회귀 테스트 케이스를 추가 확대
+
+## 45) Work Session Entry (2026-03-04, Platform Admin Invite UI Wiring)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "계속 해" 기준으로 리셋 플랜 후속 항목 마무리
+- Working Branch: main
+
+### Planned
+1. Platform Admin 콘솔에 `AdminInvite` 운영 UI 연결
+2. 서버 초기데이터 로드와 클라이언트 refresh 루프에 invite 반영
+3. 콘솔 한글 문구 깨짐 구간 정리
+
+### Done
+1. Platform Admin invite UI 추가
+- 파일: `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+- 기능:
+  - 초대 생성(이메일/권한/메모/만료일수)
+  - 상태 필터
+  - 초대 목록 조회
+  - 초대 상태/권한/메모 수정 반영
+2. 데이터 로딩 루프 연결
+- 초기 서버 로딩에 `adminInvites` 포함
+- `refreshAll()`에서 `/api/platform-admin/admin-invites` 동기화 추가
+3. 플랫폼 페이지 문자열 정리
+- 파일: `apps/web/src/app/[locale]/platform/page.tsx`
+- 접근권한/모바일 정책/푸터의 깨진 한글 문구를 정상 텍스트로 교체
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm smoke:web` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 없음 (기존 정책 그대로 UI 연결만 완료)
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - OAuth 브라우저 full e2e 자동화(CI)
+
+### Risks / Blockers
+- 초대 상태 변경 정책 중 `ACCEPTED`는 재오픈 불가이므로 UI에서도 상태변경을 제한 처리함
+
+### Next Actions
+1. lint/build 재검증 후 배포 반영 확인
+2. OAuth 수동 체크리스트를 릴리스 문서에 고정
+3. 관리자 권한 회귀(e2e) 케이스 확대
+
+## 46) Work Session Entry (2026-03-04, E2E Skip Resolution + OAuth Checklist Lock)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "남은 작업 있으면 마저 진행"
+- Working Branch: main
+
+### Planned
+1. Playwright 스모크의 seeded flow skip 해소
+2. OAuth 수동 검증 체크리스트 문서 고정
+3. 문서/검증 루프 동기화
+
+### Done
+1. Playwright env 로딩 보강
+- 파일:
+  - `apps/web/playwright.config.ts`
+  - `apps/web/e2e/smoke.spec.ts`
+- 변경:
+  - `@next/env`로 `.env` 자동 로딩
+  - e2e DB 연결 문자열 fallback: `DATABASE_URL ?? DIRECT_URL`
+  - e2e webServer 기본 `NEXTAUTH_URL`/`NEXTAUTH_SECRET` 주입
+2. OAuth 수동 체크리스트 문서 추가
+- 파일: `docs/planning/OAuthManualChecklist_20260304.md`
+- 내용:
+  - redirect URI/도메인 정책
+  - 초대/비초대/비활성 관리자 로그인 검증
+  - 로그아웃/세션 검증
+  - 장애 시 점검 포인트
+3. 릴리스/스모크 문서 연결
+- 파일:
+  - `docs/planning/ReleaseReadinessChecklist_20260304.md`
+  - `docs/planning/E2E_SmokeScope_20260304.md`
+  - `docs/planning/MasterPlan_SurveyAssistant_20260304.md`
+
+### Verification
+- `corepack pnpm --filter web e2e:smoke` PASS (`2 passed`)
+- `corepack pnpm verify:local` PASS
+
+### Decision Updates
+- New decisions:
+  - OAuth는 자동 E2E 대신 수동 체크리스트를 릴리스 게이트에 고정
+- Changed decisions:
+  - seeded participant e2e는 기본 로컬 환경에서 실행 가능 상태로 승격(skip 해소)
+- Deferred decisions:
+  - OAuth full browser automation의 CI 통합
+
+### Risks / Blockers
+- PostgreSQL SSL 모드 경고는 런타임 경고이며 현재 테스트 성공에는 영향 없음
+
+### Next Actions
+1. 변경사항 커밋/푸시 후 preview/prod에서 OAuth 수동 체크리스트 실행
+2. 플랫폼 어드민 초대 플로우 실사용 QA(생성->수락->상태 확인) 수행
+3. OAuth 자동화 여부를 후속 트랙으로 분리 검토
+
+## 47) Work Session Entry (2026-03-04, Deployment Baseline Hardening)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "부족한 부분까지 고려해서 끝까지 완성"
+- Working Branch: main
+
+### Planned
+1. 배포 표준 관점의 누락 항목 정리
+2. 보안/운영 기본기(헤더/감사로그/법적고지/런북) 반영
+3. 빌드/스모크/e2e 재검증
+
+### Done
+1. 보안 헤더 베이스라인 적용
+- 파일: `apps/web/next.config.ts`
+- 항목:
+  - CSP
+  - HSTS(production)
+  - X-Frame-Options / X-Content-Type-Options
+  - Referrer-Policy / Permissions-Policy
+  - `poweredByHeader` 비활성화
+2. 구조화 감사로그 유틸 및 API 연동
+- 신규 파일: `apps/web/src/lib/audit-log.ts`
+- 연동 파일:
+  - `apps/web/src/app/api/auth/participant/signup/route.ts`
+  - `apps/web/src/app/api/participant/packages/enroll/route.ts`
+  - `apps/web/src/app/api/admin/ai/analyze/route.ts`
+  - `apps/web/src/app/api/admin/special-requests/route.ts`
+  - `apps/web/src/app/api/admin/store/purchases/route.ts`
+  - `apps/web/src/app/api/platform-admin/credits/route.ts`
+  - `apps/web/src/app/api/platform-admin/admin-invites/route.ts`
+  - `apps/web/src/app/api/platform-admin/admin-invites/[inviteId]/route.ts`
+  - `apps/web/src/app/api/platform-admin/migration-jobs/[jobId]/status/route.ts`
+  - `apps/web/src/app/api/platform-admin/special-requests/[requestId]/status/route.ts`
+3. 법적 페이지 추가 및 UI 링크 연결
+- 신규 페이지:
+  - `apps/web/src/app/[locale]/legal/privacy/page.tsx`
+  - `apps/web/src/app/[locale]/legal/terms/page.tsx`
+- 공통 링크 컴포넌트:
+  - `apps/web/src/components/LegalLinks.tsx`
+- 연결:
+  - `apps/web/src/app/[locale]/page.tsx`
+  - `apps/web/src/app/[locale]/participant/page.tsx`
+  - `apps/web/src/app/[locale]/admin/page.tsx`
+  - `apps/web/src/app/[locale]/platform/page.tsx`
+4. 운영 문서 보강
+- 신규 문서:
+  - `docs/planning/OpsRunbook_BackupRecovery_20260304.md`
+  - `docs/planning/OpsRunbook_IncidentResponse_20260304.md`
+- 동기화:
+  - `docs/planning/ReleaseReadinessChecklist_20260304.md`
+  - `docs/planning/MasterPlan_SurveyAssistant_20260304.md`
+  - `README.md`, `apps/web/README.md`, `SECURITY.md`
+
+### Verification
+- `corepack pnpm verify:local` PASS
+- `corepack pnpm --filter web e2e:smoke` PASS (`2 passed`)
+- `corepack pnpm smoke:web` PASS
+
+### Decision Updates
+- New decisions:
+  - 배포 표준 항목(보안 헤더/감사로그/법적 고지/운영 런북)을 릴리스 게이트에 포함
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - OAuth full browser automation CI 통합(수동 체크리스트 병행 유지)
+
+### Risks / Blockers
+- PostgreSQL SSL mode 경고(`sslmode=require` alias)는 현재 기능에는 영향 없으나, 차기 pg 버전 전환 전 DSN 명시 정책(`verify-full` 또는 libpq 호환 옵션) 정리가 필요
+
+### Next Actions
+1. 운영환경에서 수동 OAuth 체크리스트 재실행
+2. 크레딧/정산 API 감사로그 관측 대시보드(로그 필터) 정리
+3. DSN SSL mode 경고 대응 정책 확정

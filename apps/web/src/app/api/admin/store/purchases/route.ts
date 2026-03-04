@@ -2,6 +2,7 @@ import { CreditTxnType, Prisma, TemplateType, TemplateVisibility } from "@prisma
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { writeAuditLog } from "@/lib/audit-log";
 import { applyCreditMutation, CreditLedgerError } from "@/lib/credit-ledger";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session-guard";
@@ -132,14 +133,36 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await requireAdminSession();
   if (!session) {
+    writeAuditLog({
+      action: "admin.store.purchase",
+      result: "FAILURE",
+      request,
+      targetType: "template_store_listing",
+      statusCode: 401,
+      errorCode: "unauthorized",
+    });
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
   const parsed = createPurchaseSchema.safeParse(body);
   if (!parsed.success) {
+    writeAuditLog({
+      action: "admin.store.purchase",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "template_store_listing",
+      statusCode: 400,
+      errorCode: "invalid_payload",
+    });
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
   }
+
+  const idempotencySeed =
+    request.headers.get("x-idempotency-key")?.trim() ??
+    `store_purchase:${session.user.id}:${parsed.data.listingId}`;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -231,6 +254,7 @@ export async function POST(request: Request) {
         amount: priceCredits,
         memo: `store_purchase:${listing.id}`,
         referenceId: purchase.id,
+        idempotencyKey: `${idempotencySeed}:buyer_spend`,
       });
 
       const sellerMutation = await applyCreditMutation(tx, {
@@ -239,6 +263,7 @@ export async function POST(request: Request) {
         amount: sellerCredit,
         memo: `store_sale:${listing.id}`,
         referenceId: purchase.id,
+        idempotencyKey: `${idempotencySeed}:seller_reward`,
       });
 
       const copiedTemplate = await tx.template.create({
@@ -272,6 +297,23 @@ export async function POST(request: Request) {
       };
     });
 
+    writeAuditLog({
+      action: "admin.store.purchase",
+      result: "SUCCESS",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "template_store_listing",
+      targetId: parsed.data.listingId,
+      statusCode: 201,
+      detail: {
+        purchaseId: result.purchase.id,
+        priceCredits: result.purchase.priceCredits,
+        sellerCredit: result.purchase.sellerCredit,
+        platformFeeCredits: result.purchase.platformFeeCredits,
+      },
+    });
+
     return NextResponse.json(
       {
         ok: true,
@@ -298,20 +340,76 @@ export async function POST(request: Request) {
           : error.code === "duplicate_purchase"
             ? 409
             : 400;
+      writeAuditLog({
+        action: "admin.store.purchase",
+        result: "FAILURE",
+        request,
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        targetType: "template_store_listing",
+        targetId: parsed.data.listingId,
+        statusCode: status,
+        errorCode: error.code,
+      });
       return NextResponse.json({ ok: false, error: error.code }, { status });
     }
 
     if (error instanceof CreditLedgerError) {
       if (error.code === "insufficient_balance") {
+        writeAuditLog({
+          action: "admin.store.purchase",
+          result: "FAILURE",
+          request,
+          actorId: session.user.id,
+          actorRole: session.user.role,
+          targetType: "template_store_listing",
+          targetId: parsed.data.listingId,
+          statusCode: 402,
+          errorCode: "insufficient_balance",
+        });
         return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
       }
+      writeAuditLog({
+        action: "admin.store.purchase",
+        result: "FAILURE",
+        request,
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        targetType: "template_store_listing",
+        targetId: parsed.data.listingId,
+        statusCode: 400,
+        errorCode: "invalid_amount",
+      });
       return NextResponse.json({ ok: false, error: "invalid_amount" }, { status: 400 });
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      writeAuditLog({
+        action: "admin.store.purchase",
+        result: "FAILURE",
+        request,
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        targetType: "template_store_listing",
+        targetId: parsed.data.listingId,
+        statusCode: 409,
+        errorCode: "duplicate_purchase",
+      });
       return NextResponse.json({ ok: false, error: "duplicate_purchase" }, { status: 409 });
     }
 
+    writeAuditLog({
+      action: "admin.store.purchase",
+      result: "FAILURE",
+      request,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      targetType: "template_store_listing",
+      targetId: parsed.data.listingId,
+      statusCode: 500,
+      errorCode: "internal_error",
+      severity: "ERROR",
+    });
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
