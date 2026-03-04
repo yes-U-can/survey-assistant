@@ -1,0 +1,11 @@
+﻿{
+    "name":  "survey-assistant",
+    "private":  true,
+    "version":  "0.1.0",
+    "description":  "Survey Assistant (설문조사 도우미) open-source middleware",
+    "license":  "MIT",
+    "scripts":  {
+                    "safety:check":  "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-repo-safety.ps1",
+                    "hooks:install":  "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-hooks.ps1"
+                }
+}

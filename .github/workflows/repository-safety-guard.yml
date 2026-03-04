@@ -1,0 +1,19 @@
+﻿name: repository-safety-guard
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run safety checks (pwsh)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/check-repo-safety.ps1

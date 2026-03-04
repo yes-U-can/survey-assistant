@@ -1,0 +1,2 @@
+﻿#!/usr/bin/env pwsh
+pwsh -NoProfile -File ./scripts/check-repo-safety.ps1
