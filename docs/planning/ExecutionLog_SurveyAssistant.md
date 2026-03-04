@@ -1280,3 +1280,51 @@
 1. participant 모바일 설문 진행 화면의 스텝/진척도 시각화 검토
 2. 관리자/플랫폼 데스크톱 정보 밀도 미세조정
 3. 변경사항 커밋/푸시 및 배포 확인
+
+## 37) Work Session Entry (2026-03-04, Participant Survey Progress Indicator)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행
+- Working Branch: main
+
+### Planned
+1. 피검자 응답 폼 내 진행 상태 시각화
+2. 모바일 제출 행동 가시성 향상
+3. 회귀 검증 후 배포
+
+### Done
+1. 설문 진행률 계산 로직 추가
+   - 파일: `apps/web/src/app/[locale]/participant/ParticipantDashboardClient.tsx`
+   - 내용:
+     - 템플릿별 완료 판정(리커트/특수) 집계
+     - `완료 템플릿 수 / 전체 템플릿 수 / 퍼센트` 계산
+2. 진행률 UI 추가
+   - 설문 폼 상단에 진행률 텍스트 + 프로그레스 바 표시
+   - 접근성 속성(`role="progressbar"`, `aria-valuenow`) 반영
+3. 모바일 제출 영역 가시성 보강
+   - 파일: `apps/web/src/app/globals.css`
+   - 내용:
+     - 모바일 구간에서 제출 액션 영역 sticky 처리
+     - participant 진행률 바/채움 스타일 추가
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - participant 모바일 UX는 "진행률 즉시 피드백"을 기본으로 유지
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 단계별 페이지네이션(템플릿 단위 1step) 도입 여부
+
+### Risks / Blockers
+- 현재 blocker 없음
+
+### Next Actions
+1. participant 모바일 설문 화면의 단계형 네비게이션 필요성 평가
+2. 관리자/플랫폼 데스크톱 정보 밀도 미세조정
+3. 변경사항 커밋/푸시 및 배포 확인

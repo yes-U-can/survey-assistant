@@ -298,6 +298,33 @@ textarea {
   margin: 0;
 }
 
+.sa-participant-progress {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.93rem;
+}
+
+.sa-participant-progress-bar {
+  margin-top: 8px;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-200) 60%, white);
+  border: 1px solid color-mix(in srgb, var(--brand-700) 15%, white);
+  overflow: hidden;
+}
+
+.sa-participant-progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--brand-700) 84%, white),
+    color-mix(in srgb, var(--brand-900) 72%, white)
+  );
+  transition: width 180ms ease;
+}
+
 .sa-participant-template-list {
   margin-top: 10px;
   display: grid;
@@ -416,6 +443,16 @@ textarea {
   .sa-participant-submit-actions > button {
     width: 100%;
     min-height: 48px;
+  }
+
+  .sa-participant-submit-actions {
+    position: sticky;
+    bottom: 8px;
+    background: color-mix(in srgb, var(--surface) 90%, var(--brand-200));
+    border: 1px solid color-mix(in srgb, var(--brand-700) 20%, white);
+    border-radius: 12px;
+    padding: 8px;
+    z-index: 2;
   }
 
   .sa-likert-options {

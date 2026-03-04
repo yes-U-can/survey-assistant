@@ -316,6 +316,19 @@ function rangeInclusive(start: number, end: number): number[] {
   return output;
 }
 
+function isLikertDraftComplete(likert: LikertSchema, answers: Record<string, number> | undefined) {
+  if (!answers) {
+    return false;
+  }
+  for (const question of likert.questions) {
+    const value = answers[question.id];
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -330,6 +343,47 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
   const [templateDrafts, setTemplateDrafts] = useState<Record<string, TemplateDraft>>({});
 
   const text = useMemo(() => messageMap[locale], [locale]);
+
+  const surveyProgress = useMemo(() => {
+    if (!activeSurvey) {
+      return null;
+    }
+
+    let completedTemplates = 0;
+
+    for (const template of activeSurvey.templates) {
+      const draft = templateDrafts[template.templateId];
+      if (!draft) {
+        continue;
+      }
+
+      if (template.type === "LIKERT") {
+        const likert = parseLikertSchema(template.schemaJson);
+        if (likert && isLikertDraftComplete(likert, draft.likertAnswers)) {
+          completedTemplates += 1;
+        }
+        continue;
+      }
+
+      const specialRenderer = resolveSpecialTemplateRenderer(template.schemaJson);
+      const specialResult = specialRenderer.buildResponse({
+        schema: template.schemaJson,
+        draft: draft.special,
+      });
+      if (specialResult.ok) {
+        completedTemplates += 1;
+      }
+    }
+
+    const totalTemplates = activeSurvey.templates.length;
+    const percent = totalTemplates > 0 ? Math.round((completedTemplates / totalTemplates) * 100) : 0;
+
+    return {
+      completedTemplates,
+      totalTemplates,
+      percent,
+    };
+  }, [activeSurvey, templateDrafts]);
 
   const loadPackages = useCallback(async () => {
     setLoading(true);
@@ -643,6 +697,27 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                       <p className="sa-participant-attempt">
                         {text.surveyAttempt}: {activeSurvey.nextAttemptNo}
                       </p>
+                      {surveyProgress ? (
+                        <>
+                          <p className="sa-participant-progress">
+                            {locale === "ko"
+                              ? `진행률: ${surveyProgress.completedTemplates}/${surveyProgress.totalTemplates} (${surveyProgress.percent}%)`
+                              : `Progress: ${surveyProgress.completedTemplates}/${surveyProgress.totalTemplates} (${surveyProgress.percent}%)`}
+                          </p>
+                          <div
+                            className="sa-participant-progress-bar"
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={surveyProgress.percent}
+                          >
+                            <span
+                              className="sa-participant-progress-fill"
+                              style={{ width: `${surveyProgress.percent}%` }}
+                            />
+                          </div>
+                        </>
+                      ) : null}
 
                       <div className="sa-participant-template-list">
                         {activeSurvey.templates.map((template) => {
