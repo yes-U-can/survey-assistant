@@ -30,5 +30,10 @@ This app is linked to project `survey_sicp`.
 - Root Directory: `apps/web`
 - Framework Preset: `Next.js`
 
+## Auth (Current Baseline)
+- Admin / Platform Admin: Google sign-in (`/api/auth/signin/google`)
+- Participant: credentials sign-in (`participant-credentials`)
+- Participant signup endpoint: `POST /api/auth/participant/signup`
+
 ## Secrets
 Do not commit `.env*` real values. Use root `.env.example` as template.

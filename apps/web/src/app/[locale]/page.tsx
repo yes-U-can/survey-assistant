@@ -1,4 +1,6 @@
-﻿export default async function LocaleHome({
+import Link from "next/link";
+
+export default async function LocaleHome({
   params,
 }: {
   params: Promise<{ locale: string }>;
@@ -14,6 +16,18 @@
           ? "기본 언어는 한국어이며, 영어를 추가 지원합니다."
           : "Primary locale is Korean, with English as a secondary locale."}
       </p>
+      <ul>
+        <li>
+          <Link href={`/${locale}/auth/participant`}>
+            {locale === "ko" ? "피검자 로그인/가입" : "Participant auth"}
+          </Link>
+        </li>
+        <li>
+          <Link href={`/${locale}/auth/admin`}>
+            {locale === "ko" ? "관리자 로그인" : "Admin sign-in"}
+          </Link>
+        </li>
+      </ul>
     </main>
   );
 }

@@ -342,3 +342,44 @@
 1. 현재 변경사항 커밋/푸시로 Git 자동배포 트리거
 2. 배포 후 `/api/health/db` 재검증
 3. Auth split 구현 시작
+
+## 17) Work Session Entry (2026-03-04, Auth Split Skeleton)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 설정 작업을 Codex가 끝까지 자동 처리 + 기능 개발 착수
+- Working Branch: main
+
+### Planned
+1. Auth.js 기반 인증 분리 골격 구현
+2. 피검자 가입 API 추가
+3. 역할별 진입 화면 골격 추가
+
+### Done
+1. Auth.js 도입 (`next-auth`) + credentials/google provider 분리
+2. 피검자 가입 API 추가
+   - `POST /api/auth/participant/signup`
+3. 인증 라우트 추가
+   - `api/auth/[...nextauth]`
+4. 역할별 페이지 골격 추가
+   - `/{locale}/auth/participant`
+   - `/{locale}/auth/admin`
+   - `/{locale}/participant`
+   - `/{locale}/admin`
+5. Prisma `User.passwordHash` 필드 반영
+   - schema + migration SQL 기록
+   - Neon DB는 `prisma db push`로 동기화 완료
+
+### Verification
+- `pnpm --filter web lint` PASS
+- `pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Risks / Blockers
+- Prisma `migrate dev`는 Neon advisory lock(P1002)로 불안정
+- 현재는 `migration.sql` 기록 + `db push`로 스키마 동기화
+
+### Next Actions
+1. Auth 페이지 UX 개선(에러 메시지/상태/세션 표시)
+2. Participant 패키지 등록/진행현황 API 착수
+3. Admin 템플릿/패키지 CRUD 첫 엔드포인트 착수

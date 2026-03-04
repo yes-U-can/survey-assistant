@@ -61,6 +61,7 @@ model User {
   role         UserRole
   loginId      String?  @unique
   googleSub    String?  @unique
+  passwordHash String?
   displayName  String?
   locale       Locale   @default(ko)
   isActive     Boolean  @default(true)
