@@ -132,3 +132,40 @@
 - Added explicit policy for special template source-code public disclosure under MIT.
 - Added separation rule: publication vs credit compensation.
 - Added dedicated migration policy docs and service direction.
+
+## 12) Work Session Entry (2026-03-04, Setup Continuation)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 민감정보 비공개 재확인 + 개발환경 세팅 지속
+- Working Branch: main
+
+### Planned
+1. 민감정보 공개 여부 재검증 (local + remote)
+2. Neon/Vercel 연동 상태 고정
+3. 문서/환경변수 템플릿 업데이트
+
+### Done
+1. `scripts/check-repo-safety.ps1` 재실행 PASS
+2. GitHub remote tree 재검증 (민감 백업/덤프 미포함 확인)
+3. Neon 신규 프로젝트 생성: `survey-sicp`
+4. Vercel `apps/web` 링크 완료: `survey-sicp`
+5. `.env.example`, `docs/setup/EnvironmentSetup.md`, README 업데이트
+
+### Verification
+- Tests run: safety script only
+- Manual checks: remote tree path inspection, git status
+- Known gaps: Prisma schema 및 실제 DB 마이그레이션 미착수
+
+### Decision Updates
+- New decisions: 없음
+- Changed decisions: 없음
+- Deferred decisions: Neon credential rotation policy (optional)
+
+### Risks / Blockers
+- CLI 출력에 비밀값이 노출될 수 있으므로 로그 공유시 반드시 마스킹 필요
+
+### Next Actions
+1. Prisma 도입 + 초기 스키마 작성
+2. Auth 분리(관리자 Google SSO / 피검자 익명형) 모델링
+3. CSV export 최소 파이프라인 구현
