@@ -1,2 +1,8 @@
-﻿#!/usr/bin/env pwsh
-pwsh -NoProfile -File ./scripts/check-repo-safety.ps1
+#!/bin/sh
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-repo-safety.ps1
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  echo "pre-commit blocked: repository safety check failed."
+  exit "$status"
+fi
