@@ -245,6 +245,128 @@ textarea {
   color: var(--muted-foreground);
 }
 
+.sa-participant-enroll-form {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.sa-participant-code-input {
+  flex: 1 1 280px;
+}
+
+.sa-participant-package-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sa-participant-package-card {
+  border: 1px solid color-mix(in srgb, var(--brand-700) 18%, white);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.sa-participant-package-title {
+  margin: 0;
+}
+
+.sa-participant-meta {
+  margin: 4px 0 0;
+}
+
+.sa-participant-meta:first-of-type {
+  margin-top: 8px;
+}
+
+.sa-participant-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sa-participant-survey-shell {
+  margin-top: 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.sa-participant-attempt {
+  margin: 0;
+}
+
+.sa-participant-template-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 14px;
+}
+
+.sa-participant-template-card {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.sa-participant-template-title {
+  margin: 0;
+}
+
+.sa-participant-template-desc {
+  margin: 6px 0 0;
+}
+
+.sa-likert-question-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.sa-likert-question {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px 10px 10px;
+}
+
+.sa-likert-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sa-likert-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--brand-700) 20%, white);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fff;
+}
+
+.sa-likert-radio {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand-700);
+}
+
+.sa-likert-option-label {
+  line-height: 1.25;
+}
+
+.sa-special-render-wrap {
+  margin-top: 8px;
+}
+
+.sa-participant-submit-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
 .sa-desktop-only {
   display: block;
 }
@@ -269,5 +391,42 @@ textarea {
     border-radius: 14px;
     padding: 16px;
     box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-700) 10%, transparent);
+  }
+
+  .sa-participant-enroll-form {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .sa-participant-enroll-form > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .sa-participant-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .sa-participant-actions > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .sa-participant-submit-actions > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .sa-likert-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .sa-likert-option {
+    min-height: 48px;
+    border-radius: 10px;
+    padding: 8px 12px;
   }
 }

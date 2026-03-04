@@ -1229,3 +1229,54 @@
 1. 피검자 모바일 설문 응답 UI(터치영역/간격/입력 피드백) 고도화
 2. 관리자/플랫폼 데스크톱 화면의 정보 밀도 개선
 3. 지속적 회귀 검증 + 실행로그 업데이트
+
+## 36) Work Session Entry (2026-03-04, Participant Mobile UX Touch Optimization)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행 (모바일은 participant만 지원)
+- Working Branch: main
+
+### Planned
+1. 피검자 대시보드에서 모바일 터치/가독성 개선
+2. 리커트 응답 선택 UI를 모바일 친화적으로 보정
+3. 회귀 검증 + 기록 갱신
+
+### Done
+1. 피검자 대시보드 클래스 기반 리팩터링
+   - 파일: `apps/web/src/app/[locale]/participant/ParticipantDashboardClient.tsx`
+   - 주요 적용:
+     - 코드 등록 폼, 패키지 카드, 액션 버튼, 설문 폼 영역 클래스화
+     - 리커트 문항/옵션/라디오에 전용 클래스 부여
+2. 모바일 터치 UX 스타일 추가
+   - 파일: `apps/web/src/app/globals.css`
+   - 추가 스타일:
+     - `sa-participant-enroll-form`, `sa-participant-package-card`, `sa-participant-actions`
+     - `sa-likert-*` 계열(옵션/라디오/레이블)
+     - 모바일 브레이크포인트에서:
+       - 등록/액션 버튼 100% 폭 + 최소 48px 터치 높이
+       - 리커트 옵션 단일열 배치 + 터치 영역 확대
+3. 정책 정합성 확인
+   - 관리자/플랫폼 모바일 차단 정책(35번 세션) 유지
+   - 이번 변경은 participant 흐름에만 적용
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 없음 (기존 participant 모바일 지원 정책을 UX 수준으로 강화)
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - participant 모바일 응답의 단계별 진행바/하단 고정 제출바 도입 여부
+
+### Risks / Blockers
+- 현재 blocker 없음
+
+### Next Actions
+1. participant 모바일 설문 진행 화면의 스텝/진척도 시각화 검토
+2. 관리자/플랫폼 데스크톱 정보 밀도 미세조정
+3. 변경사항 커밋/푸시 및 배포 확인

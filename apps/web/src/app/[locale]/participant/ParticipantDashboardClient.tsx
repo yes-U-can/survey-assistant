@@ -563,7 +563,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
       <h1>{text.title}</h1>
       <p>{text.subtitle}</p>
 
-      <form onSubmit={onEnroll} style={{ display: "flex", gap: 8, marginTop: 16 }}>
+      <form onSubmit={onEnroll} className="sa-participant-enroll-form">
         <label htmlFor="survey-code" style={{ display: "none" }}>
           {text.codeLabel}
         </label>
@@ -572,60 +572,57 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder={text.codePlaceholder}
-          style={{ minWidth: 260, padding: "8px 10px" }}
+          className="sa-participant-code-input"
         />
-        <button type="submit" disabled={submitting} style={{ padding: "8px 12px" }}>
+        <button type="submit" disabled={submitting}>
           {text.enrollButton}
         </button>
-        <button type="button" onClick={() => void loadPackages()} style={{ padding: "8px 12px" }}>
+        <button type="button" onClick={() => void loadPackages()}>
           {text.refreshButton}
         </button>
       </form>
 
       {message ? <p className="sa-inline-message">{message}</p> : null}
 
-      <section style={{ marginTop: 24 }}>
+      <section>
         <h2>{text.sectionTitle}</h2>
         {loading ? <p>{text.loading}</p> : null}
         {!loading && packages.length === 0 ? <p>{text.empty}</p> : null}
         {!loading && packages.length > 0 ? (
-          <div style={{ display: "grid", gap: 12 }}>
+          <div className="sa-participant-package-list">
             {packages.map((pkg) => {
               const isLoadingSurvey = surveyLoadingPackageId === pkg.packageId;
               const isActiveSurvey = activeSurvey?.packageId === pkg.packageId;
 
               return (
-                <article
-                  key={pkg.enrollmentId}
-                  style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}
-                >
-                  <h3 style={{ margin: 0 }}>
+                <article key={pkg.enrollmentId} className="sa-participant-package-card">
+                  <h3 className="sa-participant-package-title">
                     {pkg.title} <small>({pkg.code})</small>
                   </h3>
-                  <p style={{ margin: "8px 0 0 0" }}>
+                  <p className="sa-participant-meta">
                     {text.status}: {statusLabel(pkg.status, locale)} | {text.mode}:{" "}
                     {modeLabel(pkg.mode, locale)}
                   </p>
-                  <p style={{ margin: "4px 0 0 0" }}>
+                  <p className="sa-participant-meta">
                     {text.period}: {formatDate(pkg.startsAt, locale, text.notSet)} ~{" "}
                     {formatDate(pkg.endsAt, locale, text.openEnded)}
                   </p>
-                  <p style={{ margin: "4px 0 0 0" }}>
+                  <p className="sa-participant-meta">
                     {text.completed}: {pkg.completedCount} / {text.max}:{" "}
                     {pkg.maxResponsesPerParticipant} / {text.remaining}: {pkg.remainingCount}
                   </p>
-                  <p style={{ margin: "4px 0 0 0" }}>
+                  <p className="sa-participant-meta">
                     {text.lastResponded}:{" "}
                     {formatDate(pkg.lastRespondedAt, locale, text.notRespondedYet)}
                   </p>
-                  <p style={{ margin: "4px 0 0 0" }}>
+                  <p className="sa-participant-meta">
                     {text.joinedAt}: {formatDate(pkg.joinedAt, locale, text.notSet)}
                   </p>
-                  <p style={{ margin: "4px 0 0 0" }}>
+                  <p className="sa-participant-meta">
                     {text.canRespondNow}: {pkg.canRespondNow ? text.yes : text.no}
                   </p>
 
-                  <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                  <div className="sa-participant-actions">
                     {!isActiveSurvey ? (
                       <button
                         type="button"
@@ -642,19 +639,12 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                   </div>
 
                   {isActiveSurvey && activeSurvey ? (
-                    <section
-                      style={{
-                        marginTop: 12,
-                        border: "1px solid #e5e5e5",
-                        borderRadius: 8,
-                        padding: 12,
-                      }}
-                    >
-                      <p style={{ marginTop: 0 }}>
+                    <section className="sa-participant-survey-shell">
+                      <p className="sa-participant-attempt">
                         {text.surveyAttempt}: {activeSurvey.nextAttemptNo}
                       </p>
 
-                      <div style={{ display: "grid", gap: 14 }}>
+                      <div className="sa-participant-template-list">
                         {activeSurvey.templates.map((template) => {
                           const likert = parseLikertSchema(template.schemaJson);
                           const draft = templateDrafts[template.templateId];
@@ -663,26 +653,20 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                           );
 
                           return (
-                            <article
-                              key={template.templateId}
-                              style={{ border: "1px solid #f0f0f0", borderRadius: 8, padding: 10 }}
-                            >
-                              <h4 style={{ margin: 0 }}>
+                            <article key={template.templateId} className="sa-participant-template-card">
+                              <h4 className="sa-participant-template-title">
                                 {text.surveyTemplate} {template.orderIndex + 1}: {template.title}
                               </h4>
                               {template.description ? (
-                                <p style={{ margin: "6px 0 0 0" }}>{template.description}</p>
+                                <p className="sa-participant-template-desc">{template.description}</p>
                               ) : null}
 
                               {template.type === "LIKERT" && likert ? (
-                                <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                                <div className="sa-likert-question-list">
                                   {likert.questions.map((question) => (
-                                    <fieldset
-                                      key={question.id}
-                                      style={{ border: "1px solid #eee", borderRadius: 6 }}
-                                    >
+                                    <fieldset key={question.id} className="sa-likert-question">
                                       <legend>{question.text}</legend>
-                                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                      <div className="sa-likert-options">
                                         {rangeInclusive(likert.scale.min, likert.scale.max).map(
                                           (score) => {
                                             const label =
@@ -691,8 +675,9 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                                             const checked =
                                               draft?.likertAnswers?.[question.id] === score;
                                             return (
-                                              <label key={score} style={{ display: "inline-flex", gap: 4 }}>
+                                              <label key={score} className="sa-likert-option">
                                                 <input
+                                                  className="sa-likert-radio"
                                                   type="radio"
                                                   name={`${template.templateId}-${question.id}`}
                                                   checked={checked}
@@ -704,7 +689,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                                                     )
                                                   }
                                                 />
-                                                <span>
+                                                <span className="sa-likert-option-label">
                                                   {score}. {label}
                                                 </span>
                                               </label>
@@ -716,7 +701,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                                   ))}
                                 </div>
                               ) : (
-                                <div style={{ marginTop: 8 }}>
+                                <div className="sa-special-render-wrap">
                                   {specialRenderer.render({
                                     locale,
                                     schema: template.schemaJson,
@@ -734,7 +719,7 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
                         })}
                       </div>
 
-                      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                      <div className="sa-participant-submit-actions">
                         <button
                           type="button"
                           disabled={surveySubmitting}
