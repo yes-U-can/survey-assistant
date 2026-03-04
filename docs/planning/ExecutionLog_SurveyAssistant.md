@@ -1946,3 +1946,155 @@
 1. 운영환경에서 수동 OAuth 체크리스트 재실행
 2. 크레딧/정산 API 감사로그 관측 대시보드(로그 필터) 정리
 3. DSN SSL mode 경고 대응 정책 확정
+
+## 48) Work Session Entry (2026-03-04, Commit/Push + Vercel Build Incident Fix)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "커밋/푸시 해봐. 배포된 웹앱에서 확인"
+- Working Branch: main
+
+### Planned
+1. 변경사항 커밋/푸시
+2. 배포 실패 시 즉시 원인 분석/패치
+3. 재푸시 후 배포 가능 상태 복구
+
+### Done
+1. 1차 커밋/푸시
+- Commit: `552db8d`
+- Message: `feat: harden auth and deployment baseline with ops docs`
+- Push: `main -> origin/main` 성공
+2. 배포 장애 확인(Vercel 로그)
+- 에러:
+  - `Cannot find module '@next/env'`
+  - 위치: `apps/web/playwright.config.ts` / `apps/web/e2e/smoke.spec.ts`
+3. 배포 장애 핫픽스
+- 신규 파일: `apps/web/e2e/load-test-env.ts`
+  - 외부 의존성 없이 `.env.local`, `.env`를 파싱/주입
+- 수정 파일:
+  - `apps/web/playwright.config.ts`
+  - `apps/web/e2e/smoke.spec.ts`
+- 결과:
+  - `@next/env` import 제거
+  - TypeScript 빌드 오류 제거
+4. 2차 커밋/푸시
+- Commit: `09f5daf`
+- Message: `fix: remove @next/env dependency from playwright config`
+- Push: `main -> origin/main` 성공
+
+### Verification
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm verify:local` PASS
+- Push 훅의 safety/lint/build 통과
+
+### Decision Updates
+- New decisions:
+  - 테스트 환경 변수 로딩은 빌드 안정성을 위해 프레임워크 내부 패키지 의존 없이 자체 로더 사용
+- Changed decisions:
+  - 기존 e2e env 로딩 방식(`@next/env`) 폐기
+- Deferred decisions:
+  - 향후 중앙화된 env loader 통합 여부
+
+### Risks / Blockers
+- 없음(해당 배포 차단 이슈 해결됨)
+
+### Next Actions
+1. 배포 URL에서 UI/동선 품질 점검
+2. UX 피드백 반영 라운드 진행
+
+## 49) Work Session Entry (2026-03-04, Entry UX Direction Correction)
+
+### Session
+- Date: 2026-03-04
+- Owner Request:
+  - "설문조사 플랫폼 관점에서 피검자/관리자 고객 여정 분리 설계 필요"
+  - "현재 디자인은 독단적 처리였는지 확인 요청"
+- Working Branch: main
+
+### Planned
+1. 최초 진입 IA를 역할 여정 중심으로 재설계
+2. 홈에서 목적별 선택과 고객 여정지도 제공
+3. 헤더/인증 화면의 역할 문맥 강화
+
+### Done
+1. IA 정정 반영
+- 홈에서 역할 분리:
+  - 피검자 여정 카드
+  - 연구 관리자 여정 카드
+  - 플랫폼 운영 여정 맵
+- "무엇을 하러 왔는가" 질문을 명시적으로 제시
+2. 시각/동선 개선
+- 헤더에 역할 힌트 및 active 상태 표시
+- 홈 히어로 정보 구조 재정렬
+- 인증 진입 화면 레이아웃 정돈
+3. 기록 문서 추가
+- `docs/planning/UXJourneyReference_20260304.md`
+  - 역할 여정 중심 설계 원칙
+  - 레퍼런스 패턴(개념 레벨)
+  - 이후 확장 계획
+4. 커밋/푸시
+- Commit: `35b80ae`
+- Message: `feat: redesign entry UX around participant and admin journeys`
+- Push: `main -> origin/main` 성공
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- Push 훅 통과
+
+### Decision Updates
+- New decisions:
+  - 홈 IA 우선순위를 "역할별 고객 여정 선택"으로 고정
+- Changed decisions:
+  - 기존 기능 나열형 홈 화면에서 목적 중심 구조로 전환
+- Deferred decisions:
+  - 관리자 콘솔 내부 IA(탭/정보구조) 대규모 재배치
+
+### Risks / Blockers
+- 외부 서비스의 상세 UI 패턴을 그대로 복제하는 수준의 레퍼런스 반영은 아직 미완
+- 현재는 내부 요구사항 정합성 우선으로 구현
+
+### Next Actions
+1. 관리자 콘솔 IA를 운영 순서(템플릿->패키지->결과->의뢰/스토어) 중심으로 재구성
+2. 피검자 모바일의 "오늘 해야 할 응답" 컴포넌트 강화
+
+## 50) Work Session Entry (2026-03-04, End-of-Day Documentation Lock)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: "오늘은 여기까지. 계획/맥락/대화/작업내역을 하나도 빠짐없이 기록 후 종료"
+- Working Branch: main
+
+### Planned
+1. 오늘까지의 의사결정/정정/산출물 전수 기록
+2. 다음 세션에서 타 AI도 즉시 이어받을 수 있는 인수인계 문서 작성
+
+### Done
+1. 종합 컨텍스트 기록 문서 작성
+- `docs/planning/EndOfDay_ContextDump_20260304.md`
+- 포함 내용:
+  - 프로젝트 기원(레거시/GAS 포기/오픈소스 전환)
+  - 정책 잠금(역할/인증/크레딧/특수템플릿/민감데이터)
+  - 구현 흐름/장애/수정 이력
+  - 현재 기능 완성도와 미완 항목
+  - 다음 세션 우선순위
+2. MasterPlan/ExecutionLog 동기화
+- Build snapshot에 오늘 정정사항 반영
+
+### Verification
+- 문서 동기화 완료(실행로그/마스터플랜/별도 종합 문서)
+
+### Decision Updates
+- New decisions:
+  - 세션 종료 시점마다 "종합 컨텍스트 덤프" 문서 갱신을 운영 규칙으로 채택
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 없음
+
+### Risks / Blockers
+- 없음
+
+### Next Actions
+1. 다음 세션 시작 시 `EndOfDay_ContextDump_20260304.md`를 최우선 참조
+2. 배포 앱에서 UX/동선 실사용 피드백 수집 후 IA 2차 정비

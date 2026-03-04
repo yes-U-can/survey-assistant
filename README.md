@@ -56,3 +56,4 @@
 - 특수 템플릿 운영 런북: `docs/planning/OpsRunbook_SpecialTemplateWorkflow_20260304.md`
 - 백업/복구 런북: `docs/planning/OpsRunbook_BackupRecovery_20260304.md`
 - 장애 대응 런북: `docs/planning/OpsRunbook_IncidentResponse_20260304.md`
+- 세션 종합 인수인계: `docs/planning/EndOfDay_ContextDump_20260304.md`

@@ -336,3 +336,42 @@ survey-assistant/
     - `OpsRunbook_IncidentResponse_20260304.md`
 - Current known gap
   - OAuth 브라우저 전체 자동화(CI) 대신 수동 체크리스트 병행 정책 유지
+
+## 30) Build Snapshot Update (2026-03-04, Deployment Incident Hotfix)
+- Scope type: 배포 차단 장애 복구
+- Incident
+  - Vercel build failed with:
+    - `Cannot find module '@next/env'`
+    - from `apps/web/playwright.config.ts`
+- Completed in this update
+  - `@next/env` 의존 제거
+  - 자체 테스트 env 로더 추가:
+    - `apps/web/e2e/load-test-env.ts`
+  - 적용:
+    - `apps/web/playwright.config.ts`
+    - `apps/web/e2e/smoke.spec.ts`
+  - 커밋/푸시:
+    - `09f5daf`
+- Outcome
+  - web build 재통과
+  - 배포 차단 이슈 해소
+
+## 31) Build Snapshot Update (2026-03-04, Entry IA Redesign by Journey)
+- Scope type: 홈 IA/UX 정합성 보정
+- Trigger
+  - Owner feedback:
+    - 플랫폼 최초 진입에서 피검자/관리자/플랫폼 어드민의 고객 여정을 명확히 분리해야 함
+    - 기존 디자인의 독단적 구성 지적
+- Completed in this update
+  - 홈 IA를 역할별 고객 여정 선택 구조로 재설계
+    - 피검자/연구관리자 1차 진입 카드
+    - 플랫폼 운영 여정 별도 맵
+    - 고객 여정 지도 섹션 추가
+  - 헤더 역할 힌트 및 active 상태 강화
+  - 인증 화면의 정보 위계/동선 개선
+  - UX 근거 문서 추가:
+    - `docs/planning/UXJourneyReference_20260304.md`
+  - 커밋/푸시:
+    - `35b80ae`
+- Current known gap
+  - 관리자 콘솔 내부 IA(템플릿/패키지/결과 중심) 2차 정비 필요
