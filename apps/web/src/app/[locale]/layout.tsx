@@ -1,4 +1,5 @@
-﻿import type { ReactNode } from "react";
+import "../globals.css";
+import type { ReactNode } from "react";
 
 export default async function LocaleLayout({
   children,
