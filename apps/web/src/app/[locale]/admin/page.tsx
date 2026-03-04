@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AdminDashboardClient } from "./AdminDashboardClient";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -34,31 +36,80 @@ export default async function AdminHomePage({ params }: PageProps) {
     );
   }
 
+  const [templates, packages] = await Promise.all([
+    prisma.template.findMany({
+      where: {
+        ownerId: session.user.id,
+        isArchived: false,
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        type: true,
+        visibility: true,
+        title: true,
+        description: true,
+        version: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.surveyPackage.findMany({
+      where: { ownerId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        templates: {
+          select: {
+            templateId: true,
+            orderIndex: true,
+            template: {
+              select: { title: true, type: true },
+            },
+          },
+          orderBy: { orderIndex: "asc" },
+        },
+      },
+    }),
+  ]);
+
+  const initialPackages = packages.map((pkg) => ({
+      id: pkg.id,
+      code: pkg.code,
+      title: pkg.title,
+      description: pkg.description,
+      mode: pkg.mode,
+      status: pkg.status,
+      maxResponsesPerParticipant: pkg.maxResponsesPerParticipant,
+      startsAt: pkg.startsAt?.toISOString() ?? null,
+      endsAt: pkg.endsAt?.toISOString() ?? null,
+      createdAt: pkg.createdAt.toISOString(),
+      updatedAt: pkg.updatedAt.toISOString(),
+      templates: pkg.templates.map((item) => ({
+        templateId: item.templateId,
+        orderIndex: item.orderIndex,
+        title: item.template.title,
+        type: item.template.type,
+      })),
+    }));
+
+  const initialTemplates = templates.map((tpl) => ({
+    ...tpl,
+    createdAt: tpl.createdAt.toISOString(),
+    updatedAt: tpl.updatedAt.toISOString(),
+  }));
+
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1>{locale === "ko" ? "관리자 홈" : "Admin Home"}</h1>
-      <p>
-        {locale === "ko"
-          ? "관리자 API 골격(템플릿/패키지)이 준비되었습니다."
-          : "Admin API skeleton (templates/packages) is ready."}
-      </p>
-      <ul>
-        <li>
-          <code>GET/POST /api/admin/templates</code>
-        </li>
-        <li>
-          <code>GET/POST /api/admin/packages</code>
-        </li>
-        <li>
-          <code>PATCH /api/admin/packages/{'{packageId}'}/status</code>
-        </li>
-      </ul>
-      <hr style={{ margin: "16px 0" }} />
-      <p>
+    <>
+      <AdminDashboardClient
+        locale={locale}
+        initialTemplates={initialTemplates}
+        initialPackages={initialPackages}
+      />
+      <footer style={{ padding: "0 24px 24px", fontFamily: "sans-serif" }}>
         <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
         <span style={{ margin: "0 8px" }}>|</span>
         <Link href="/api/auth/signout">{locale === "ko" ? "로그아웃" : "Sign out"}</Link>
-      </p>
-    </main>
+      </footer>
+    </>
   );
 }

@@ -503,3 +503,37 @@
 1. 관리자 API를 실제 화면(Form/Table)과 연결
 2. 템플릿 리커트 빌더 최소 UI 구현
 3. 패키지 활성화/종료 버튼 및 상태 전환 UX 구현
+
+## 21) Work Session Entry (2026-03-04, Admin Dashboard UI Wiring)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계획 정합성 유지하며 계속 구현
+- Working Branch: main
+
+### Planned
+1. 관리자 API를 화면에서 직접 사용할 수 있도록 연결
+2. 템플릿 생성 폼(리커트/특수) 구현
+3. 패키지 생성/상태변경 UI 구현
+
+### Done
+1. 관리자 대시보드 클라이언트 추가
+   - `AdminDashboardClient.tsx`
+2. 템플릿 생성 UI 구현
+   - LIKERT: 척도/라벨/문항 입력 -> `schemaJson` 생성
+   - SPECIAL: JSON 입력/검증
+3. 패키지 생성 UI 구현
+   - 코드/제목/모드/횟수/기간/템플릿 선택
+4. 패키지 상태 전환 버튼 구현
+   - DRAFT/ACTIVE/CLOSED/ARCHIVED
+5. 관리자 페이지 한글 깨짐 수정 + 서버 초기데이터 로딩 연결
+
+### Verification
+- `pnpm --filter web lint` PASS
+- `pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Next Actions
+1. 관리자 대시보드에 템플릿/패키지 수정 기능 추가
+2. 리커트 템플릿 프리뷰/응답화면 연결
+3. CSV export MVP 구현
