@@ -537,3 +537,37 @@
 1. 관리자 대시보드에 템플릿/패키지 수정 기능 추가
 2. 리커트 템플릿 프리뷰/응답화면 연결
 3. CSV export MVP 구현
+
+## 22) Work Session Entry (2026-03-04, Platform Admin Bootstrap)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: `sicpseoul@gmail.com` 계정을 플랫폼 어드민으로 등록 가능하게 설정
+- Working Branch: main
+
+### Planned
+1. Google 로그인 시 이메일 기반으로 플랫폼 어드민 권한 부여
+2. 환경변수 템플릿/배포 환경 반영
+3. 린트/빌드/안전검사로 회귀 확인
+
+### Done
+1. 인증 로직 개선
+   - `apps/web/src/lib/auth.ts`
+   - `PLATFORM_ADMIN_EMAILS`(comma-separated) 파싱 추가
+   - Google 로그인 시 이메일이 allowlist에 있으면 `PLATFORM_ADMIN`, 아니면 `RESEARCH_ADMIN`
+   - `upsert.update.role`에도 동일 로직 적용하여 기존 계정도 재로그인 시 권한 동기화
+2. 환경변수 템플릿 업데이트
+   - `.env.example`에 `PLATFORM_ADMIN_EMAILS=` 추가
+3. Vercel 환경 변수 반영
+   - `development`: 반영 완료
+   - `production`: 반영 완료
+   - `preview`: Vercel CLI의 브랜치 정책으로 일반 preview 변수 추가가 차단되어 후속 조치 필요
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Notes
+- 플랫폼 어드민 권한은 "DB 수동 수정"이 아니라 "해당 Google 계정으로 1회 로그인" 시 자동 적용됨
+- 민감정보(레거시 백업/회원정보/IP/응답원본) 업로드 금지 원칙 유지

@@ -13,6 +13,22 @@ type AuthUser = {
   name?: string | null;
 };
 
+const platformAdminEmails = new Set(
+  (process.env.PLATFORM_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.length > 0),
+);
+
+function resolveGoogleAdminRole(email: string | null | undefined): UserRole {
+  if (!email) {
+    return UserRole.RESEARCH_ADMIN;
+  }
+  return platformAdminEmails.has(email.trim().toLowerCase())
+    ? UserRole.PLATFORM_ADMIN
+    : UserRole.RESEARCH_ADMIN;
+}
+
 const participantCredentials = CredentialsProvider({
   id: "participant-credentials",
   name: "Participant",
@@ -93,15 +109,18 @@ export const authOptions: NextAuthOptions = {
           : typeof profile?.email === "string"
             ? profile.email
             : "Research Admin";
+      const rawEmail = typeof profile?.email === "string" ? profile.email : null;
+      const resolvedRole = resolveGoogleAdminRole(rawEmail);
 
       await prisma.user.upsert({
         where: { googleSub },
         update: {
+          role: resolvedRole,
           displayName: rawName,
           isActive: true,
         },
         create: {
-          role: UserRole.RESEARCH_ADMIN,
+          role: resolvedRole,
           googleSub,
           displayName: rawName,
           locale: Locale.ko,
@@ -164,4 +183,3 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
-
