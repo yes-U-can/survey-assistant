@@ -212,3 +212,14 @@ survey-assistant/
   - 관리자/플랫폼 PC 화면의 정보 밀도 및 운영 UX 고도화
   - 법무/컴플라이언스 수준의 익명화/보존 로그 정책 명문화
   - e2e 자동화(핵심 운영 시나리오) 및 릴리스 체크리스트 강화
+
+## 23) Build Snapshot Update (2026-03-04, late)
+- Overall completion (current MVP line): ~92%
+- Newly completed in this update
+  - Admin/Platform desktop 운영 요약 카드 + 상태 필터(대량 운영 가독성 개선)
+  - 특수 템플릿 의뢰 동의 문구의 법적 고지 명확화(MIT 공개 가능/보상 분리)
+  - 배포 스모크 자동검증 스크립트(`pnpm smoke:web`) 및 범위 문서 고정
+- Remaining focus
+  - OAuth 포함 브라우저 e2e 자동화
+  - 운영 알림/이상징후 모니터링(정산/크레딧)
+  - 출시 전 컴플라이언스 체크리스트 마감

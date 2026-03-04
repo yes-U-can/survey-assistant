@@ -60,6 +60,8 @@ This app is linked to project `survey_sicp`.
   - Managed credit policy: immediate charge (`SPEND`) and automatic `REFUND` on failure
   - Charge amount: `AI_MANAGED_CREDIT_PER_REQUEST`
 - Special template requests: `GET/POST /api/admin/special-requests`
+  - Request UI enforces explicit consent that deliverable source may be published under MIT.
+  - Source publication and credit compensation are handled as separate policy tracks.
 - Store listings: `GET/POST /api/admin/store/listings`
 - Store listing update: `PATCH /api/admin/store/listings/{listingId}`
 - Store purchases: `GET/POST /api/admin/store/purchases`

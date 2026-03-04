@@ -260,6 +260,20 @@ const msg = {
     totalSellerCredits: "총 판매자 정산",
     totalPlatformFeeCredits: "총 플랫폼 수수료",
     purchaseCount: "구매 건수",
+    overviewParticipants: "피검자",
+    overviewResearchAdmins: "연구 관리자",
+    overviewPlatformAdmins: "플랫폼 어드민",
+    overviewWallets: "관리자 지갑 수",
+    overviewTotalCredits: "총 크레딧 잔액",
+    overviewTransactions: "크레딧 거래 수",
+    overviewMigrationRequested: "마이그레이션 요청",
+    overviewMigrationRunning: "마이그레이션 진행중",
+    overviewMigrationCompleted: "마이그레이션 완료",
+    overviewStorePurchases: "스토어 구매 수",
+    overviewPlatformFees: "스토어 수수료 누적",
+    filterAll: "전체",
+    specialRequestFilter: "의뢰 상태 필터",
+    migrationFilter: "마이그레이션 상태 필터",
   },
   en: {
     title: "Platform Admin",
@@ -307,6 +321,20 @@ const msg = {
     totalSellerCredits: "Total seller credits",
     totalPlatformFeeCredits: "Total platform fee credits",
     purchaseCount: "Purchase count",
+    overviewParticipants: "Participants",
+    overviewResearchAdmins: "Research admins",
+    overviewPlatformAdmins: "Platform admins",
+    overviewWallets: "Admin wallets",
+    overviewTotalCredits: "Total credit balance",
+    overviewTransactions: "Credit transactions",
+    overviewMigrationRequested: "Migration requested",
+    overviewMigrationRunning: "Migration running",
+    overviewMigrationCompleted: "Migration completed",
+    overviewStorePurchases: "Store purchases",
+    overviewPlatformFees: "Store platform fees",
+    filterAll: "All",
+    specialRequestFilter: "Request status filter",
+    migrationFilter: "Migration status filter",
   },
 } as const;
 
@@ -346,6 +374,18 @@ function specialRequestStatusLabel(locale: LocaleCode, status: SpecialRequestSta
   if (status === "IN_PROGRESS") return "개발중";
   if (status === "DELIVERED") return "전달완료";
   if (status === "REJECTED") return "반려";
+  return "취소";
+}
+
+function migrationStatusLabel(locale: LocaleCode, status: MigrationStatus) {
+  if (locale === "en") {
+    return status;
+  }
+  if (status === "REQUESTED") return "접수됨";
+  if (status === "ACCEPTED") return "접수완료";
+  if (status === "RUNNING") return "진행중";
+  if (status === "COMPLETED") return "완료";
+  if (status === "FAILED") return "실패";
   return "취소";
 }
 
@@ -410,6 +450,24 @@ export function PlatformAdminClient({
   const [adjustmentDirection, setAdjustmentDirection] = useState<AdjustmentDirection>("INCREASE");
   const [amount, setAmount] = useState(100);
   const [memo, setMemo] = useState("");
+  const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
+    "ALL",
+  );
+  const [migrationFilter, setMigrationFilter] = useState<"ALL" | MigrationStatus>("ALL");
+
+  const filteredSpecialRequests = useMemo(() => {
+    if (specialRequestFilter === "ALL") {
+      return specialRequests;
+    }
+    return specialRequests.filter((item) => item.status === specialRequestFilter);
+  }, [specialRequestFilter, specialRequests]);
+
+  const filteredJobs = useMemo(() => {
+    if (migrationFilter === "ALL") {
+      return jobs;
+    }
+    return jobs.filter((item) => item.status === migrationFilter);
+  }, [jobs, migrationFilter]);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
@@ -671,19 +729,52 @@ export function PlatformAdminClient({
       <section style={{ marginTop: 24 }}>
         <h2>{t.overview}</h2>
         {overview ? (
-          <ul>
-            <li>Participants: {overview.users.participantCount}</li>
-            <li>Research Admins: {overview.users.researchAdminCount}</li>
-            <li>Platform Admins: {overview.users.platformAdminCount}</li>
-            <li>Admin Wallets: {overview.credits.walletCount}</li>
-            <li>Total Credits: {overview.credits.totalBalance}</li>
-            <li>Transactions: {overview.credits.transactionCount}</li>
-            <li>Migration Requested: {overview.migrationJobs.REQUESTED}</li>
-            <li>Migration Running: {overview.migrationJobs.RUNNING}</li>
-            <li>Migration Completed: {overview.migrationJobs.COMPLETED}</li>
-            <li>Store Purchases: {settlementSummary.purchaseCount}</li>
-            <li>Platform Fee Credits: {settlementSummary.totalPlatformFeeCredits}</li>
-          </ul>
+          <div className="sa-metric-grid">
+            <article className="sa-metric-card">
+              <strong>{overview.users.participantCount}</strong>
+              <small>{t.overviewParticipants}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.users.researchAdminCount}</strong>
+              <small>{t.overviewResearchAdmins}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.users.platformAdminCount}</strong>
+              <small>{t.overviewPlatformAdmins}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.credits.walletCount}</strong>
+              <small>{t.overviewWallets}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.credits.totalBalance}</strong>
+              <small>{t.overviewTotalCredits}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.credits.transactionCount}</strong>
+              <small>{t.overviewTransactions}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.migrationJobs.REQUESTED}</strong>
+              <small>{t.overviewMigrationRequested}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.migrationJobs.RUNNING}</strong>
+              <small>{t.overviewMigrationRunning}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{overview.migrationJobs.COMPLETED}</strong>
+              <small>{t.overviewMigrationCompleted}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{settlementSummary.purchaseCount}</strong>
+              <small>{t.overviewStorePurchases}</small>
+            </article>
+            <article className="sa-metric-card">
+              <strong>{settlementSummary.totalPlatformFeeCredits}</strong>
+              <small>{t.overviewPlatformFees}</small>
+            </article>
+          </div>
         ) : (
           <p>-</p>
         )}
@@ -834,7 +925,27 @@ export function PlatformAdminClient({
 
       <section style={{ marginTop: 24 }}>
         <h2>{t.specialRequests}</h2>
-        {specialRequests.length === 0 ? (
+        <div style={{ marginBottom: 8 }}>
+          <label>
+            {t.specialRequestFilter}
+            <select
+              value={specialRequestFilter}
+              onChange={(event) =>
+                setSpecialRequestFilter(event.target.value as "ALL" | SpecialRequestStatus)
+              }
+              disabled={isLoading}
+              style={{ marginLeft: 8 }}
+            >
+              <option value="ALL">{t.filterAll}</option>
+              {specialRequestStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {specialRequestStatusLabel(locale, status)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {filteredSpecialRequests.length === 0 ? (
           <p>-</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -849,7 +960,7 @@ export function PlatformAdminClient({
               </tr>
             </thead>
             <tbody>
-              {specialRequests.map((request) => {
+              {filteredSpecialRequests.map((request) => {
                 const draft = specialRequestDrafts[request.id] ?? {
                   status: request.status,
                   adminNote: request.adminNote ?? "",
@@ -993,7 +1104,25 @@ export function PlatformAdminClient({
 
       <section style={{ marginTop: 24 }}>
         <h2>{t.migrations}</h2>
-        {jobs.length === 0 ? (
+        <div style={{ marginBottom: 8 }}>
+          <label>
+            {t.migrationFilter}
+            <select
+              value={migrationFilter}
+              onChange={(event) => setMigrationFilter(event.target.value as "ALL" | MigrationStatus)}
+              disabled={isLoading}
+              style={{ marginLeft: 8 }}
+            >
+              <option value="ALL">{t.filterAll}</option>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {migrationStatusLabel(locale, status)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {filteredJobs.length === 0 ? (
           <p>-</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1008,7 +1137,7 @@ export function PlatformAdminClient({
               </tr>
             </thead>
             <tbody>
-              {jobs.map((job) => {
+              {filteredJobs.map((job) => {
                 const draft = jobDrafts[job.id] ?? {
                   status: job.status,
                   resultNote: job.resultNote ?? "",
@@ -1034,7 +1163,7 @@ export function PlatformAdminClient({
                       >
                         {statusOptions.map((status) => (
                           <option key={status} value={status}>
-                            {status}
+                            {migrationStatusLabel(locale, status)}
                           </option>
                         ))}
                       </select>

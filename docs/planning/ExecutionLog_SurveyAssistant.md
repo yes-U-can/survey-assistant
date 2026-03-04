@@ -1441,3 +1441,60 @@
 1. 관리자/플랫폼 데스크톱 정보 밀도 개선(표 레이아웃/필드 그룹 정돈)
 2. 특수 템플릿 제작 산출 코드 공개 고지 문구를 의뢰 화면에 법적 문안 수준으로 고정
 3. e2e 시나리오(의뢰->스토어->구매->정산, participant 계정 복원/익명화) 자동화 범위 확정
+
+## 40) Work Session Entry (2026-03-04, Desktop Ops Density + Consent Wording + Smoke Scope)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 남은 작업을 한 번에 진행
+- Working Branch: main
+
+### Planned
+1. 관리자/플랫폼 데스크톱 운영 화면 정보 밀도 개선
+2. 특수 템플릿 의뢰 동의 문구를 법적 고지 수준으로 명확화
+3. e2e/스모크 검증 범위 문서화 + 실행 스크립트 추가
+
+### Done
+1. Admin 콘솔 운영 요약 + 필터 추가
+   - 요약 카드(템플릿/패키지/의뢰처리/스토어/피검자) 추가
+   - 의뢰 상태 필터 추가
+   - 피검자 검색/상태 필터(활성/비활성/익명화) 추가
+   - 파일: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+2. Platform Admin 콘솔 밀도 개선
+   - 운영 현황을 카드 요약으로 전환
+   - 의뢰 상태 필터, 마이그레이션 상태 필터 추가
+   - 파일: `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+3. 공통 UI 카드 스타일 추가
+   - 파일: `apps/web/src/app/globals.css`
+4. 의뢰 동의 고지 강화
+   - 의뢰 산출 코드의 MIT/GitHub 공개 가능성 명시
+   - 소스 공개와 크레딧 보상 분리 정책 보조 문구 추가
+   - 파일: `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+5. 스모크 검증 범위 고정
+   - 스크립트: `scripts/smoke-web-api.ps1`
+   - 실행 명령: `pnpm smoke:web`
+   - 범위 문서: `docs/planning/E2E_SmokeScope_20260304.md`
+   - 루트 문서 반영: `README.md`, `package.json`
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `powershell -ExecutionPolicy Bypass -File scripts/check-repo-safety.ps1` PASS
+- `corepack pnpm smoke:web` PASS
+
+### Decision Updates
+- New decisions:
+  - 데스크톱 운영 콘솔은 대량 데이터 전제를 기준으로 요약 카드 + 필터를 기본 UX로 채택
+  - 스모크 자동검증은 "헬스 + 무인증 접근 차단"을 1차 고정 범위로 채택
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - OAuth 브라우저 플로우 완전 자동화(e2e)는 후속
+
+### Risks / Blockers
+- OAuth/실사용 계정 기반 e2e는 비밀값/브라우저 세션 관리가 필요해 CI 자동화 범위로 바로 올리기 어려움
+
+### Next Actions
+1. 의뢰->제작->스토어 배포 운영 절차 문서(플랫폼 어드민 관점) 추가
+2. 정산/크레딧 이상징후 알림(임계치) MVP 검토
+3. QA 체크리스트 기반 정기 회귀 루틴 정착

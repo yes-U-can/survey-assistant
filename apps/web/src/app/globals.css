@@ -218,6 +218,34 @@ textarea {
   box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-700) 7%, transparent);
 }
 
+.sa-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.sa-metric-card {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--brand-700) 18%, white);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-700) 6%, transparent);
+}
+
+.sa-metric-card strong {
+  display: block;
+  font-size: 1.25rem;
+  line-height: 1.1;
+  color: var(--brand-900);
+}
+
+.sa-metric-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+}
+
 .sa-footer {
   max-width: 1120px;
   margin: 0 auto;

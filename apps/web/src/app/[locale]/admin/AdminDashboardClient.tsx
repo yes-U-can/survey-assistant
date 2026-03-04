@@ -219,7 +219,9 @@ const msg = {
     specialRequestTitle: "의뢰 제목",
     specialRequestDescription: "요구사항 상세",
     specialRequestConsent:
-      "동의: 구현 소스코드는 MIT 정책에 따라 공개될 수 있으며, 공개와 크레딧 보상은 별개로 처리됨",
+      "필수 동의: 의뢰 산출물(특수 템플릿 구현 코드)은 MIT 정책에 따라 공개 저장소(GitHub)에 게시될 수 있음을 이해합니다.",
+    specialRequestConsentSub:
+      "소스 공개 여부와 크레딧 보상 지급은 별개 정책으로 처리됩니다.",
     specialRequestSubmit: "의뢰 등록",
     specialRequestStatus: "진행상태",
     specialRequestAdminNote: "어드민 메모",
@@ -270,6 +272,21 @@ const msg = {
     participantDeactivate: "비활성화",
     participantRestore: "복원",
     participantUpdated: "피검자 계정 상태가 업데이트되었습니다.",
+    dashboardSection: "운영 요약",
+    dashboardTemplates: "템플릿",
+    dashboardPackages: "패키지",
+    dashboardSpecialOpen: "의뢰 처리중",
+    dashboardStoreActive: "활성 스토어 등록",
+    dashboardParticipantsActive: "활성 피검자",
+    dashboardParticipantsAnonymized: "익명화 피검자",
+    participantSearchLabel: "피검자 검색",
+    participantSearchPlaceholder: "ID/표시이름 검색",
+    participantFilterLabel: "상태 필터",
+    filterAll: "전체",
+    filterActive: "활성",
+    filterInactive: "비활성",
+    filterAnonymized: "익명화",
+    specialRequestFilterLabel: "의뢰 상태 필터",
   },
   en: {
     title: "Admin Home",
@@ -336,7 +353,9 @@ const msg = {
     specialRequestTitle: "Request title",
     specialRequestDescription: "Requirement details",
     specialRequestConsent:
-      "Consent: implementation source code may be publicly disclosed under MIT, and credit compensation is handled separately.",
+      "Required consent: deliverable implementation code for this special template may be published to a public GitHub repository under MIT.",
+    specialRequestConsentSub:
+      "Source publication and credit compensation are handled as separate policies.",
     specialRequestSubmit: "Submit request",
     specialRequestStatus: "Status",
     specialRequestAdminNote: "Admin note",
@@ -387,6 +406,21 @@ const msg = {
     participantDeactivate: "Deactivate",
     participantRestore: "Restore",
     participantUpdated: "Participant account status updated.",
+    dashboardSection: "Operations Snapshot",
+    dashboardTemplates: "Templates",
+    dashboardPackages: "Packages",
+    dashboardSpecialOpen: "Open requests",
+    dashboardStoreActive: "Active store listings",
+    dashboardParticipantsActive: "Active participants",
+    dashboardParticipantsAnonymized: "Anonymized participants",
+    participantSearchLabel: "Participant search",
+    participantSearchPlaceholder: "Search by ID/display name",
+    participantFilterLabel: "Status filter",
+    filterAll: "All",
+    filterActive: "Active",
+    filterInactive: "Inactive",
+    filterAnonymized: "Anonymized",
+    specialRequestFilterLabel: "Request status filter",
   },
 } as const;
 
@@ -559,6 +593,66 @@ export function AdminDashboardClient({
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
   const [exportAttempt, setExportAttempt] = useState("");
+  const [participantQuery, setParticipantQuery] = useState("");
+  const [participantFilter, setParticipantFilter] = useState<
+    "ALL" | "ACTIVE" | "INACTIVE" | "ANONYMIZED"
+  >("ALL");
+  const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
+    "ALL",
+  );
+
+  const adminSnapshot = useMemo(() => {
+    const openRequestCount = specialRequests.filter((item) =>
+      ["REQUESTED", "REVIEWING", "IN_PROGRESS"].includes(item.status),
+    ).length;
+    const activeListingCount = myListings.filter((item) => item.isActive).length;
+    const activeParticipantCount = participants.filter(
+      (item) => !item.isAnonymized && item.isActive,
+    ).length;
+    const anonymizedParticipantCount = participants.filter((item) => item.isAnonymized).length;
+
+    return {
+      templateCount: templates.length,
+      packageCount: packages.length,
+      openRequestCount,
+      activeListingCount,
+      activeParticipantCount,
+      anonymizedParticipantCount,
+    };
+  }, [myListings, packages.length, participants, specialRequests, templates.length]);
+
+  const filteredSpecialRequests = useMemo(() => {
+    if (specialRequestFilter === "ALL") {
+      return specialRequests;
+    }
+    return specialRequests.filter((item) => item.status === specialRequestFilter);
+  }, [specialRequestFilter, specialRequests]);
+
+  const filteredParticipants = useMemo(() => {
+    const normalizedQuery = participantQuery.trim().toLowerCase();
+    return participants.filter((item) => {
+      const statusMatched =
+        participantFilter === "ALL"
+          ? true
+          : participantFilter === "ANONYMIZED"
+            ? item.isAnonymized
+            : participantFilter === "ACTIVE"
+              ? !item.isAnonymized && item.isActive
+              : !item.isAnonymized && !item.isActive;
+
+      if (!statusMatched) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const loginId = item.loginId?.toLowerCase() ?? "";
+      const displayName = item.displayName?.toLowerCase() ?? "";
+      return loginId.includes(normalizedQuery) || displayName.includes(normalizedQuery);
+    });
+  }, [participantFilter, participantQuery, participants]);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
@@ -1118,6 +1212,36 @@ export function AdminDashboardClient({
         {message ? <p className="sa-inline-message">{message}</p> : null}
       </section>
 
+      <section>
+        <h2>{t.dashboardSection}</h2>
+        <div className="sa-metric-grid">
+          <article className="sa-metric-card">
+            <strong>{adminSnapshot.templateCount}</strong>
+            <small>{t.dashboardTemplates}</small>
+          </article>
+          <article className="sa-metric-card">
+            <strong>{adminSnapshot.packageCount}</strong>
+            <small>{t.dashboardPackages}</small>
+          </article>
+          <article className="sa-metric-card">
+            <strong>{adminSnapshot.openRequestCount}</strong>
+            <small>{t.dashboardSpecialOpen}</small>
+          </article>
+          <article className="sa-metric-card">
+            <strong>{adminSnapshot.activeListingCount}</strong>
+            <small>{t.dashboardStoreActive}</small>
+          </article>
+          <article className="sa-metric-card">
+            <strong>{adminSnapshot.activeParticipantCount}</strong>
+            <small>{t.dashboardParticipantsActive}</small>
+          </article>
+          <article className="sa-metric-card">
+            <strong>{adminSnapshot.anonymizedParticipantCount}</strong>
+            <small>{t.dashboardParticipantsAnonymized}</small>
+          </article>
+        </div>
+      </section>
+
       <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.templateSection}</h2>
         <form onSubmit={onCreateTemplate} style={{ display: "grid", gap: 10, marginTop: 8 }}>
@@ -1262,16 +1386,39 @@ export function AdminDashboardClient({
             />
             <span style={{ marginLeft: 6 }}>{t.specialRequestConsent}</span>
           </label>
+          <small>{t.specialRequestConsentSub}</small>
           <button type="submit" disabled={isLoading} style={{ width: 140 }}>
             {isLoading ? t.loading : t.specialRequestSubmit}
           </button>
         </form>
 
         <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-          {specialRequests.length === 0 ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <label>
+              {t.specialRequestFilterLabel}
+              <select
+                value={specialRequestFilter}
+                onChange={(event) =>
+                  setSpecialRequestFilter(event.target.value as "ALL" | SpecialRequestStatus)
+                }
+                style={{ marginLeft: 8 }}
+              >
+                <option value="ALL">{t.filterAll}</option>
+                <option value="REQUESTED">{specialRequestStatusLabel(locale, "REQUESTED")}</option>
+                <option value="REVIEWING">{specialRequestStatusLabel(locale, "REVIEWING")}</option>
+                <option value="IN_PROGRESS">
+                  {specialRequestStatusLabel(locale, "IN_PROGRESS")}
+                </option>
+                <option value="DELIVERED">{specialRequestStatusLabel(locale, "DELIVERED")}</option>
+                <option value="REJECTED">{specialRequestStatusLabel(locale, "REJECTED")}</option>
+                <option value="CANCELED">{specialRequestStatusLabel(locale, "CANCELED")}</option>
+              </select>
+            </label>
+          </div>
+          {filteredSpecialRequests.length === 0 ? (
             <p>{t.specialRequestNoData}</p>
           ) : (
-            specialRequests.map((item) => (
+            filteredSpecialRequests.map((item) => (
               <article key={item.id} style={{ border: "1px solid #eee", padding: 10 }}>
                 <strong>{item.title}</strong> | {t.specialRequestStatus}:{" "}
                 {specialRequestStatusLabel(locale, item.status)}
@@ -1696,7 +1843,35 @@ export function AdminDashboardClient({
 
       <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.participantSection}</h2>
-        {participants.length === 0 ? (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <label>
+            {t.participantSearchLabel}
+            <input
+              value={participantQuery}
+              onChange={(event) => setParticipantQuery(event.target.value)}
+              placeholder={t.participantSearchPlaceholder}
+              style={{ marginLeft: 8, minWidth: 220 }}
+            />
+          </label>
+          <label>
+            {t.participantFilterLabel}
+            <select
+              value={participantFilter}
+              onChange={(event) =>
+                setParticipantFilter(
+                  event.target.value as "ALL" | "ACTIVE" | "INACTIVE" | "ANONYMIZED",
+                )
+              }
+              style={{ marginLeft: 8 }}
+            >
+              <option value="ALL">{t.filterAll}</option>
+              <option value="ACTIVE">{t.filterActive}</option>
+              <option value="INACTIVE">{t.filterInactive}</option>
+              <option value="ANONYMIZED">{t.filterAnonymized}</option>
+            </select>
+          </label>
+        </div>
+        {filteredParticipants.length === 0 ? (
           <p>{t.participantNoData}</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1714,7 +1889,7 @@ export function AdminDashboardClient({
               </tr>
             </thead>
             <tbody>
-              {participants.map((participant) => (
+              {filteredParticipants.map((participant) => (
                 <tr key={participant.id}>
                   <td>{participant.loginId ?? "-"}</td>
                   <td>{participant.displayName ?? "-"}</td>
