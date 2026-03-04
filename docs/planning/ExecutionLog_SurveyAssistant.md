@@ -719,3 +719,49 @@
 1. CSV export에 필터(기간/시도차수) 옵션 추가
 2. 관리자 AI 호출 경로에 `SPEND` 자동 차감 훅 연결
 3. Participant 리커트 응답 UI와 export 데이터 일관성 점검
+
+## 26) Work Session Entry (2026-03-04, Participant Response UI Baseline)
+
+### Session
+- Date: 2026-03-04
+- Owner Request: 계속 진행
+- Working Branch: main
+
+### Planned
+1. 피검자 응답 화면(MVP) 연결
+2. 패키지별 설문 로드 API 추가
+3. 문서/검증 동기화
+
+### Done
+1. 설문 로드 API 추가
+   - `GET /api/participant/packages/{packageId}/survey`
+   - 참여 등록/상태/기간/응답횟수 제한 검증 포함
+2. 피검자 대시보드 개편
+   - 패키지 카드에서 `응답 시작` 버튼 제공
+   - 리커트 템플릿 렌더링(문항/척도 라디오)
+   - 특수 템플릿은 JSON fallback 입력으로 제출 가능
+   - 기존 진행현황/코드등록 흐름 유지
+3. 문서 업데이트
+   - `apps/web/README.md`에 participant survey load endpoint 반영
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `scripts/check-repo-safety.ps1` PASS
+
+### Decision Updates
+- New decisions:
+  - 피검자 응답 MVP는 "패키지 카드 내 인라인 폼"으로 시작
+  - 리커트 우선 렌더링 + 특수 템플릿 JSON fallback 전략 채택
+- Changed decisions:
+  - 없음
+- Deferred decisions:
+  - 특수 템플릿 전용 런타임(커스텀 프론트 컴포넌트 샌드박스) 도입 방식
+
+### Risks / Blockers
+- 특수 템플릿은 현재 JSON fallback이므로 UX가 제한적
+
+### Next Actions
+1. 특수 템플릿 렌더러 플러그인 인터페이스 설계
+2. CSV export 필터(기간/attempt) 추가
+3. AI 사용 시 `SPEND` 자동 차감 훅 연결

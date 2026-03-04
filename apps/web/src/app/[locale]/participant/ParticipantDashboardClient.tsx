@@ -27,6 +27,51 @@ type PackageListResponse = {
   error?: string;
 };
 
+type SurveyTemplateItem = {
+  templateId: string;
+  orderIndex: number;
+  type: "LIKERT" | "SPECIAL";
+  title: string;
+  description: string | null;
+  version: number;
+  schemaJson: unknown;
+};
+
+type SurveyDetail = {
+  packageId: string;
+  code: string;
+  title: string;
+  mode: "CROSS_SECTIONAL" | "LONGITUDINAL";
+  nextAttemptNo: number;
+  templates: SurveyTemplateItem[];
+};
+
+type SurveyLoadResponse = {
+  ok: boolean;
+  survey?: SurveyDetail;
+  error?: string;
+};
+
+type LikertQuestion = {
+  id: string;
+  text: string;
+};
+
+type LikertSchema = {
+  kind: "likert";
+  scale: {
+    min: number;
+    max: number;
+    labels: string[];
+  };
+  questions: LikertQuestion[];
+};
+
+type TemplateDraft = {
+  likertAnswers: Record<string, number>;
+  jsonText: string;
+};
+
 const messageMap = {
   ko: {
     title: "피검자 홈",
@@ -51,7 +96,7 @@ const messageMap = {
     no: "아니오",
     notRespondedYet: "아직 응답 기록 없음",
     notSet: "미설정",
-    openEnded: "제한 없음",
+    openEnded: "기한 없음",
     enrollOk: "설문 코드 등록이 완료되었습니다.",
     enrollAlready: "이미 등록된 설문 코드입니다.",
     errorInvalid: "코드 형식이 올바르지 않습니다.",
@@ -65,6 +110,17 @@ const messageMap = {
     statusActive: "진행중",
     statusClosed: "종료",
     statusArchived: "보관",
+    startSurvey: "응답 시작",
+    closeSurvey: "폼 닫기",
+    submitSurvey: "응답 제출",
+    surveyLoading: "설문을 준비하는 중...",
+    surveySubmitting: "제출 중...",
+    surveyTemplate: "템플릿",
+    surveyAttempt: "응답 차수",
+    surveySubmitted: "설문 응답이 제출되었습니다.",
+    surveyNeedAllAnswers: "리커트 문항을 모두 응답해주세요.",
+    surveyInvalidJson: "특수 템플릿 JSON 형식이 올바르지 않습니다.",
+    surveyUnavailable: "현재 이 패키지는 응답이 불가능합니다.",
   },
   en: {
     title: "Participant Home",
@@ -103,8 +159,79 @@ const messageMap = {
     statusActive: "Active",
     statusClosed: "Closed",
     statusArchived: "Archived",
+    startSurvey: "Start response",
+    closeSurvey: "Close form",
+    submitSurvey: "Submit response",
+    surveyLoading: "Preparing survey...",
+    surveySubmitting: "Submitting...",
+    surveyTemplate: "Template",
+    surveyAttempt: "Attempt",
+    surveySubmitted: "Survey response submitted.",
+    surveyNeedAllAnswers: "Please answer all Likert questions.",
+    surveyInvalidJson: "Invalid JSON for special template.",
+    surveyUnavailable: "This package is currently unavailable.",
   },
 } as const;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseLikertSchema(schema: unknown): LikertSchema | null {
+  if (!isObject(schema)) {
+    return null;
+  }
+
+  if (schema.kind !== "likert") {
+    return null;
+  }
+
+  const scale = schema.scale;
+  const questions = schema.questions;
+
+  if (!isObject(scale) || !Array.isArray(questions)) {
+    return null;
+  }
+
+  const min = Number(scale.min);
+  const max = Number(scale.max);
+  const labels = Array.isArray(scale.labels)
+    ? scale.labels
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item) => item.length > 0)
+    : [];
+
+  if (!Number.isInteger(min) || !Number.isInteger(max) || min >= max) {
+    return null;
+  }
+
+  const normalizedQuestions: LikertQuestion[] = [];
+  for (const question of questions) {
+    if (!isObject(question)) {
+      return null;
+    }
+    const id = typeof question.id === "string" ? question.id.trim() : "";
+    const text = typeof question.text === "string" ? question.text.trim() : "";
+    if (!id || !text) {
+      return null;
+    }
+    normalizedQuestions.push({ id, text });
+  }
+
+  if (normalizedQuestions.length === 0) {
+    return null;
+  }
+
+  return {
+    kind: "likert",
+    scale: {
+      min,
+      max,
+      labels,
+    },
+    questions: normalizedQuestions,
+  };
+}
 
 function formatDate(value: string | null, locale: LocaleCode, emptyText: string) {
   if (!value) {
@@ -129,6 +256,21 @@ function getEnrollErrorMessage(code: string | undefined, locale: LocaleCode) {
     case "package_not_started":
     case "package_closed":
       return msg.errorInactive;
+    case "unauthorized":
+      return msg.errorAuth;
+    default:
+      return msg.errorDefault;
+  }
+}
+
+function getSurveyErrorMessage(code: string | undefined, locale: LocaleCode) {
+  const msg = messageMap[locale];
+  switch (code) {
+    case "package_not_active":
+    case "package_not_started":
+    case "package_closed":
+    case "response_limit_reached":
+      return msg.surveyUnavailable;
     case "unauthorized":
       return msg.errorAuth;
     default:
@@ -162,12 +304,26 @@ type Props = {
   initialPackages: ParticipantPackageItem[];
 };
 
+function rangeInclusive(start: number, end: number): number[] {
+  const output: number[] = [];
+  for (let i = start; i <= end; i += 1) {
+    output.push(i);
+  }
+  return output;
+}
+
 export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [packages, setPackages] = useState<ParticipantPackageItem[]>(initialPackages);
   const [message, setMessage] = useState("");
+
+  const [activeSurvey, setActiveSurvey] = useState<SurveyDetail | null>(null);
+  const [surveyLoadingPackageId, setSurveyLoadingPackageId] = useState<string | null>(null);
+  const [surveySubmitting, setSurveySubmitting] = useState(false);
+  const [surveyMessage, setSurveyMessage] = useState("");
+  const [templateDrafts, setTemplateDrafts] = useState<Record<string, TemplateDraft>>({});
 
   const text = useMemo(() => messageMap[locale], [locale]);
 
@@ -216,6 +372,177 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
     setSubmitting(false);
   };
 
+  const initializeDrafts = useCallback((survey: SurveyDetail) => {
+    const nextDrafts: Record<string, TemplateDraft> = {};
+    for (const template of survey.templates) {
+      const likert = parseLikertSchema(template.schemaJson);
+      if (template.type === "LIKERT" && likert) {
+        const likertAnswers: Record<string, number> = {};
+        for (const q of likert.questions) {
+          likertAnswers[q.id] = Number.NaN;
+        }
+        nextDrafts[template.templateId] = {
+          likertAnswers,
+          jsonText: "",
+        };
+        continue;
+      }
+      nextDrafts[template.templateId] = {
+        likertAnswers: {},
+        jsonText: "{}",
+      };
+    }
+    setTemplateDrafts(nextDrafts);
+  }, []);
+
+  const onOpenSurvey = useCallback(
+    async (packageId: string) => {
+      setSurveyMessage("");
+      setSurveyLoadingPackageId(packageId);
+
+      const response = await fetch(`/api/participant/packages/${packageId}/survey`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json().catch(() => null)) as SurveyLoadResponse | null;
+
+      if (!response.ok || !payload?.ok || !payload.survey) {
+        setSurveyLoadingPackageId(null);
+        setSurveyMessage(getSurveyErrorMessage(payload?.error, locale));
+        return;
+      }
+
+      setActiveSurvey(payload.survey);
+      initializeDrafts(payload.survey);
+      setSurveyLoadingPackageId(null);
+    },
+    [initializeDrafts, locale],
+  );
+
+  const onCloseSurvey = useCallback(() => {
+    setActiveSurvey(null);
+    setTemplateDrafts({});
+    setSurveyMessage("");
+  }, []);
+
+  const onSelectLikertValue = useCallback(
+    (templateId: string, questionId: string, value: number) => {
+      setTemplateDrafts((prev) => ({
+        ...prev,
+        [templateId]: {
+          ...prev[templateId],
+          likertAnswers: {
+            ...(prev[templateId]?.likertAnswers ?? {}),
+            [questionId]: value,
+          },
+          jsonText: prev[templateId]?.jsonText ?? "",
+        },
+      }));
+    },
+    [],
+  );
+
+  const onChangeJsonText = useCallback((templateId: string, value: string) => {
+    setTemplateDrafts((prev) => ({
+      ...prev,
+      [templateId]: {
+        ...prev[templateId],
+        likertAnswers: prev[templateId]?.likertAnswers ?? {},
+        jsonText: value,
+      },
+    }));
+  }, []);
+
+  const onSubmitSurvey = useCallback(async () => {
+    if (!activeSurvey) {
+      return;
+    }
+
+    setSurveySubmitting(true);
+    setSurveyMessage("");
+
+    const responses: Array<{ templateId: string; responseJson: unknown }> = [];
+
+    for (const template of activeSurvey.templates) {
+      const draft = templateDrafts[template.templateId];
+      const likert = template.type === "LIKERT" ? parseLikertSchema(template.schemaJson) : null;
+
+      if (template.type === "LIKERT" && likert) {
+        const answers: Record<string, number> = {};
+        let missing = false;
+
+        for (const question of likert.questions) {
+          const value = draft?.likertAnswers?.[question.id];
+          if (!Number.isFinite(value)) {
+            missing = true;
+            break;
+          }
+          answers[question.id] = Number(value);
+        }
+
+        if (missing) {
+          setSurveyMessage(text.surveyNeedAllAnswers);
+          setSurveySubmitting(false);
+          return;
+        }
+
+        responses.push({
+          templateId: template.templateId,
+          responseJson: {
+            kind: "likert_response",
+            answers,
+          },
+        });
+        continue;
+      }
+
+      const rawJson = draft?.jsonText?.trim() || "{}";
+      try {
+        const parsedJson = JSON.parse(rawJson);
+        responses.push({
+          templateId: template.templateId,
+          responseJson: parsedJson,
+        });
+      } catch {
+        setSurveyMessage(text.surveyInvalidJson);
+        setSurveySubmitting(false);
+        return;
+      }
+    }
+
+    const response = await fetch("/api/participant/packages/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        packageId: activeSurvey.packageId,
+        responses,
+      }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | { ok?: boolean; error?: string }
+      | null;
+
+    if (!response.ok || !payload?.ok) {
+      setSurveyMessage(getSurveyErrorMessage(payload?.error, locale));
+      setSurveySubmitting(false);
+      return;
+    }
+
+    setSurveyMessage(text.surveySubmitted);
+    await loadPackages();
+    onCloseSurvey();
+    setSurveySubmitting(false);
+  }, [
+    activeSurvey,
+    loadPackages,
+    locale,
+    onCloseSurvey,
+    templateDrafts,
+    text.surveyInvalidJson,
+    text.surveyNeedAllAnswers,
+    text.surveySubmitted,
+  ]);
+
   return (
     <main style={{ padding: 24, fontFamily: "sans-serif" }}>
       <h1>{text.title}</h1>
@@ -248,40 +575,165 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
         {!loading && packages.length === 0 ? <p>{text.empty}</p> : null}
         {!loading && packages.length > 0 ? (
           <div style={{ display: "grid", gap: 12 }}>
-            {packages.map((pkg) => (
-              <article
-                key={pkg.enrollmentId}
-                style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}
-              >
-                <h3 style={{ margin: 0 }}>
-                  {pkg.title} <small>({pkg.code})</small>
-                </h3>
-                <p style={{ margin: "8px 0 0 0" }}>
-                  {text.status}: {statusLabel(pkg.status, locale)} | {text.mode}: {" "}
-                  {modeLabel(pkg.mode, locale)}
-                </p>
-                <p style={{ margin: "4px 0 0 0" }}>
-                  {text.period}: {formatDate(pkg.startsAt, locale, text.notSet)} ~{" "}
-                  {formatDate(pkg.endsAt, locale, text.openEnded)}
-                </p>
-                <p style={{ margin: "4px 0 0 0" }}>
-                  {text.completed}: {pkg.completedCount} / {text.max}: {" "}
-                  {pkg.maxResponsesPerParticipant} / {text.remaining}: {pkg.remainingCount}
-                </p>
-                <p style={{ margin: "4px 0 0 0" }}>
-                  {text.lastResponded}: {formatDate(pkg.lastRespondedAt, locale, text.notRespondedYet)}
-                </p>
-                <p style={{ margin: "4px 0 0 0" }}>
-                  {text.joinedAt}: {formatDate(pkg.joinedAt, locale, text.notSet)}
-                </p>
-                <p style={{ margin: "4px 0 0 0" }}>
-                  {text.canRespondNow}: {pkg.canRespondNow ? text.yes : text.no}
-                </p>
-              </article>
-            ))}
+            {packages.map((pkg) => {
+              const isLoadingSurvey = surveyLoadingPackageId === pkg.packageId;
+              const isActiveSurvey = activeSurvey?.packageId === pkg.packageId;
+
+              return (
+                <article
+                  key={pkg.enrollmentId}
+                  style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}
+                >
+                  <h3 style={{ margin: 0 }}>
+                    {pkg.title} <small>({pkg.code})</small>
+                  </h3>
+                  <p style={{ margin: "8px 0 0 0" }}>
+                    {text.status}: {statusLabel(pkg.status, locale)} | {text.mode}:{" "}
+                    {modeLabel(pkg.mode, locale)}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0" }}>
+                    {text.period}: {formatDate(pkg.startsAt, locale, text.notSet)} ~{" "}
+                    {formatDate(pkg.endsAt, locale, text.openEnded)}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0" }}>
+                    {text.completed}: {pkg.completedCount} / {text.max}:{" "}
+                    {pkg.maxResponsesPerParticipant} / {text.remaining}: {pkg.remainingCount}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0" }}>
+                    {text.lastResponded}:{" "}
+                    {formatDate(pkg.lastRespondedAt, locale, text.notRespondedYet)}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0" }}>
+                    {text.joinedAt}: {formatDate(pkg.joinedAt, locale, text.notSet)}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0" }}>
+                    {text.canRespondNow}: {pkg.canRespondNow ? text.yes : text.no}
+                  </p>
+
+                  <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                    {!isActiveSurvey ? (
+                      <button
+                        type="button"
+                        disabled={!pkg.canRespondNow || isLoadingSurvey}
+                        onClick={() => void onOpenSurvey(pkg.packageId)}
+                      >
+                        {isLoadingSurvey ? text.surveyLoading : text.startSurvey}
+                      </button>
+                    ) : (
+                      <button type="button" onClick={onCloseSurvey}>
+                        {text.closeSurvey}
+                      </button>
+                    )}
+                  </div>
+
+                  {isActiveSurvey && activeSurvey ? (
+                    <section
+                      style={{
+                        marginTop: 12,
+                        border: "1px solid #e5e5e5",
+                        borderRadius: 8,
+                        padding: 12,
+                      }}
+                    >
+                      <p style={{ marginTop: 0 }}>
+                        {text.surveyAttempt}: {activeSurvey.nextAttemptNo}
+                      </p>
+
+                      <div style={{ display: "grid", gap: 14 }}>
+                        {activeSurvey.templates.map((template) => {
+                          const likert = parseLikertSchema(template.schemaJson);
+                          const draft = templateDrafts[template.templateId];
+
+                          return (
+                            <article
+                              key={template.templateId}
+                              style={{ border: "1px solid #f0f0f0", borderRadius: 8, padding: 10 }}
+                            >
+                              <h4 style={{ margin: 0 }}>
+                                {text.surveyTemplate} {template.orderIndex + 1}: {template.title}
+                              </h4>
+                              {template.description ? (
+                                <p style={{ margin: "6px 0 0 0" }}>{template.description}</p>
+                              ) : null}
+
+                              {template.type === "LIKERT" && likert ? (
+                                <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                                  {likert.questions.map((question) => (
+                                    <fieldset
+                                      key={question.id}
+                                      style={{ border: "1px solid #eee", borderRadius: 6 }}
+                                    >
+                                      <legend>{question.text}</legend>
+                                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                        {rangeInclusive(likert.scale.min, likert.scale.max).map(
+                                          (score) => {
+                                            const label =
+                                              likert.scale.labels[score - likert.scale.min] ??
+                                              String(score);
+                                            const checked =
+                                              draft?.likertAnswers?.[question.id] === score;
+                                            return (
+                                              <label key={score} style={{ display: "inline-flex", gap: 4 }}>
+                                                <input
+                                                  type="radio"
+                                                  name={`${template.templateId}-${question.id}`}
+                                                  checked={checked}
+                                                  onChange={() =>
+                                                    onSelectLikertValue(
+                                                      template.templateId,
+                                                      question.id,
+                                                      score,
+                                                    )
+                                                  }
+                                                />
+                                                <span>
+                                                  {score}. {label}
+                                                </span>
+                                              </label>
+                                            );
+                                          },
+                                        )}
+                                      </div>
+                                    </fieldset>
+                                  ))}
+                                </div>
+                              ) : (
+                                <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                                  JSON
+                                  <textarea
+                                    rows={6}
+                                    value={draft?.jsonText ?? "{}"}
+                                    onChange={(event) =>
+                                      onChangeJsonText(template.templateId, event.target.value)
+                                    }
+                                    style={{ fontFamily: "monospace" }}
+                                  />
+                                </label>
+                              )}
+                            </article>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                        <button
+                          type="button"
+                          disabled={surveySubmitting}
+                          onClick={() => void onSubmitSurvey()}
+                        >
+                          {surveySubmitting ? text.surveySubmitting : text.submitSurvey}
+                        </button>
+                      </div>
+                    </section>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         ) : null}
       </section>
+
+      {surveyMessage ? <p style={{ marginTop: 16 }}>{surveyMessage}</p> : null}
     </main>
   );
 }
