@@ -54,3 +54,17 @@
 ## 7) 최종 기록
 1. 체크리스트 결과를 `docs/planning/ExecutionLog_SurveyAssistant.md`에 작업 세션으로 남긴다.
 2. 실패 항목이 있으면 릴리스 보류하고 원인/조치/재검증 결과를 함께 기록한다.
+
+## 8) OAuth Contract Automation Scope (Added 2026-03-05)
+1. CI 자동검증 범위(안정형):
+- 관리자 로그인 페이지 렌더
+- Google sign-in 버튼 href 계약
+- `/api/auth/signin/google` 302 redirect 계약
+- `redirect_uri == ${NEXTAUTH_URL}/api/auth/callback/google` 검증
+- 주요 에러코드(`admin_not_invited`, `admin_inactive`, `account_role_not_admin`) UI 매핑 검증
+2. 제외 범위:
+- 실제 Google 계정 입력/동의 화면 자동화
+- 외부 Google UI 의존 E2E
+3. 실행 경로:
+- 로컬: `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`
+- CI: `.github/workflows/web-e2e-oauth-contract.yml`

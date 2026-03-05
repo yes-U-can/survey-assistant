@@ -545,6 +545,44 @@ textarea {
   margin-top: 1px;
 }
 
+.sa-admin-tab-shell {
+  margin-top: 6px;
+  padding: 10px;
+}
+
+.sa-admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sa-admin-tab {
+  border: 1px solid color-mix(in srgb, var(--brand-700) 22%, white);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--brand-900);
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.sa-admin-tab.is-active {
+  border-color: color-mix(in srgb, var(--brand-700) 62%, white);
+  background: color-mix(in srgb, var(--brand-200) 56%, white);
+}
+
+.sa-admin-quick-links {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sa-admin-quick-link {
+  border-radius: 999px;
+  min-height: 40px;
+}
+
 .sa-auth-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -631,6 +669,54 @@ textarea {
 
 .sa-participant-code-input {
   flex: 1 1 280px;
+}
+
+.sa-today-card {
+  margin-top: 14px;
+}
+
+.sa-today-metric-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sa-today-metric {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--brand-700) 16%, white);
+  border-radius: 10px;
+  padding: 10px 11px;
+  background: #fff;
+}
+
+.sa-today-metric strong {
+  display: block;
+  color: var(--brand-900);
+  font-size: 1.1rem;
+}
+
+.sa-today-metric small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.sa-today-cta {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.sa-today-cta p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.sa-touch-cta {
+  min-height: 48px;
 }
 
 .sa-participant-package-list {
@@ -1202,7 +1288,23 @@ body::after {
     grid-template-columns: 1fr;
   }
 
+  .sa-today-card {
+    position: sticky;
+    top: 10px;
+    z-index: 3;
+    background: color-mix(in srgb, var(--surface) 94%, var(--brand-200));
+  }
+
+  .sa-today-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
   .sa-participant-enroll-form > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .sa-touch-cta {
     width: 100%;
     min-height: 48px;
   }

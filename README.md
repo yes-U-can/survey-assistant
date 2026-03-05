@@ -37,6 +37,19 @@
 - 로컬 검증: `corepack pnpm verify:local`
 - Push 전 자동검증 훅 설치: `corepack pnpm hooks:install`
 
+## OAuth Contract Test
+- 로컬 실행: `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`
+- CI 워크플로: `.github/workflows/web-e2e-oauth-contract.yml`
+- 범위: Google OAuth 계약(redirect/callback/error mapping) 자동검증
+
+## Release Automation
+- 태그를 push하면 GitHub Release draft가 자동 생성됩니다.
+- 워크플로: `.github/workflows/release-on-tag.yml`
+- 운영 절차:
+  1. `git tag <tag-name>`
+  2. `git push origin <tag-name>`
+  3. 생성된 draft release에서 notes 확인 후 publish
+
 ## Consistency Recovery (2026-03-04)
 - 인증/권한:
   - Auth.js 유지

@@ -375,3 +375,23 @@ survey-assistant/
     - `35b80ae`
 - Current known gap
   - 관리자 콘솔 내부 IA(템플릿/패키지/결과 중심) 2차 정비 필요
+
+## 32) Build Snapshot Update (2026-03-05, Role-Journey UX Round 2 + OAuth Contract Automation)
+- Scope type: IA/UX + validation automation (DB migration 없음)
+- Completed in this update
+  - Admin 콘솔 IA를 탭형 워크스페이스(`view` query sync)로 정비
+    - `/{locale}/admin?view=<overview|templates|packages|results|special_store|participants>`
+    - 잘못된 view 값은 `overview` fallback
+  - Participant 모바일에 Today Action 카드 추가
+    - 지금 응답 가능 수, 마감 임박(24h) 수, 최근 응답 요약
+    - 응답 가능 시 1클릭 `바로 응답 시작` CTA
+    - 응답 없음 시 참여코드 입력 유도 CTA
+  - OAuth 계약 자동검증 E2E 추가
+    - `apps/web/e2e/oauth-contract.spec.ts`
+    - Google sign-in redirect/callback/error mapping 계약 검증
+  - CI 워크플로 추가
+    - `.github/workflows/web-e2e-oauth-contract.yml`
+  - 릴리스 태그 자동화 추가
+    - `.github/workflows/release-on-tag.yml`
+- Current known gap
+  - 실제 Google 계정 상호작용 자동화는 수동 체크리스트 병행(정책 유지)

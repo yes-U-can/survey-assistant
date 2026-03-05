@@ -1,0 +1,38 @@
+﻿name: web-e2e-oauth-contract
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  oauth-contract:
+    runs-on: ubuntu-latest
+    env:
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      NEXTAUTH_SECRET: oauth-contract-test-secret
+      GOOGLE_CLIENT_ID: oauth-contract-client.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: oauth-contract-secret
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/survey_assistant?sslmode=disable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: corepack pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Run OAuth contract E2E
+        run: corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts

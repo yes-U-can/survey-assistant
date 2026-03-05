@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type LocaleCode = "ko" | "en";
 
@@ -142,6 +143,7 @@ type ParticipantAccountItem = {
 type Props = {
   locale: LocaleCode;
   viewerRole: "RESEARCH_ADMIN" | "PLATFORM_ADMIN";
+  initialView?: AdminViewKey;
   initialTemplates: TemplateItem[];
   initialPackages: PackageItem[];
   initialSpecialRequests: SpecialRequestItem[];
@@ -152,6 +154,24 @@ type Props = {
   initialSales: StorePurchaseHistoryItem[];
   initialParticipants: ParticipantAccountItem[];
 };
+
+const adminViewKeys = [
+  "overview",
+  "templates",
+  "packages",
+  "results",
+  "special_store",
+  "participants",
+] as const;
+
+type AdminViewKey = (typeof adminViewKeys)[number];
+
+function normalizeAdminViewKey(value: string | null | undefined): AdminViewKey {
+  if (!value) {
+    return "overview";
+  }
+  return (adminViewKeys as readonly string[]).includes(value) ? (value as AdminViewKey) : "overview";
+}
 
 const msg = {
   ko: {
@@ -506,6 +526,7 @@ function participantStatusLabel(
 export function AdminDashboardClient({
   locale,
   viewerRole,
+  initialView,
   initialTemplates,
   initialPackages,
   initialSpecialRequests,
@@ -516,6 +537,9 @@ export function AdminDashboardClient({
   initialSales,
   initialParticipants,
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const t = useMemo(() => msg[locale], [locale]);
   const canAuthorSpecialTemplate = viewerRole === "PLATFORM_ADMIN";
 
@@ -599,6 +623,41 @@ export function AdminDashboardClient({
   >("ALL");
   const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
     "ALL",
+  );
+
+  const rawView = searchParams.get("view");
+  const normalizedViewFromUrl = normalizeAdminViewKey(rawView);
+  const activeView = useMemo(
+    () => normalizeAdminViewKey(rawView ?? initialView),
+    [initialView, rawView],
+  );
+
+  useEffect(() => {
+    if (!rawView) {
+      return;
+    }
+    if (normalizedViewFromUrl !== "overview") {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("view");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [normalizedViewFromUrl, pathname, rawView, router, searchParams]);
+
+  const changeView = useCallback(
+    (nextView: AdminViewKey) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (nextView === "overview") {
+        nextParams.delete("view");
+      } else {
+        nextParams.set("view", nextView);
+      }
+      const nextQuery = nextParams.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
   );
 
   const adminSnapshot = useMemo(() => {
@@ -1229,6 +1288,26 @@ export function AdminDashboardClient({
           "Download participant responses as CSV for analysis.",
         ];
 
+  const adminTabs = useMemo(
+    () => [
+      { key: "overview" as const, label: locale === "ko" ? "개요" : "Overview" },
+      { key: "templates" as const, label: locale === "ko" ? "템플릿" : "Templates" },
+      { key: "packages" as const, label: locale === "ko" ? "패키지·참여코드" : "Packages & Codes" },
+      { key: "results" as const, label: locale === "ko" ? "결과·AI" : "Results & AI" },
+      {
+        key: "special_store" as const,
+        label: locale === "ko" ? "특수의뢰·스토어" : "Special & Store",
+      },
+      { key: "participants" as const, label: locale === "ko" ? "피검자 관리" : "Participants" },
+    ],
+    [locale],
+  );
+
+  const resultExportPackages = useMemo(
+    () => packages.map((pkg) => ({ id: pkg.id, title: pkg.title, code: pkg.code })),
+    [packages],
+  );
+
   return (
     <main className="sa-page sa-admin-grid" style={{ display: "grid", gap: 20 }}>
       <section>
@@ -1246,7 +1325,23 @@ export function AdminDashboardClient({
         {message ? <p className="sa-inline-message">{message}</p> : null}
       </section>
 
-      <section className="sa-role-flow">
+      <section className="sa-admin-tab-shell">
+        <nav className="sa-admin-tabs" aria-label={locale === "ko" ? "관리자 작업 영역" : "Admin workspace"}>
+          {adminTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`sa-admin-tab${activeView === tab.key ? " is-active" : ""}`}
+              onClick={() => changeView(tab.key)}
+              aria-pressed={activeView === tab.key}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </section>
+
+      <section className="sa-role-flow" hidden={activeView !== "overview"}>
         <h2>{locale === "ko" ? "연구 운영 표준 흐름" : "Research operation flow"}</h2>
         <ol className="sa-role-flow-list">
           {adminFlowSteps.map((step, idx) => (
@@ -1258,7 +1353,7 @@ export function AdminDashboardClient({
         </ol>
       </section>
 
-      <section>
+      <section hidden={activeView !== "overview"}>
         <h2>{t.dashboardSection}</h2>
         <div className="sa-metric-grid">
           <article className="sa-metric-card">
@@ -1286,9 +1381,18 @@ export function AdminDashboardClient({
             <small>{t.dashboardParticipantsAnonymized}</small>
           </article>
         </div>
+        <div className="sa-admin-quick-links">
+          {adminTabs
+            .filter((tab) => tab.key !== "overview")
+            .map((tab) => (
+              <button key={tab.key} type="button" className="sa-admin-quick-link" onClick={() => changeView(tab.key)}>
+                {tab.label}
+              </button>
+            ))}
+        </div>
       </section>
 
-      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+      <section hidden={activeView !== "templates"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.templateSection}</h2>
         <form onSubmit={onCreateTemplate} style={{ display: "grid", gap: 10, marginTop: 8 }}>
           <label>
@@ -1405,7 +1509,7 @@ export function AdminDashboardClient({
         </div>
       </section>
 
-      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+      <section hidden={activeView !== "special_store"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.specialRequestSection}</h2>
         <form onSubmit={onCreateSpecialRequest} style={{ display: "grid", gap: 10, marginTop: 8 }}>
           <label>
@@ -1480,7 +1584,84 @@ export function AdminDashboardClient({
         </div>
       </section>
 
-      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+      <section hidden={activeView !== "results"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+        <h2>{locale === "ko" ? "CSV 내보내기" : "CSV Export"}</h2>
+        <fieldset style={{ border: "1px solid #eee", padding: 10, marginTop: 8 }}>
+          <legend>{t.csvFilters}</legend>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <label>
+              {t.csvFrom}
+              <input
+                type="datetime-local"
+                value={exportFrom}
+                onChange={(event) => setExportFrom(event.target.value)}
+                style={{ marginLeft: 8 }}
+              />
+            </label>
+            <label>
+              {t.csvTo}
+              <input
+                type="datetime-local"
+                value={exportTo}
+                onChange={(event) => setExportTo(event.target.value)}
+                style={{ marginLeft: 8 }}
+              />
+            </label>
+            <label>
+              {t.csvAttempt}
+              <input
+                type="number"
+                min={1}
+                value={exportAttempt}
+                onChange={(event) => setExportAttempt(event.target.value)}
+                style={{ marginLeft: 8, width: 96 }}
+              />
+            </label>
+            <small>{t.csvAttemptHint}</small>
+          </div>
+          {isExportRangeInvalid ? (
+            <p style={{ marginTop: 8, color: "#b00020" }}>{t.csvInvalidRange}</p>
+          ) : null}
+        </fieldset>
+
+        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+          {resultExportPackages.length === 0 ? (
+            <p>{t.noPackage}</p>
+          ) : (
+            resultExportPackages.map((pkg) => (
+              <article key={pkg.id} style={{ border: "1px solid #eee", padding: 10 }}>
+                <strong>{pkg.title}</strong> ({pkg.code})
+                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                  <a
+                    href={buildExportHref(pkg.id)}
+                    onClick={(event) => {
+                      if (isExportRangeInvalid) {
+                        event.preventDefault();
+                      }
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "2px 8px",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      textDecoration: "none",
+                      color: "inherit",
+                      fontSize: 13,
+                      opacity: isExportRangeInvalid ? 0.55 : 1,
+                      pointerEvents: isExportRangeInvalid ? "none" : "auto",
+                    }}
+                  >
+                    {t.exportCsv}
+                  </a>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section hidden={activeView !== "special_store"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.storeSection}</h2>
 
         <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
@@ -1681,7 +1862,7 @@ export function AdminDashboardClient({
         </div>
       </section>
 
-      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+      <section hidden={activeView !== "packages"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.packageSection}</h2>
         <form onSubmit={onCreatePackage} style={{ display: "grid", gap: 10, marginTop: 8 }}>
           <label>
@@ -1777,44 +1958,6 @@ export function AdminDashboardClient({
           </button>
         </form>
 
-        <fieldset style={{ border: "1px solid #eee", padding: 10, marginTop: 14 }}>
-          <legend>{t.csvFilters}</legend>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <label>
-              {t.csvFrom}
-              <input
-                type="datetime-local"
-                value={exportFrom}
-                onChange={(event) => setExportFrom(event.target.value)}
-                style={{ marginLeft: 8 }}
-              />
-            </label>
-            <label>
-              {t.csvTo}
-              <input
-                type="datetime-local"
-                value={exportTo}
-                onChange={(event) => setExportTo(event.target.value)}
-                style={{ marginLeft: 8 }}
-              />
-            </label>
-            <label>
-              {t.csvAttempt}
-              <input
-                type="number"
-                min={1}
-                value={exportAttempt}
-                onChange={(event) => setExportAttempt(event.target.value)}
-                style={{ marginLeft: 8, width: 96 }}
-              />
-            </label>
-            <small>{t.csvAttemptHint}</small>
-          </div>
-          {isExportRangeInvalid ? (
-            <p style={{ marginTop: 8, color: "#b00020" }}>{t.csvInvalidRange}</p>
-          ) : null}
-        </fieldset>
-
         <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
           {packages.length === 0 ? (
             <p>{t.noPackage}</p>
@@ -1858,28 +2001,6 @@ export function AdminDashboardClient({
                   >
                     {t.setArchived}
                   </button>
-                  <a
-                    href={buildExportHref(pkg.id)}
-                    onClick={(event) => {
-                      if (isExportRangeInvalid) {
-                        event.preventDefault();
-                      }
-                    }}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "2px 8px",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      textDecoration: "none",
-                      color: "inherit",
-                      fontSize: 13,
-                      opacity: isExportRangeInvalid ? 0.55 : 1,
-                      pointerEvents: isExportRangeInvalid ? "none" : "auto",
-                    }}
-                  >
-                    {t.exportCsv}
-                  </a>
                 </div>
               </article>
             ))
@@ -1887,7 +2008,7 @@ export function AdminDashboardClient({
         </div>
       </section>
 
-      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+      <section hidden={activeView !== "participants"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{t.participantSection}</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <label>
@@ -1982,7 +2103,7 @@ export function AdminDashboardClient({
         )}
       </section>
 
-      <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
+      <section hidden={activeView !== "results"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
         <h2>{locale === "ko" ? "AI 분석" : "AI Analysis"}</h2>
         <form onSubmit={onRunAiAnalysis} style={{ display: "grid", gap: 10, marginTop: 8 }}>
           <label>

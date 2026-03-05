@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useRef, useState } from "react";
 import {
   resolveSpecialTemplateRenderer,
   type SpecialTemplateDraft,
@@ -249,6 +249,14 @@ function formatDate(value: string | null, locale: LocaleCode, emptyText: string)
   return formatter.format(date);
 }
 
+function isSameLocalDate(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
 function getEnrollErrorMessage(code: string | undefined, locale: LocaleCode) {
   const msg = messageMap[locale];
   switch (code) {
@@ -330,6 +338,7 @@ function isLikertDraftComplete(likert: LikertSchema, answers: Record<string, num
 }
 
 export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
+  const codeInputRef = useRef<HTMLInputElement | null>(null);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -343,6 +352,65 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
   const [templateDrafts, setTemplateDrafts] = useState<Record<string, TemplateDraft>>({});
 
   const text = useMemo(() => messageMap[locale], [locale]);
+  const todayActionText = useMemo(
+    () =>
+      locale === "ko"
+        ? {
+            title: "오늘 할 일",
+            available: "지금 응답 가능",
+            dueSoon: "마감 임박(24시간)",
+            recent: "최근 응답",
+            doneToday: "오늘 응답 완료",
+            notYet: "오늘 응답 없음",
+            startNow: "바로 응답 시작",
+            noTask: "오늘 할 응답이 없어요.",
+            enterCode: "참여코드 입력하기",
+          }
+        : {
+            title: "Today Action",
+            available: "Available now",
+            dueSoon: "Due within 24h",
+            recent: "Recent response",
+            doneToday: "Responded today",
+            notYet: "No response today",
+            startNow: "Start now",
+            noTask: "No response task for today.",
+            enterCode: "Enter code",
+          },
+    [locale],
+  );
+
+  const todayAction = useMemo(() => {
+    const now = new Date();
+    const nowMs = now.getTime();
+    const dueWindowMs = 24 * 60 * 60 * 1000;
+
+    const respondable = packages.filter((pkg) => pkg.canRespondNow);
+    const dueSoon = packages.filter((pkg) => {
+      if (!pkg.endsAt) {
+        return false;
+      }
+      const endsAtMs = new Date(pkg.endsAt).getTime();
+      return Number.isFinite(endsAtMs) && endsAtMs >= nowMs && endsAtMs <= nowMs + dueWindowMs;
+    });
+
+    const latestRespondedAt = packages
+      .map((pkg) => pkg.lastRespondedAt)
+      .filter((value): value is string => Boolean(value))
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
+
+    const respondedToday = latestRespondedAt
+      ? isSameLocalDate(new Date(latestRespondedAt), now)
+      : false;
+
+    return {
+      availableCount: respondable.length,
+      dueSoonCount: dueSoon.length,
+      latestRespondedAt,
+      respondedToday,
+      firstRespondablePackageId: respondable[0]?.packageId ?? null,
+    };
+  }, [packages]);
 
   const surveyProgress = useMemo(() => {
     if (!activeSurvey) {
@@ -638,11 +706,54 @@ export function ParticipantDashboardClient({ locale, initialPackages }: Props) {
         </ol>
       </section>
 
+      <section className="sa-today-card">
+        <h2>{todayActionText.title}</h2>
+        <div className="sa-today-metric-grid">
+          <article className="sa-today-metric">
+            <strong>{todayAction.availableCount}</strong>
+            <small>{todayActionText.available}</small>
+          </article>
+          <article className="sa-today-metric">
+            <strong>{todayAction.dueSoonCount}</strong>
+            <small>{todayActionText.dueSoon}</small>
+          </article>
+          <article className="sa-today-metric">
+            <strong>{todayAction.respondedToday ? text.yes : text.no}</strong>
+            <small>{todayActionText.recent}</small>
+          </article>
+        </div>
+        <p className="sa-participant-meta" style={{ marginTop: 10 }}>
+          {todayAction.respondedToday
+            ? todayActionText.doneToday
+            : `${todayActionText.notYet} · ${formatDate(todayAction.latestRespondedAt, locale, text.notRespondedYet)}`}
+        </p>
+        <div className="sa-today-cta">
+          {todayAction.firstRespondablePackageId ? (
+            <button
+              type="button"
+              className="sa-touch-cta"
+              onClick={() => void onOpenSurvey(todayAction.firstRespondablePackageId)}
+              disabled={Boolean(surveyLoadingPackageId)}
+            >
+              {todayActionText.startNow}
+            </button>
+          ) : (
+            <>
+              <p>{todayActionText.noTask}</p>
+              <button type="button" className="sa-touch-cta" onClick={() => codeInputRef.current?.focus()}>
+                {todayActionText.enterCode}
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+
       <form onSubmit={onEnroll} className="sa-participant-enroll-form">
         <label htmlFor="survey-code" style={{ display: "none" }}>
           {text.codeLabel}
         </label>
         <input
+          ref={codeInputRef}
           id="survey-code"
           value={code}
           onChange={(e) => setCode(e.target.value)}

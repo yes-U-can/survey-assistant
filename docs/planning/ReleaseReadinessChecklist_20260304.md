@@ -58,3 +58,11 @@
 - signup/login/enroll/ai/special-request endpoints emit `429` + `retryAfterSec`
 7. E2E smoke
 - `corepack pnpm --filter web e2e:smoke`
+
+## 7) OAuth Contract Gate (Added 2026-03-05)
+1. `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS
+2. CI workflow `web-e2e-oauth-contract` PASS
+3. 실패 시 원인 분류:
+- redirect_uri 계약 불일치
+- Google sign-in 경로/버튼 계약 회귀
+- auth error code UI 매핑 회귀

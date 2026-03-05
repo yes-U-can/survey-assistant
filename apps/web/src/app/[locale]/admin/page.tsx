@@ -12,11 +12,38 @@ import { prisma } from "@/lib/prisma";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ view?: string }>;
 };
 
-export default async function AdminHomePage({ params }: PageProps) {
+type AdminViewParam =
+  | "overview"
+  | "templates"
+  | "packages"
+  | "results"
+  | "special_store"
+  | "participants";
+
+const allowedAdminViews: ReadonlySet<AdminViewParam> = new Set([
+  "overview",
+  "templates",
+  "packages",
+  "results",
+  "special_store",
+  "participants",
+] as const);
+
+function normalizeAdminView(value: string | undefined): AdminViewParam {
+  if (!value) {
+    return "overview";
+  }
+  return allowedAdminViews.has(value as AdminViewParam) ? (value as AdminViewParam) : "overview";
+}
+
+export default async function AdminHomePage({ params, searchParams }: PageProps) {
   const { locale: rawLocale } = await params;
   const locale = rawLocale === "en" ? "en" : "ko";
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialView = normalizeAdminView(resolvedSearchParams.view);
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -416,6 +443,7 @@ export default async function AdminHomePage({ params }: PageProps) {
         <AdminDashboardClient
           locale={locale}
           viewerRole={session.user.role}
+          initialView={initialView}
           initialTemplates={initialTemplates}
           initialPackages={initialPackages}
           initialSpecialRequests={initialSpecialRequests}
