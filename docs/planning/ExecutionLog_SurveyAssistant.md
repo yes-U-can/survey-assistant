@@ -2177,3 +2177,35 @@
 1. lint/build/e2e 실행으로 회귀 검증 완료
 2. 프리뷰에서 `?view=` 공유 링크 및 모바일 Today 카드 동작 수동 확인
 3. 필요 시 탭별 세부 컴포넌트 파일 분할(유지보수성)
+
+## 2026-03-06 - Public Home Illustration Pass
+
+### Context
+- 사용자가 공개 홈 메인 카드가 너무 밋밋하다고 피드백함.
+- 참고 일러스트의 핵심 톤은 다음으로 정리됨:
+  - 둥근 실루엣
+  - 무해하고 포근한 표정
+  - 외곽선 없는 플랫 벡터
+  - 분홍/보라/파랑 계열의 부드러운 파스텔 그라데이션
+- 원본 이미지를 그대로 복제하지 않고, 동일한 감성만 가져온 독자 SVG 일러스트를 메인 카드에 적용하기로 결정.
+
+### Implemented
+- 신규: `apps/web/src/components/HomePortalIllustrations.tsx`
+  - `ParticipantPortalIllustration`
+  - `AdminPortalIllustration`
+- 수정: `apps/web/src/app/[locale]/page.tsx`
+  - 홈 카드별로 역할에 맞는 SVG 일러스트 연결
+- 수정: `apps/web/src/app/globals.css`
+  - 카드 내부를 텍스트/일러스트 2열 구성으로 재배치
+  - 모바일에서는 일러스트가 카드 상단에 오도록 조정
+
+### Verification
+- `corepack pnpm --filter web lint`
+- `corepack pnpm --filter web build`
+
+### Decision Updates
+- New decisions:
+  - 공개 홈 메인 카드에는 사진 대신 직접 제작한 SVG 일러스트를 우선 사용
+  - 일러스트는 브랜드 키컬러와 충돌하지 않도록 파스텔톤 보조색으로만 사용
+- Deferred decisions:
+  - 향후 카드 일러스트를 더 줄이거나 교체할지 여부는 실제 배포 화면 피드백 후 판단

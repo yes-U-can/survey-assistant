@@ -1695,9 +1695,27 @@ body::after {
   border-color: color-mix(in srgb, var(--brand-700) 24%, white);
 }
 
+.sa-home-portal-card-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(180px, 220px);
+  gap: 18px;
+  align-items: center;
+}
+
 .sa-home-portal-main {
   display: grid;
   gap: 8px;
+}
+
+.sa-home-portal-visual {
+  justify-self: end;
+  width: min(220px, 100%);
+}
+
+.sa-home-illustration {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .sa-home-portal-card strong {
@@ -1762,6 +1780,17 @@ body::after {
   .sa-home-portal-card {
     min-height: 0;
     padding: 20px;
+  }
+
+  .sa-home-portal-card-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sa-home-portal-visual {
+    justify-self: center;
+    width: min(240px, 100%);
+    order: -1;
   }
 
   .sa-home-portal-meta {

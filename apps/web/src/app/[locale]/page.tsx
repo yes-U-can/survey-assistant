@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+import {
+  AdminPortalIllustration,
+  ParticipantPortalIllustration,
+} from "@/components/HomePortalIllustrations";
 import { LegalLinks } from "@/components/LegalLinks";
 
 type HomeCard = {
@@ -7,6 +11,7 @@ type HomeCard = {
   title: string;
   description: string;
   devices: string[];
+  kind: "participant" | "admin";
 };
 
 export default async function LocaleHome({
@@ -25,12 +30,14 @@ export default async function LocaleHome({
             title: "피검자 설문 응답",
             description: "참여코드를 입력하고 진행 중인 설문에 참여합니다.",
             devices: ["모바일", "PC"],
+            kind: "participant" as const,
           },
           admin: {
             href: `/${locale}/auth/admin`,
             title: "연구관리자 로그인",
             description: "Google 로그인 후 템플릿, 패키지, 결과를 관리합니다.",
             devices: ["PC"],
+            kind: "admin" as const,
           },
           deviceAria: "지원 기기",
         }
@@ -40,12 +47,14 @@ export default async function LocaleHome({
             title: "Participant Response",
             description: "Enter a participation code and join an active survey.",
             devices: ["Mobile", "PC"],
+            kind: "participant" as const,
           },
           admin: {
             href: `/${locale}/auth/admin`,
             title: "Research Admin Sign-In",
             description: "Sign in with Google and manage templates, packages, and results.",
             devices: ["PC"],
+            kind: "admin" as const,
           },
           deviceAria: "Supported devices",
         };
@@ -62,9 +71,18 @@ export default async function LocaleHome({
               className={`sa-home-portal-card${index === 0 ? " is-primary" : ""}`}
               href={card.href}
             >
-              <div className="sa-home-portal-main">
-                <strong>{card.title}</strong>
-                <p>{card.description}</p>
+              <div className="sa-home-portal-card-layout">
+                <div className="sa-home-portal-main">
+                  <strong>{card.title}</strong>
+                  <p>{card.description}</p>
+                </div>
+                <div className="sa-home-portal-visual" aria-hidden="true">
+                  {card.kind === "participant" ? (
+                    <ParticipantPortalIllustration />
+                  ) : (
+                    <AdminPortalIllustration />
+                  )}
+                </div>
               </div>
               <div className="sa-home-portal-meta">
                 <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
