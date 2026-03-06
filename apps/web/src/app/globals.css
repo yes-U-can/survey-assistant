@@ -133,11 +133,14 @@ textarea {
 .sa-nav-chip-emphasis {
   background: var(--brand-700);
   color: #fff;
-  border-color: color-mix(in srgb, var(--brand-900) 32%, white);
+  border-color: var(--brand-700);
+  min-width: 52px;
+  justify-content: center;
 }
 
 .sa-nav-chip-emphasis:hover {
-  background: color-mix(in srgb, var(--brand-700) 82%, black);
+  background: color-mix(in srgb, var(--brand-700) 88%, black);
+  border-color: color-mix(in srgb, var(--brand-700) 88%, black);
 }
 
 .sa-home {
@@ -1613,23 +1616,11 @@ body::after {
 
 .sa-home-portal {
   max-width: 860px;
-  padding-top: 32px;
-}
-
-.sa-home-portal-hero {
-  display: grid;
-  gap: 10px;
-  justify-items: start;
-}
-
-.sa-home-portal-lead {
-  max-width: 540px;
-  font-size: 1rem;
-  line-height: 1.6;
+  padding-top: 24px;
 }
 
 .sa-home-portal-grid-shell {
-  margin-top: 12px;
+  margin-top: 0;
   padding: 0;
   background: transparent;
   border: 0;
@@ -1638,15 +1629,17 @@ body::after {
 
 .sa-home-portal-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  max-width: 620px;
+  margin: 0 auto;
 }
 
 .sa-home-portal-card {
   display: grid;
-  gap: 12px;
-  min-height: 220px;
-  padding: 24px;
+  gap: 14px;
+  min-height: 0;
+  padding: 26px 28px;
   border: 1px solid color-mix(in srgb, var(--brand-200) 72%, white);
   border-radius: 16px;
   background: #ffffff;
@@ -1662,8 +1655,8 @@ body::after {
 }
 
 .sa-home-portal-card strong {
-  font-size: 1.2rem;
-  line-height: 1.3;
+  font-size: 1.42rem;
+  line-height: 1.25;
   color: var(--brand-900);
   letter-spacing: -0.02em;
 }
@@ -1672,34 +1665,39 @@ body::after {
   margin: 0;
   color: var(--muted-foreground);
   line-height: 1.6;
+  font-size: 1rem;
 }
 
-.sa-home-portal-note {
+.sa-home-portal-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.sa-home-device-badge {
   display: inline-flex;
   align-items: center;
-  width: fit-content;
+  justify-content: center;
   min-height: 30px;
-  margin-top: auto;
   padding: 4px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--brand-200) 40%, white);
+  border: 1px solid color-mix(in srgb, var(--brand-200) 70%, white);
+  background: var(--surface-muted);
   color: var(--brand-700);
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .sa-home-portal-footer {
   justify-content: center;
-  padding-top: 24px;
+  padding-top: 18px;
 }
 
 @media (max-width: 1023px) {
   .sa-home-portal {
-    padding-top: 20px;
-  }
-
-  .sa-home-portal-grid {
-    grid-template-columns: 1fr;
+    padding-top: 18px;
   }
 
   .sa-home-portal-card {

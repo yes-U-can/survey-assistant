@@ -2,9 +2,10 @@ import Link from "next/link";
 
 type Props = {
   locale: "ko" | "en";
+  withLeadingDivider?: boolean;
 };
 
-export function LegalLinks({ locale }: Props) {
+export function LegalLinks({ locale, withLeadingDivider = true }: Props) {
   const copy =
     locale === "ko"
       ? {
@@ -18,11 +19,10 @@ export function LegalLinks({ locale }: Props) {
 
   return (
     <>
-      <span className="sa-divider">|</span>
+      {withLeadingDivider ? <span className="sa-divider">|</span> : null}
       <Link href={`/${locale}/legal/privacy`}>{copy.privacy}</Link>
       <span className="sa-divider">|</span>
       <Link href={`/${locale}/legal/terms`}>{copy.terms}</Link>
     </>
   );
 }
-
