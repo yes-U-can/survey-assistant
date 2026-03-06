@@ -59,7 +59,9 @@ export function ParticipantPortalIllustration() {
         <path d="M52 51C52 32 65 20 82 20C97 20 108 31 108 45C95 44 87 35 82 27C74 37 65 45 52 51Z" fill="url(#participant-hair)" />
 
         <path d="M96 57C96 69 87 78 75 78C63 78 53 69 53 57C53 45 63 37 75 37C87 37 96 45 96 57Z" fill="#F8D9E0" />
-        <ellipse cx="82" cy="56" rx="3" ry="4" fill="#2E2958" />
+        <ellipse cx="73" cy="56" rx="2.2" ry="3.4" fill="#2E2958" />
+        <ellipse cx="83" cy="57" rx="2.2" ry="3.4" fill="#2E2958" />
+        <path d="M87 65C90 67 93 67 96 65L96 67C93 69 89 69 86 67Z" fill="#B97F9F" />
         <path d="M91 61C95 60 98 62 99 66C95 69 90 68 88 64Z" fill="#F0C5D9" />
 
         <rect x="18" y="100" width="30" height="18" rx="9" fill="#8D69C1" />
@@ -99,9 +101,10 @@ export function AdminPortalIllustration() {
         <path d="M170 68L170 56A12 12 0 0 1 181 74Z" fill="#8AB8CA" />
         <circle cx="170" cy="68" r="5.5" fill="url(#admin-panel)" />
         <rect x="162" y="92" width="28" height="6" rx="3" fill="#DFA9CB" />
-        <rect x="160" y="104" width="8" height="8" rx="4" fill="#8AB8CA" />
-        <rect x="172" y="100" width="8" height="12" rx="4" fill="#C5B6E2" />
-        <rect x="184" y="96" width="8" height="16" rx="4" fill="#DFA9CB" />
+        <path d="M159 109L166 101L174 105L181 97L189 101L189 105L181 101L174 109L166 105L159 113Z" fill="#8AB8CA" />
+        <circle cx="166" cy="103" r="2.5" fill="#DFA9CB" />
+        <circle cx="174" cy="107" r="2.5" fill="#C5B6E2" />
+        <circle cx="181" cy="99" r="2.5" fill="#8AB8CA" />
 
         <rect x="24" y="82" width="108" height="70" rx="34" fill="url(#admin-body)" />
         <circle cx="76" cy="54" r="25" fill="#F8D9E0" />
@@ -117,11 +120,15 @@ export function AdminPortalIllustration() {
         <ellipse cx="84" cy="56" rx="4.5" ry="4.5" fill="#F8D9E0" />
         <rect x="76" y="54.75" width="4" height="2.5" rx="1.25" fill="#4A5370" />
 
-        <rect x="86" y="84" width="50" height="32" rx="8" fill="#EEDCEB" />
-        <rect x="91" y="88" width="40" height="22" rx="6" fill="#F9F3FB" />
-        <rect x="84" y="116" width="54" height="8" rx="4" fill="#B28AC9" />
-        <rect x="90" y="95" width="18" height="4" rx="2" fill="#DDA8CA" />
-        <rect x="90" y="102" width="26" height="4" rx="2" fill="#8AB8CA" />
+        <rect x="88" y="82" width="48" height="30" rx="6" fill="#EEDCEB" />
+        <rect x="92" y="86" width="40" height="22" rx="4" fill="#F9F3FB" />
+        <path d="M93 104L100 97L109 101L117 92L127 96L127 100L117 96L109 105L100 101L93 108Z" fill="#8AB8CA" />
+        <circle cx="100" cy="99" r="2.2" fill="#DDA8CA" />
+        <circle cx="109" cy="103" r="2.2" fill="#C5B6E2" />
+        <circle cx="117" cy="94" r="2.2" fill="#DDA8CA" />
+        <circle cx="127" cy="98" r="2.2" fill="#8AB8CA" />
+        <path d="M82 112H142L149 120H75Z" fill="#B28AC9" />
+        <rect x="107" y="114" width="10" height="2.5" rx="1.25" fill="#EEDCEB" />
 
         <rect x="16" y="102" width="28" height="18" rx="9" fill="#A07BCD" />
       </g>
