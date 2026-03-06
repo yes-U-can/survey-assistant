@@ -27,15 +27,15 @@ export default async function LocaleHome({
       ? {
           participant: {
             href: `/${locale}/auth/participant`,
-            title: "피검자 설문 응답",
-            description: "참여코드를 입력하고 진행 중인 설문에 참여합니다.",
+            title: "피검자 접속",
+            description: "참여코드를 입력해 설문에 참여합니다.",
             devices: ["모바일", "PC"],
             kind: "participant" as const,
           },
           admin: {
             href: `/${locale}/auth/admin`,
-            title: "연구관리자 로그인",
-            description: "Google 로그인 후 템플릿, 패키지, 결과를 관리합니다.",
+            title: "연구자 접속",
+            description: "Google 로그인 후 설문과 결과를 관리합니다.",
             devices: ["PC"],
             kind: "admin" as const,
           },
@@ -44,15 +44,15 @@ export default async function LocaleHome({
       : {
           participant: {
             href: `/${locale}/auth/participant`,
-            title: "Participant Response",
-            description: "Enter a participation code and join an active survey.",
+            title: "Participant Access",
+            description: "Enter a code to join a survey.",
             devices: ["Mobile", "PC"],
             kind: "participant" as const,
           },
           admin: {
             href: `/${locale}/auth/admin`,
-            title: "Research Admin Sign-In",
-            description: "Sign in with Google and manage templates, packages, and results.",
+            title: "Researcher Access",
+            description: "Manage surveys after Google sign-in.",
             devices: ["PC"],
             kind: "admin" as const,
           },
@@ -92,11 +92,6 @@ export default async function LocaleHome({
                     <AdminPortalIllustration />
                   )}
                 </div>
-              </div>
-              <div className="sa-home-portal-meta">
-                <span className="sa-home-portal-arrow" aria-hidden="true">
-                  →
-                </span>
               </div>
             </Link>
           ))}
