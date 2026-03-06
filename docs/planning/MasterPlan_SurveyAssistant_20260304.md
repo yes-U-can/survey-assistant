@@ -199,7 +199,28 @@ survey-assistant/
 - Managed AI 과금은 요청 시작 시 즉시 `SPEND` 차감하고, 실패/예외 시 `REFUND`로 자동 복구한다.
 - 토큰 사용량은 과금 기준이 아니라 로그/모니터링 지표로 유지한다.
 
-## 22) Build Snapshot (2026-03-04)
+## 22) Senior Accessibility Product Direction (Added 2026-03-07)
+- 주요 타깃 중 하나는 시니어 사용자이므로, 홈/인증/설문 UI는 "큰 글자, 단순한 문구, 직관적인 그림"을 우선한다.
+- 접근성은 단순한 시각 디자인 문제가 아니라 제품 원칙으로 다룬다.
+- 관리자/피검자 공통으로 과도한 정보 밀도, 작은 글씨, 복잡한 설명문을 지양한다.
+- 향후 접근성 고도화 범위:
+  - 더 큰 기본 타이포 스케일
+  - 더 넓은 클릭 영역
+  - 문항 단위 음성 재생
+  - 키보드/스크린리더 대응 강화
+
+## 23) Accessibility Premium Opportunity (Added 2026-03-07)
+- 시각 약자/고령층 사용성을 위한 "문항 음성 재생" 기능은 향후 유료 부가 기능 후보로 관리한다.
+- 초기 방향:
+  - 문항 텍스트 TTS 재생
+  - 문항/선택지 단위 재생 제어
+  - 반복 재생/속도 조절 가능성 검토
+- BM 관점:
+  - 기본 설문 기능과 분리된 프리미엄 접근성 옵션
+  - 컴퓨팅 비용이 드는 기능이므로 플랫폼 제공 기능으로 유료화 가능
+  - 관리자가 연구 대상 특성에 따라 선택적으로 활성화하는 구조를 우선 검토
+
+## 24) Build Snapshot (2026-03-04)
 - Overall completion (current MVP line): ~85%
 - Completed
   - Participant: 가입/로그인, 코드 등록, 응답 제출, 응답 진행현황/모바일 UX
@@ -213,7 +234,7 @@ survey-assistant/
   - 법무/컴플라이언스 수준의 익명화/보존 로그 정책 명문화
   - e2e 자동화(핵심 운영 시나리오) 및 릴리스 체크리스트 강화
 
-## 23) Build Snapshot Update (2026-03-04, late)
+## 25) Build Snapshot Update (2026-03-04, late)
 - Overall completion (current MVP line): ~92%
 - Newly completed in this update
   - Admin/Platform desktop 운영 요약 카드 + 상태 필터(대량 운영 가독성 개선)
@@ -224,7 +245,7 @@ survey-assistant/
   - 운영 알림/이상징후 모니터링(정산/크레딧)
   - 출시 전 컴플라이언스 체크리스트 마감
 
-## 24) Build Snapshot Update (2026-03-04, final)
+## 26) Build Snapshot Update (2026-03-04, final)
 - Overall completion (current MVP line): ~96%
 - Newly completed in this update
   - 플랫폼 어드민 운영 알림(임계치 경고) MVP 추가
@@ -234,7 +255,7 @@ survey-assistant/
   - OAuth 브라우저 e2e 자동화(CI 통합)
   - 릴리스 태그/체인지로그 자동화
 
-## 25) Build Snapshot Update (2026-03-04, quality gate)
+## 27) Build Snapshot Update (2026-03-04, quality gate)
 - Overall completion (current MVP line): ~96%
 - Newly completed in this update
   - 전역 스타일 누락 이슈 수정(`apps/web/src/app/[locale]/layout.tsx`에서 `globals.css` 로드)
@@ -246,7 +267,7 @@ survey-assistant/
   - OAuth 브라우저 e2e 자동화(CI 통합)
   - 릴리스 태그/체인지로그 자동화
 
-## 26) Build Snapshot Update (2026-03-04, UX completion pass)
+## 28) Build Snapshot Update (2026-03-04, UX completion pass)
 - Overall completion (current MVP line): ~100% (product UX flow scope)
 - Newly completed in this update
   - 공통 상단 네비게이션/뒤로가기/역할별 빠른 진입 추가
@@ -259,7 +280,7 @@ survey-assistant/
   - OAuth 브라우저 e2e 자동화(CI 통합) (출시 자동화 트랙)
   - 릴리스 태그/체인지로그 자동화 (출시 자동화 트랙)
 
-## 27) Build Snapshot Update (2026-03-04, Consistency Recovery Reset)
+## 29) Build Snapshot Update (2026-03-04, Consistency Recovery Reset)
 - Scope type: 운영 안정성 복구(인증/세션/권한/원장/검증)
 - Completed in this update
   - Auth.js 유지 전제에서 관리자 초대 기반 통제 추가
@@ -303,7 +324,7 @@ survey-assistant/
 - Current known gap
   - OAuth 브라우저 전체 플로우 자동화는 수동 체크리스트와 병행 필요
 
-## 28) Build Snapshot Update (2026-03-04, Platform Admin Invite UI Completion)
+## 30) Build Snapshot Update (2026-03-04, Platform Admin Invite UI Completion)
 - Scope type: 리셋 플랜 후속 UI 정합성 마무리
 - Completed in this update
   - Platform Admin 콘솔에 관리자 초대 운영 UI 연결
@@ -318,7 +339,7 @@ survey-assistant/
 - Current known gap
   - OAuth 브라우저 전체 플로우 자동화는 여전히 수동 체크리스트 병행 필요
 
-## 29) Build Snapshot Update (2026-03-04, Deployment Baseline Hardening)
+## 31) Build Snapshot Update (2026-03-04, Deployment Baseline Hardening)
 - Scope type: 배포 표준/운영 기본기 보강
 - Completed in this update
   - 웹 보안 헤더 기본 세트 적용(`next.config.ts`)
@@ -337,7 +358,7 @@ survey-assistant/
 - Current known gap
   - OAuth 브라우저 전체 자동화(CI) 대신 수동 체크리스트 병행 정책 유지
 
-## 30) Build Snapshot Update (2026-03-04, Deployment Incident Hotfix)
+## 32) Build Snapshot Update (2026-03-04, Deployment Incident Hotfix)
 - Scope type: 배포 차단 장애 복구
 - Incident
   - Vercel build failed with:
@@ -356,7 +377,7 @@ survey-assistant/
   - web build 재통과
   - 배포 차단 이슈 해소
 
-## 31) Build Snapshot Update (2026-03-04, Entry IA Redesign by Journey)
+## 33) Build Snapshot Update (2026-03-04, Entry IA Redesign by Journey)
 - Scope type: 홈 IA/UX 정합성 보정
 - Trigger
   - Owner feedback:
@@ -376,7 +397,7 @@ survey-assistant/
 - Current known gap
   - 관리자 콘솔 내부 IA(템플릿/패키지/결과 중심) 2차 정비 필요
 
-## 32) Build Snapshot Update (2026-03-05, Role-Journey UX Round 2 + OAuth Contract Automation)
+## 34) Build Snapshot Update (2026-03-05, Role-Journey UX Round 2 + OAuth Contract Automation)
 - Scope type: IA/UX + validation automation (DB migration 없음)
 - Completed in this update
   - Admin 콘솔 IA를 탭형 워크스페이스(`view` query sync)로 정비
