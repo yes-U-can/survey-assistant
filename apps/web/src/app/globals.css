@@ -146,6 +146,39 @@ textarea {
   border-color: color-mix(in srgb, var(--brand-900) 88%, black);
 }
 
+.sa-locale-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--brand-700) 32%, white);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-200) 54%, white);
+}
+
+.sa-locale-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--brand-900);
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sa-locale-chip.is-active {
+  background: var(--brand-900);
+  color: #fff;
+}
+
+.sa-locale-chip:not(.is-active):hover {
+  background: #fff;
+}
+
 .sa-home {
   max-width: 1040px;
 }
@@ -1249,6 +1282,10 @@ body::after {
 
   .sa-nav-chip small {
     display: none;
+  }
+
+  .sa-locale-switcher {
+    margin-left: auto;
   }
 
   .sa-home-hero {

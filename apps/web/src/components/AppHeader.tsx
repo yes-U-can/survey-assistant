@@ -40,9 +40,11 @@ export function AppHeader({ locale, role }: Props) {
           participantHint: "응답 참여",
           adminHint: "연구 운영",
           platformHint: "서비스 운영",
+          currentLocale: "한국어",
           switchLocale: "English",
           switchLocaleAria: "영어로 전환",
           navAria: "빠른 이동",
+          localeGroupAria: "언어 선택",
         }
       : {
           brand: "Survey Assistant",
@@ -54,9 +56,11 @@ export function AppHeader({ locale, role }: Props) {
           participantHint: "Participant",
           adminHint: "Research",
           platformHint: "Platform",
+          currentLocale: "English",
           switchLocale: "한국어",
           switchLocaleAria: "Switch to Korean",
           navAria: "Quick navigation",
+          localeGroupAria: "Language selection",
         };
 
   const nextLocale: LocaleCode = locale === "ko" ? "en" : "ko";
@@ -115,13 +119,14 @@ export function AppHeader({ locale, role }: Props) {
               {t.platform}
             </Link>
           ) : null}
-          <Link
-            className="sa-nav-chip sa-nav-chip-emphasis"
-            href={switchHref}
-            aria-label={t.switchLocaleAria}
-          >
-            {t.switchLocale}
-          </Link>
+          <div className="sa-locale-switcher" role="group" aria-label={t.localeGroupAria}>
+            <span className="sa-locale-chip is-active" aria-current="true">
+              {t.currentLocale}
+            </span>
+            <Link className="sa-locale-chip" href={switchHref} aria-label={t.switchLocaleAria}>
+              {t.switchLocale}
+            </Link>
+          </div>
         </nav>
       </div>
     </header>
