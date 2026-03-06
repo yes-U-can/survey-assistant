@@ -40,7 +40,9 @@ export function AppHeader({ locale, role }: Props) {
           participantHint: "응답 참여",
           adminHint: "연구 운영",
           platformHint: "서비스 운영",
-          switchLocale: "EN",
+          switchLocale: "English",
+          switchLocaleAria: "영어로 전환",
+          navAria: "빠른 이동",
         }
       : {
           brand: "Survey Assistant",
@@ -52,7 +54,9 @@ export function AppHeader({ locale, role }: Props) {
           participantHint: "Participant",
           adminHint: "Research",
           platformHint: "Platform",
-          switchLocale: "KO",
+          switchLocale: "한국어",
+          switchLocaleAria: "Switch to Korean",
+          navAria: "Quick navigation",
         };
 
   const nextLocale: LocaleCode = locale === "ko" ? "en" : "ko";
@@ -68,7 +72,7 @@ export function AppHeader({ locale, role }: Props) {
           <p>{t.tagline}</p>
         </div>
 
-        <nav className="sa-app-nav" aria-label={locale === "ko" ? "빠른 이동" : "Quick navigation"}>
+        <nav className="sa-app-nav" aria-label={t.navAria}>
           {showPrimaryNav ? (
             <button
               type="button"
@@ -111,7 +115,11 @@ export function AppHeader({ locale, role }: Props) {
               {t.platform}
             </Link>
           ) : null}
-          <Link className="sa-nav-chip sa-nav-chip-emphasis" href={switchHref}>
+          <Link
+            className="sa-nav-chip sa-nav-chip-emphasis"
+            href={switchHref}
+            aria-label={t.switchLocaleAria}
+          >
             {t.switchLocale}
           </Link>
         </nav>
