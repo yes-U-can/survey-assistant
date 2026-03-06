@@ -1346,3 +1346,120 @@ body::after {
     padding: 8px 12px;
   }
 }
+
+/* 2026-03-06 flatten visual pass */
+:root {
+  --background: #f7f9fb;
+  --surface-muted: #f2f6f9;
+  --shadow-soft: 0 1px 3px 0 rgb(0 0 0 / 0.08);
+}
+
+body {
+  background: var(--background);
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+.sa-app-header {
+  backdrop-filter: none;
+  background: #ffffff;
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-200) 85%, white);
+  box-shadow: none;
+}
+
+.sa-home-hero,
+.sa-auth-shell .sa-auth-hero,
+.sa-auth-card,
+.sa-role-flow,
+.sa-mobile-policy-card {
+  background: #ffffff;
+}
+
+.sa-home-card,
+.sa-home-journey-grid article,
+.sa-page > section,
+.sa-page article,
+.sa-metric-card,
+.sa-alert-card,
+.sa-auth-card,
+.sa-participant-package-card,
+.sa-participant-survey-shell,
+.sa-participant-template-card,
+.sa-today-metric,
+.sa-mobile-policy-card {
+  box-shadow: var(--shadow-soft);
+}
+
+.sa-home-card,
+.sa-home-journey-grid article,
+.sa-page > section,
+.sa-page article,
+.sa-metric-card,
+.sa-alert-card,
+.sa-auth-card,
+.sa-participant-package-card,
+.sa-participant-survey-shell,
+.sa-participant-template-card,
+.sa-today-card,
+.sa-today-metric,
+.sa-mobile-policy-card {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--brand-200) 72%, white);
+}
+
+.sa-home-card:hover,
+.sa-nav-chip:hover,
+.sa-google-btn:hover {
+  transform: none;
+}
+
+.sa-home-card:hover {
+  box-shadow: var(--shadow-soft);
+  border-color: color-mix(in srgb, var(--brand-700) 24%, white);
+}
+
+.sa-home-kicker,
+.sa-role-pill,
+.sa-admin-tab.is-active,
+.sa-nav-chip.is-active {
+  background: color-mix(in srgb, var(--brand-200) 62%, white);
+}
+
+.sa-admin-tab-shell {
+  background: transparent;
+  padding: 0;
+}
+
+.sa-admin-tab {
+  background: #ffffff;
+}
+
+.sa-google-btn {
+  box-shadow: none;
+}
+
+.sa-participant-progress-fill,
+.card-progress-fill {
+  background: var(--brand-700);
+}
+
+.sa-today-card {
+  background: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--brand-200) 72%, white);
+  box-shadow: var(--shadow-soft);
+}
+
+.sa-participant-submit-actions {
+  background: #ffffff;
+}
+
+@media (max-width: 1023px) {
+  .sa-today-card,
+  .sa-participant-submit-actions,
+  .sa-mobile-policy-card {
+    box-shadow: var(--shadow-soft);
+  }
+}
