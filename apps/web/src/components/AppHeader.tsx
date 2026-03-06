@@ -1,5 +1,6 @@
 "use client";
 
+import { UserRole } from "@prisma/client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -7,6 +8,7 @@ type LocaleCode = "ko" | "en";
 
 type Props = {
   locale: LocaleCode;
+  role?: UserRole | null;
 };
 
 function switchLocalePath(pathname: string, nextLocale: LocaleCode) {
@@ -18,10 +20,13 @@ function switchLocalePath(pathname: string, nextLocale: LocaleCode) {
   return `/${nextLocale}`;
 }
 
-export function AppHeader({ locale }: Props) {
+export function AppHeader({ locale, role }: Props) {
   const router = useRouter();
   const pathname = usePathname() ?? `/${locale}`;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isHome = pathname === `/${locale}`;
+  const showPrimaryNav = !isHome;
+  const showPlatformNav = role === UserRole.PLATFORM_ADMIN && !isHome;
 
   const t =
     locale === "ko"
@@ -64,40 +69,48 @@ export function AppHeader({ locale }: Props) {
         </div>
 
         <nav className="sa-app-nav" aria-label={locale === "ko" ? "빠른 이동" : "Quick navigation"}>
-          <button
-            type="button"
-            className="sa-nav-chip"
-            onClick={() => {
-              if (typeof window !== "undefined" && window.history.length > 1) {
-                router.back();
-                return;
-              }
-              router.push(`/${locale}`);
-            }}
-          >
-            {t.back}
-          </button>
-          <Link
-            className={`sa-nav-chip ${isActive(`/${locale}/auth/participant`) ? "is-active" : ""}`}
-            href={`/${locale}/auth/participant`}
-          >
-            <small>{t.participantHint}</small>
-            {t.participant}
-          </Link>
-          <Link
-            className={`sa-nav-chip ${isActive(`/${locale}/auth/admin`) ? "is-active" : ""}`}
-            href={`/${locale}/auth/admin`}
-          >
-            <small>{t.adminHint}</small>
-            {t.admin}
-          </Link>
-          <Link
-            className={`sa-nav-chip ${isActive(`/${locale}/platform`) ? "is-active" : ""}`}
-            href={`/${locale}/platform`}
-          >
-            <small>{t.platformHint}</small>
-            {t.platform}
-          </Link>
+          {showPrimaryNav ? (
+            <button
+              type="button"
+              className="sa-nav-chip"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  router.back();
+                  return;
+                }
+                router.push(`/${locale}`);
+              }}
+            >
+              {t.back}
+            </button>
+          ) : null}
+          {showPrimaryNav ? (
+            <Link
+              className={`sa-nav-chip ${isActive(`/${locale}/auth/participant`) ? "is-active" : ""}`}
+              href={`/${locale}/auth/participant`}
+            >
+              <small>{t.participantHint}</small>
+              {t.participant}
+            </Link>
+          ) : null}
+          {showPrimaryNav ? (
+            <Link
+              className={`sa-nav-chip ${isActive(`/${locale}/auth/admin`) ? "is-active" : ""}`}
+              href={`/${locale}/auth/admin`}
+            >
+              <small>{t.adminHint}</small>
+              {t.admin}
+            </Link>
+          ) : null}
+          {showPlatformNav ? (
+            <Link
+              className={`sa-nav-chip ${isActive(`/${locale}/platform`) ? "is-active" : ""}`}
+              href={`/${locale}/platform`}
+            >
+              <small>{t.platformHint}</small>
+              {t.platform}
+            </Link>
+          ) : null}
           <Link className="sa-nav-chip sa-nav-chip-emphasis" href={switchHref}>
             {t.switchLocale}
           </Link>
