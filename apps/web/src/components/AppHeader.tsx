@@ -11,6 +11,23 @@ type Props = {
   role?: UserRole | null;
 };
 
+const LOCALE_OPTIONS: Array<{
+  code: LocaleCode;
+  label: string;
+  ariaLabel: string;
+}> = [
+  {
+    code: "ko",
+    label: "한국어",
+    ariaLabel: "한국어로 보기",
+  },
+  {
+    code: "en",
+    label: "English",
+    ariaLabel: "View in English",
+  },
+];
+
 function switchLocalePath(pathname: string, nextLocale: LocaleCode) {
   const segments = pathname.split("/");
   if (segments.length > 1 && (segments[1] === "ko" || segments[1] === "en")) {
@@ -40,9 +57,6 @@ export function AppHeader({ locale, role }: Props) {
           participantHint: "응답 참여",
           adminHint: "연구 운영",
           platformHint: "서비스 운영",
-          currentLocale: "한국어",
-          switchLocale: "English",
-          switchLocaleAria: "영어로 전환",
           navAria: "빠른 이동",
           localeGroupAria: "언어 선택",
         }
@@ -56,15 +70,9 @@ export function AppHeader({ locale, role }: Props) {
           participantHint: "Participant",
           adminHint: "Research",
           platformHint: "Platform",
-          currentLocale: "English",
-          switchLocale: "한국어",
-          switchLocaleAria: "Switch to Korean",
           navAria: "Quick navigation",
           localeGroupAria: "Language selection",
         };
-
-  const nextLocale: LocaleCode = locale === "ko" ? "en" : "ko";
-  const switchHref = switchLocalePath(pathname, nextLocale);
 
   return (
     <header className="sa-app-header">
@@ -120,12 +128,26 @@ export function AppHeader({ locale, role }: Props) {
             </Link>
           ) : null}
           <div className="sa-locale-switcher" role="group" aria-label={t.localeGroupAria}>
-            <span className="sa-locale-chip is-active" aria-current="true">
-              {t.currentLocale}
-            </span>
-            <Link className="sa-locale-chip" href={switchHref} aria-label={t.switchLocaleAria}>
-              {t.switchLocale}
-            </Link>
+            {LOCALE_OPTIONS.map((option) =>
+              option.code === locale ? (
+                <span
+                  key={option.code}
+                  className="sa-locale-chip is-active"
+                  aria-current="true"
+                >
+                  {option.label}
+                </span>
+              ) : (
+                <Link
+                  key={option.code}
+                  className="sa-locale-chip"
+                  href={switchLocalePath(pathname, option.code)}
+                  aria-label={option.ariaLabel}
+                >
+                  {option.label}
+                </Link>
+              ),
+            )}
           </div>
         </nav>
       </div>

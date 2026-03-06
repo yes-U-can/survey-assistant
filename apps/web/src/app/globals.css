@@ -147,8 +147,8 @@ textarea {
 }
 
 .sa-locale-switcher {
-  display: inline-flex;
-  align-items: center;
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--brand-700) 32%, white);
@@ -161,6 +161,7 @@ textarea {
   align-items: center;
   justify-content: center;
   min-height: 36px;
+  min-width: 92px;
   padding: 0 14px;
   border-radius: 999px;
   color: var(--brand-900);
