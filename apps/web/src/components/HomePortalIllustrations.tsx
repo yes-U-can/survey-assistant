@@ -21,62 +21,54 @@ function IllustrationFrame({
 
 export function ParticipantPortalIllustration() {
   return (
-    <IllustrationFrame title="참여 코드를 입력하고 설문에 응답하는 피검자">
+    <IllustrationFrame title="스마트폰으로 설문에 응답하는 피검자">
       <defs>
-        <linearGradient id="participant-wave" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#95E0F6" />
-          <stop offset="100%" stopColor="#2A5F7F" />
+        <linearGradient id="participant-backdrop" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#D8EFF7" />
+          <stop offset="100%" stopColor="#BFD4E2" />
         </linearGradient>
         <linearGradient id="participant-body" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F3B7D9" />
-          <stop offset="100%" stopColor="#9E67BC" />
+          <stop offset="0%" stopColor="#F2B4D8" />
+          <stop offset="100%" stopColor="#9964BA" />
         </linearGradient>
         <linearGradient id="participant-hair" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#B96BC1" />
-          <stop offset="100%" stopColor="#6E4EA4" />
+          <stop offset="0%" stopColor="#D48ECF" />
+          <stop offset="100%" stopColor="#7D58AF" />
         </linearGradient>
         <linearGradient id="participant-card" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFF8FC" />
-          <stop offset="100%" stopColor="#F2DCEB" />
+          <stop offset="0%" stopColor="#FFF9FC" />
+          <stop offset="100%" stopColor="#F2E0EC" />
         </linearGradient>
       </defs>
 
-      <rect x="0" y="0" width="280" height="180" fill="transparent" />
-      <circle cx="224" cy="34" r="24" fill="#F5C7DD" />
-      <path
-        d="M-8 123C31 90 58 67 102 61C156 54 183 77 230 110C247 123 263 132 286 141V180H-8Z"
-        fill="url(#participant-wave)"
-      />
-      <path
-        d="M18 154H204C196 165 172 171 132 171H7C9 163 13 157 18 154Z"
-        fill="#7464B5"
-        opacity="0.88"
-      />
+      <ellipse cx="138" cy="98" rx="114" ry="60" fill="url(#participant-backdrop)" />
+      <circle cx="220" cy="42" r="20" fill="#F5C4D8" opacity="0.9" />
 
-      <g transform="translate(34 22)">
-        <ellipse cx="76" cy="132" rx="54" ry="10" fill="#6D5AA9" opacity="0.18" />
-        <rect x="30" y="62" width="92" height="82" rx="36" fill="url(#participant-body)" />
-        <circle cx="76" cy="48" r="26" fill="#F8D9E0" />
+      <g transform="translate(40 18)">
+        <rect x="120" y="44" width="64" height="82" rx="20" fill="url(#participant-card)" />
+        <rect x="134" y="58" width="34" height="8" rx="4" fill="#7FA7BF" />
+        <rect x="134" y="75" width="20" height="8" rx="4" fill="#E5A9CC" />
+        <circle cx="139" cy="95" r="4" fill="#7FA7BF" />
+        <rect x="148" y="91" width="18" height="8" rx="4" fill="#C7B6E2" />
+        <circle cx="139" cy="112" r="4" fill="#E5A9CC" />
+        <rect x="148" y="108" width="12" height="8" rx="4" fill="#7FA7BF" />
 
-        <circle cx="56" cy="38" r="20" fill="url(#participant-hair)" />
-        <circle cx="79" cy="30" r="24" fill="url(#participant-hair)" />
-        <circle cx="96" cy="42" r="18" fill="url(#participant-hair)" />
-        <path d="M49 45C49 27 61 14 80 14C96 14 106 24 106 40C95 39 85 31 77 22C71 31 61 40 49 45Z" fill="url(#participant-hair)" />
+        <rect x="18" y="74" width="94" height="78" rx="36" fill="url(#participant-body)" />
+        <circle cx="64" cy="54" r="27" fill="#F8D8E0" />
+        <circle cx="45" cy="46" r="20" fill="url(#participant-hair)" />
+        <circle cx="68" cy="36" r="25" fill="url(#participant-hair)" />
+        <circle cx="87" cy="49" r="19" fill="url(#participant-hair)" />
+        <path d="M39 51C39 31 54 17 72 17C91 17 103 31 103 47C90 45 80 35 72 24C64 36 53 45 39 51Z" fill="url(#participant-hair)" />
 
-        <rect x="67" y="47" width="4" height="10" rx="2" fill="#2F2A55" />
-        <rect x="79" y="47" width="4" height="10" rx="2" fill="#2F2A55" />
+        <rect x="56" y="54" width="4" height="10" rx="2" fill="#2E2956" />
+        <rect x="69" y="54" width="4" height="10" rx="2" fill="#2E2956" />
 
-        <rect x="22" y="86" width="28" height="18" rx="9" fill="#8F69C1" />
-        <rect x="110" y="84" width="34" height="18" rx="9" fill="#F1C4D8" />
-        <circle cx="143" cy="93" r="10" fill="#F1C4D8" />
-
-        <rect x="138" y="48" width="60" height="84" rx="20" fill="url(#participant-card)" />
-        <rect x="151" y="62" width="34" height="8" rx="4" fill="#6EA8C2" opacity="0.8" />
-        <rect x="151" y="78" width="22" height="8" rx="4" fill="#E2A9C9" />
-        <circle cx="157" cy="98" r="4" fill="#6EA8C2" />
-        <rect x="166" y="94" width="18" height="8" rx="4" fill="#C7B4E4" />
-        <circle cx="157" cy="115" r="4" fill="#E2A9C9" />
-        <rect x="166" y="111" width="14" height="8" rx="4" fill="#6EA8C2" />
+        <rect x="10" y="97" width="30" height="18" rx="9" fill="#8E6AC2" />
+        <rect x="97" y="91" width="36" height="18" rx="9" fill="#F1C7D9" />
+        <circle cx="130" cy="100" r="10" fill="#F1C7D9" />
+        <rect x="92" y="84" width="22" height="34" rx="9" fill="#473C88" />
+        <rect x="98" y="90" width="10" height="3" rx="1.5" fill="#F4ECF8" />
+        <rect x="98" y="97" width="10" height="3" rx="1.5" fill="#F4ECF8" />
       </g>
     </IllustrationFrame>
   );
@@ -84,63 +76,58 @@ export function ParticipantPortalIllustration() {
 
 export function AdminPortalIllustration() {
   return (
-    <IllustrationFrame title="템플릿과 결과를 관리하는 연구관리자">
+    <IllustrationFrame title="클립보드와 설문 패널을 확인하는 연구관리자">
       <defs>
-        <linearGradient id="admin-wave" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#9ADAF0" />
-          <stop offset="100%" stopColor="#2A5F7F" />
+        <linearGradient id="admin-backdrop" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#D7ECF6" />
+          <stop offset="100%" stopColor="#C8D9E5" />
         </linearGradient>
         <linearGradient id="admin-body" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8F74CF" />
-          <stop offset="100%" stopColor="#4C3E8D" />
+          <stop offset="0%" stopColor="#8E75CF" />
+          <stop offset="100%" stopColor="#4E418E" />
         </linearGradient>
         <linearGradient id="admin-hair" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#385B8E" />
-          <stop offset="100%" stopColor="#233864" />
+          <stop offset="0%" stopColor="#345C8B" />
+          <stop offset="100%" stopColor="#213864" />
         </linearGradient>
         <linearGradient id="admin-panel" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFF8FC" />
+          <stop offset="0%" stopColor="#FFF9FC" />
           <stop offset="100%" stopColor="#EEF5F8" />
         </linearGradient>
       </defs>
 
-      <rect x="0" y="0" width="280" height="180" fill="transparent" />
-      <circle cx="46" cy="30" r="20" fill="#F4C6DB" />
-      <path
-        d="M-8 126C24 113 54 88 98 82C148 76 187 92 240 121C254 129 268 136 286 142V180H-8Z"
-        fill="url(#admin-wave)"
-      />
-      <path
-        d="M64 154H258C248 165 222 171 183 171H48C50 162 56 157 64 154Z"
-        fill="#7262B2"
-        opacity="0.92"
-      />
+      <ellipse cx="144" cy="96" rx="112" ry="60" fill="url(#admin-backdrop)" />
+      <circle cx="58" cy="38" r="18" fill="#F3C6DA" opacity="0.9" />
 
-      <g transform="translate(28 20)">
-        <rect x="126" y="26" width="84" height="62" rx="20" fill="url(#admin-panel)" />
-        <rect x="140" y="40" width="42" height="8" rx="4" fill="#D9C9EC" />
-        <rect x="140" y="56" width="26" height="8" rx="4" fill="#E7AFCF" />
-        <rect x="170" y="56" width="20" height="8" rx="4" fill="#9CC7D8" />
-        <rect x="140" y="72" width="54" height="8" rx="4" fill="#C8DFE8" />
+      <g transform="translate(34 18)">
+        <rect x="128" y="46" width="72" height="76" rx="20" fill="url(#admin-panel)" />
+        <rect x="142" y="60" width="40" height="8" rx="4" fill="#D8CAE8" />
+        <rect x="142" y="77" width="22" height="8" rx="4" fill="#E4A9CB" />
+        <rect x="168" y="77" width="16" height="8" rx="4" fill="#97C2D6" />
+        <rect x="142" y="94" width="46" height="8" rx="4" fill="#C7DEE8" />
 
-        <ellipse cx="88" cy="132" rx="58" ry="10" fill="#6D5AA9" opacity="0.18" />
-        <rect x="36" y="64" width="94" height="80" rx="36" fill="url(#admin-body)" />
-        <circle cx="82" cy="48" r="25" fill="#F8D9E0" />
-        <circle cx="66" cy="40" r="18" fill="url(#admin-hair)" />
-        <circle cx="88" cy="32" r="23" fill="url(#admin-hair)" />
-        <circle cx="102" cy="43" r="16" fill="url(#admin-hair)" />
-        <path d="M56 45C56 28 68 15 86 15C101 15 110 25 110 40C98 39 90 31 84 22C78 30 68 39 56 45Z" fill="url(#admin-hair)" />
-        <rect x="73" y="46" width="4" height="10" rx="2" fill="#2F2A55" />
-        <rect x="85" y="46" width="4" height="10" rx="2" fill="#2F2A55" />
+        <rect x="22" y="76" width="96" height="76" rx="36" fill="url(#admin-body)" />
+        <circle cx="70" cy="54" r="27" fill="#F8D8E0" />
+        <circle cx="52" cy="46" r="18" fill="url(#admin-hair)" />
+        <circle cx="74" cy="36" r="24" fill="url(#admin-hair)" />
+        <circle cx="91" cy="48" r="16" fill="url(#admin-hair)" />
+        <path d="M48 49C48 30 62 17 79 17C97 17 108 29 108 45C96 44 86 35 79 24C71 36 61 44 48 49Z" fill="url(#admin-hair)" />
 
-        <rect x="104" y="92" width="72" height="38" rx="12" fill="#EADAF0" />
-        <rect x="116" y="102" width="20" height="6" rx="3" fill="#A57AC4" />
-        <rect x="140" y="102" width="24" height="6" rx="3" fill="#6EA8C2" />
-        <rect x="122" y="113" width="34" height="6" rx="3" fill="#FFFFFF" opacity="0.88" />
+        <rect x="62" y="54" width="4" height="10" rx="2" fill="#2E2956" />
+        <rect x="75" y="54" width="4" height="10" rx="2" fill="#2E2956" />
+        <circle cx="61" cy="58" r="7" fill="#4A5370" />
+        <circle cx="79" cy="58" r="7" fill="#4A5370" />
+        <circle cx="61" cy="58" r="4.5" fill="#F8D8E0" />
+        <circle cx="79" cy="58" r="4.5" fill="#F8D8E0" />
+        <rect x="67" y="56.75" width="6" height="2.5" rx="1.25" fill="#4A5370" />
 
-        <rect x="28" y="94" width="32" height="18" rx="9" fill="#A07BCF" />
-        <rect x="112" y="82" width="36" height="16" rx="8" fill="#F0C7D8" />
-        <circle cx="147" cy="90" r="9" fill="#F0C7D8" />
+        <rect x="104" y="92" width="28" height="38" rx="8" fill="#F5D8E7" />
+        <rect x="111" y="102" width="14" height="4" rx="2" fill="#AB7CC7" />
+        <rect x="111" y="111" width="10" height="4" rx="2" fill="#7FA7BF" />
+        <rect x="111" y="120" width="14" height="4" rx="2" fill="#AB7CC7" />
+
+        <rect x="10" y="98" width="32" height="18" rx="9" fill="#A07ACD" />
+        <rect x="96" y="98" width="22" height="18" rx="9" fill="#F1C8DA" />
       </g>
     </IllustrationFrame>
   );
