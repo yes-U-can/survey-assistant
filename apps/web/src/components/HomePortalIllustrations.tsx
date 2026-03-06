@@ -61,8 +61,7 @@ export function ParticipantPortalIllustration() {
         <path d="M96 57C96 69 87 78 75 78C63 78 53 69 53 57C53 45 63 37 75 37C87 37 96 45 96 57Z" fill="#F8D9E0" />
         <ellipse cx="73" cy="56" rx="2.2" ry="3.4" fill="#2E2958" />
         <ellipse cx="83" cy="57" rx="2.2" ry="3.4" fill="#2E2958" />
-        <path d="M87 65C90 67 93 67 96 65L96 67C93 69 89 69 86 67Z" fill="#B97F9F" />
-        <path d="M91 61C95 60 98 62 99 66C95 69 90 68 88 64Z" fill="#F0C5D9" />
+        <path d="M74 66C77 68 81 68 84 66L84 68C81 70 77 70 74 68Z" fill="#B97F9F" />
 
         <rect x="18" y="100" width="30" height="18" rx="9" fill="#8D69C1" />
       </g>
@@ -101,10 +100,9 @@ export function AdminPortalIllustration() {
         <path d="M170 68L170 56A12 12 0 0 1 181 74Z" fill="#8AB8CA" />
         <circle cx="170" cy="68" r="5.5" fill="url(#admin-panel)" />
         <rect x="162" y="92" width="28" height="6" rx="3" fill="#DFA9CB" />
-        <path d="M159 109L166 101L174 105L181 97L189 101L189 105L181 101L174 109L166 105L159 113Z" fill="#8AB8CA" />
-        <circle cx="166" cy="103" r="2.5" fill="#DFA9CB" />
-        <circle cx="174" cy="107" r="2.5" fill="#C5B6E2" />
-        <circle cx="181" cy="99" r="2.5" fill="#8AB8CA" />
+        <rect x="160" y="102" width="7" height="12" rx="3.5" fill="#8AB8CA" />
+        <rect x="171" y="96" width="7" height="18" rx="3.5" fill="#C5B6E2" />
+        <rect x="182" y="106" width="7" height="8" rx="3.5" fill="#DFA9CB" />
 
         <rect x="24" y="82" width="108" height="70" rx="34" fill="url(#admin-body)" />
         <circle cx="76" cy="54" r="25" fill="#F8D9E0" />
