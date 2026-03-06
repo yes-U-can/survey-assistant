@@ -73,7 +73,16 @@ export default async function LocaleHome({
             >
               <div className="sa-home-portal-card-layout">
                 <div className="sa-home-portal-main">
-                  <strong>{card.title}</strong>
+                  <div className="sa-home-portal-heading">
+                    <strong>{card.title}</strong>
+                    <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
+                      {card.devices.map((device) => (
+                        <span key={device} className="sa-home-device-badge">
+                          {device}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                   <p>{card.description}</p>
                 </div>
                 <div className="sa-home-portal-visual" aria-hidden="true">
@@ -85,13 +94,6 @@ export default async function LocaleHome({
                 </div>
               </div>
               <div className="sa-home-portal-meta">
-                <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
-                  {card.devices.map((device) => (
-                    <span key={device} className="sa-home-device-badge">
-                      {device}
-                    </span>
-                  ))}
-                </div>
                 <span className="sa-home-portal-arrow" aria-hidden="true">
                   →
                 </span>

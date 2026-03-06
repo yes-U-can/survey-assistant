@@ -1707,6 +1707,13 @@ body::after {
   gap: 8px;
 }
 
+.sa-home-portal-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .sa-home-portal-visual {
   justify-self: end;
   width: min(220px, 100%);
@@ -1735,7 +1742,7 @@ body::after {
 .sa-home-portal-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
 }
 
@@ -1743,6 +1750,12 @@ body::after {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.sa-home-portal-heading .sa-home-device-badge {
+  min-height: 28px;
+  padding: 2px 10px;
+  font-size: 0.72rem;
 }
 
 .sa-home-device-badge {
