@@ -83,22 +83,12 @@ textarea {
   min-width: 0;
 }
 
-.sa-brand-link {
+.sa-brand-title {
   display: inline-block;
-  text-decoration: none;
   font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: -0.01em;
+  font-size: clamp(1.24rem, 1.4vw, 1.5rem);
+  letter-spacing: -0.02em;
   color: var(--brand-900);
-}
-
-.sa-app-brand p {
-  margin: 2px 0 0;
-  color: var(--muted-foreground);
-  font-size: 0.82rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sa-app-nav {
@@ -1005,13 +995,8 @@ body::after {
   padding-bottom: 10px;
 }
 
-.sa-brand-link {
-  font-size: 1.08rem;
-  letter-spacing: -0.02em;
-}
-
-.sa-app-brand p {
-  font-size: 0.79rem;
+.sa-brand-title {
+  font-size: clamp(1.3rem, 1.5vw, 1.6rem);
 }
 
 .sa-app-nav {

@@ -49,7 +49,6 @@ export function AppHeader({ locale, role }: Props) {
     locale === "ko"
       ? {
           brand: "설문조사 도우미",
-          tagline: "서울임상심리연구소 연구 운영 미들웨어",
           back: "이전 화면",
           participant: "설문 응답",
           admin: "연구 관리자",
@@ -62,7 +61,6 @@ export function AppHeader({ locale, role }: Props) {
         }
       : {
           brand: "Survey Assistant",
-          tagline: "Research operations middleware for SICP",
           back: "Back",
           participant: "Respond",
           admin: "Research Admin",
@@ -78,10 +76,7 @@ export function AppHeader({ locale, role }: Props) {
     <header className="sa-app-header">
       <div className="sa-app-header-inner">
         <div className="sa-app-brand">
-          <Link href={`/${locale}`} className="sa-brand-link">
-            {t.brand}
-          </Link>
-          <p>{t.tagline}</p>
+          <span className="sa-brand-title">{t.brand}</span>
         </div>
 
         <nav className="sa-app-nav" aria-label={t.navAria}>
