@@ -1,10 +1,8 @@
 import "../globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { getServerSession } from "next-auth";
 
 import { AppHeader } from "@/components/AppHeader";
-import { authOptions } from "@/lib/auth";
 
 type LocaleLayoutProps = {
   children: ReactNode;
@@ -72,15 +70,11 @@ export default async function LocaleLayout({
   params,
 }: LocaleLayoutProps) {
   const { locale } = await params;
-  const session = await getServerSession(authOptions);
 
   return (
     <html lang={locale === "en" ? "en" : "ko"}>
       <body>
-        <AppHeader
-          locale={locale === "en" ? "en" : "ko"}
-          role={session?.user?.role ?? null}
-        />
+        <AppHeader locale={locale === "en" ? "en" : "ko"} />
         <div className="sa-app-body">{children}</div>
       </body>
     </html>

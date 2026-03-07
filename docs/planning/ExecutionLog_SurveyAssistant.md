@@ -2824,3 +2824,18 @@
   - `corepack pnpm --filter web lint` PASS
   - `corepack pnpm --filter web build` PASS
   - `corepack pnpm verify:local` PASS
+
+## 41) Header Simplification Follow-up (2026-03-07, remove subpage quick-nav chips)
+- Scope type: subpage header consistency cleanup
+- Completed in this update
+  - Removed subpage-only header chips:
+    - `이전화면`
+    - `설문응답`
+    - `연구관리자`
+    - `플랫폼운영`
+  - Header is now consistent with the home page across routes:
+    - brand only
+    - locale switcher only
+  - Removed unnecessary session/role lookup from locale layout because header no longer depends on user role
+- Verification
+  - pending at edit time; run `lint` and `build` after this batch
