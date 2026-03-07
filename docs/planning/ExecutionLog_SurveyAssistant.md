@@ -2452,3 +2452,9 @@
 - 후속 보정:
   - `verify-local.ps1`은 외부 명령 실패가 PowerShell 예외로 자동 전파되지 않는 문제가 있었음
   - `Invoke-Step` 래퍼를 추가해 각 단계 종료코드를 명시적으로 검사하도록 수정
+  - 실제 push 과정에서 participant signup smoke가 `P2028`(transaction start timeout)로 실패하는 문제가 한 번 드러남
+  - 원인:
+    - `consumeRateLimit()`이 단순 카운터 업데이트에도 interactive transaction + serializable을 사용
+  - 조치:
+    - `apps/web/src/lib/rate-limit.ts`를 낙관적 `findUnique/create/updateMany` 재시도 방식으로 변경
+    - participant smoke를 3회 반복 실행해 재현되지 않음을 확인

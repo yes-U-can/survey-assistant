@@ -559,6 +559,9 @@ survey-assistant/
     - admin ownership boundary on `/api/admin/ai/chat`
     - SkillBook purchase ledger flow
   - `corepack pnpm --filter web e2e -- e2e/admin-free-core.spec.ts` PASS (`3 passed`)
+  - rate limit utility hardened:
+    - removed fragile serializable transaction pattern from `src/lib/rate-limit.ts`
+    - switched to optimistic retry updates to avoid intermittent `P2028` transaction-start failures in participant signup smoke
 - Current known gap
   - SkillBook Builder(플랫폼 키 기반 자동 생성)와 실제 과금/구독 결제는 아직 후속 범위
   - BYOK API 키 저장/재사용 기능은 보안 설계 별도 트랙으로 미포함
