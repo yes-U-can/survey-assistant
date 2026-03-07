@@ -1848,7 +1848,7 @@ body::after {
 .sa-site-footer-copyright {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   line-height: 1.6;
 }
 
@@ -1872,7 +1872,7 @@ body::after {
 .sa-site-footer-version {
   margin: 0;
   color: var(--brand-700);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 700;
 }
 
@@ -2018,15 +2018,24 @@ body::after {
 
 @media (min-width: 768px) {
   .sa-site-footer-inner {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "copyright copyright"
+      "links version";
     align-items: center;
   }
 
+  .sa-site-footer-copyright {
+    grid-area: copyright;
+  }
+
   .sa-site-footer-links {
-    justify-content: center;
+    grid-area: links;
+    justify-content: flex-start;
   }
 
   .sa-site-footer-version {
+    grid-area: version;
     text-align: right;
   }
 }
