@@ -1,6 +1,5 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
-import { AppFooter } from "@/components/AppFooter";
 import {
   AdminPortalIllustration,
   ParticipantPortalIllustration,
@@ -62,45 +61,41 @@ export default async function LocaleHome({
   const cards: HomeCard[] = [copy.participant, copy.admin];
 
   return (
-    <>
-      <main className="sa-page sa-home sa-home-portal">
-        <div className="sa-home-portal-grid-shell">
-          <div className="sa-home-portal-grid">
-            {cards.map((card, index) => (
-              <Link
-                key={card.href}
-                className={`sa-home-portal-card${index === 0 ? " is-primary" : ""}`}
-                href={card.href}
-              >
-                <div className="sa-home-portal-card-layout">
-                  <div className="sa-home-portal-main">
-                    <div className="sa-home-portal-heading">
-                      <strong>{card.title}</strong>
-                      <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
-                        {card.devices.map((device) => (
-                          <span key={device} className="sa-home-device-badge">
-                            {device}
-                          </span>
-                        ))}
-                      </div>
+    <main className="sa-page sa-home sa-home-portal">
+      <div className="sa-home-portal-grid-shell">
+        <div className="sa-home-portal-grid">
+          {cards.map((card, index) => (
+            <Link
+              key={card.href}
+              className={`sa-home-portal-card${index === 0 ? " is-primary" : ""}`}
+              href={card.href}
+            >
+              <div className="sa-home-portal-card-layout">
+                <div className="sa-home-portal-main">
+                  <div className="sa-home-portal-heading">
+                    <strong>{card.title}</strong>
+                    <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
+                      {card.devices.map((device) => (
+                        <span key={device} className="sa-home-device-badge">
+                          {device}
+                        </span>
+                      ))}
                     </div>
-                    <p>{card.description}</p>
                   </div>
-                  <div className="sa-home-portal-visual" aria-hidden="true">
-                    {card.kind === "participant" ? (
-                      <ParticipantPortalIllustration />
-                    ) : (
-                      <AdminPortalIllustration />
-                    )}
-                  </div>
+                  <p>{card.description}</p>
                 </div>
-              </Link>
-            ))}
-          </div>
+                <div className="sa-home-portal-visual" aria-hidden="true">
+                  {card.kind === "participant" ? (
+                    <ParticipantPortalIllustration />
+                  ) : (
+                    <AdminPortalIllustration />
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
-      </main>
-
-      <AppFooter locale={locale} />
-    </>
+      </div>
+    </main>
   );
 }

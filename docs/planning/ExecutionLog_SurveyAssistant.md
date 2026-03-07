@@ -2839,3 +2839,16 @@
   - Removed unnecessary session/role lookup from locale layout because header no longer depends on user role
 - Verification
   - pending at edit time; run `lint` and `build` after this batch
+
+## 42) Global Footer Consistency (2026-03-07, footer moved to shared locale layout)
+- Scope type: shared chrome consistency cleanup
+- Completed in this update
+  - Moved footer rendering from individual pages into `apps/web/src/app/[locale]/layout.tsx`
+  - Result:
+    - home page keeps the same footer
+    - auth/admin/participant/platform pages now also show the same footer automatically
+    - static pages no longer duplicate footer rendering
+  - Updated copyright copy to:
+    - `© 2026 서울임상심리연구소(Seoul Institute of Clinical Psychology, SICP) & 모오(MOW). All rights reserved.`
+- Verification
+  - pending at edit time; run `lint` and `build` after this batch

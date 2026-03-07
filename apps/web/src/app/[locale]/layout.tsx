@@ -1,7 +1,8 @@
-import "../globals.css";
+﻿import "../globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AppFooter } from "@/components/AppFooter";
 import { AppHeader } from "@/components/AppHeader";
 
 type LocaleLayoutProps = {
@@ -70,12 +71,14 @@ export default async function LocaleLayout({
   params,
 }: LocaleLayoutProps) {
   const { locale } = await params;
+  const normalizedLocale = locale === "en" ? "en" : "ko";
 
   return (
-    <html lang={locale === "en" ? "en" : "ko"}>
+    <html lang={normalizedLocale}>
       <body>
-        <AppHeader locale={locale === "en" ? "en" : "ko"} />
+        <AppHeader locale={normalizedLocale} />
         <div className="sa-app-body">{children}</div>
+        <AppFooter locale={normalizedLocale} />
       </body>
     </html>
   );

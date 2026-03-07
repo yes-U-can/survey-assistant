@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 type Props = {
   locale: "ko" | "en";
@@ -11,7 +11,7 @@ export function AppFooter({ locale }: Props) {
     locale === "ko"
       ? {
           copyright:
-            "© 2026 서울임상심리연구소(Seoul Institute of Clinical Psychology, SICP), 모오(MOW). All rights reserved.",
+            "© 2026 서울임상심리연구소(Seoul Institute of Clinical Psychology, SICP) & 모오(MOW). All rights reserved.",
           about: "서비스 소개",
           contact: "문의하기",
           terms: "이용약관",
@@ -20,7 +20,7 @@ export function AppFooter({ locale }: Props) {
         }
       : {
           copyright:
-            "© 2026 Seoul Institute of Clinical Psychology (SICP), MOW. All rights reserved.",
+            "© 2026 Seoul Institute of Clinical Psychology (SICP) & MOW. All rights reserved.",
           about: "About",
           contact: "Contact",
           terms: "Terms",
