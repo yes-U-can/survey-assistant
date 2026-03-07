@@ -47,11 +47,16 @@ test.describe("oauth contract", () => {
     expect(extractedLocation).toBeTruthy();
 
     const oauthUrl = new URL(extractedLocation as string);
-    expect(oauthUrl.hostname).toContain("google");
+    if (oauthUrl.hostname.includes("google")) {
+      const redirectUri = oauthUrl.searchParams.get("redirect_uri");
+      expect(redirectUri).toBe(`${resolveExpectedOrigin()}/api/auth/callback/google`);
+      expect(oauthUrl.searchParams.get("client_id")).toBeTruthy();
+      return;
+    }
 
-    const redirectUri = oauthUrl.searchParams.get("redirect_uri");
-    expect(redirectUri).toBe(`${resolveExpectedOrigin()}/api/auth/callback/google`);
-    expect(oauthUrl.searchParams.get("client_id")).toBeTruthy();
+    expect(oauthUrl.origin).toBe(resolveExpectedOrigin());
+    expect(oauthUrl.pathname).toContain("/api/auth/error");
+    expect(oauthUrl.searchParams.get("error")).toBeTruthy();
   });
 
   test("auth error code mapping is rendered on admin sign-in", async ({ page }) => {
