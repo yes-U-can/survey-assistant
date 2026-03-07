@@ -1,148 +1,27 @@
-"use client";
+﻿"use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useRef, useState } from "react";
+
+import { AdminAiSkillBookPanel } from "@/components/admin/AdminAiSkillBookPanel";
+import { AdminSkillBookStorePanel } from "@/components/admin/AdminSkillBookStorePanel";
 
 type LocaleCode = "ko" | "en";
+type ViewerRole = "RESEARCH_ADMIN" | "PLATFORM_ADMIN";
+type AdminViewKey = "overview" | "templates" | "packages" | "results" | "special_store" | "participants";
+type ParticipantFilter = "ALL" | "ACTIVE" | "INACTIVE" | "ANONYMIZED";
 
-type TemplateItem = {
-  id: string;
-  type: "LIKERT" | "SPECIAL";
-  visibility: "PRIVATE" | "STORE";
-  title: string;
-  description: string | null;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type PackageTemplateItem = {
-  templateId: string;
-  orderIndex: number;
-  title: string;
-  type: "LIKERT" | "SPECIAL";
-};
-
-type PackageItem = {
-  id: string;
-  code: string;
-  title: string;
-  description: string | null;
-  mode: "CROSS_SECTIONAL" | "LONGITUDINAL";
-  status: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED";
-  maxResponsesPerParticipant: number;
-  startsAt: string | null;
-  endsAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  templates: PackageTemplateItem[];
-};
-
-type SpecialRequestStatus =
-  | "REQUESTED"
-  | "REVIEWING"
-  | "IN_PROGRESS"
-  | "DELIVERED"
-  | "REJECTED"
-  | "CANCELED";
-
-type SpecialRequestItem = {
-  id: string;
-  title: string;
-  description: string;
-  status: SpecialRequestStatus;
-  consentPublicSource: boolean;
-  consentAt: string;
-  adminNote: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type StoreOwnedTemplateItem = {
-  id: string;
-  title: string;
-  description: string | null;
-  version: number;
-  updatedAt: string;
-};
-
-type StoreListingTemplateItem = {
-  id: string;
-  title: string;
-  description: string | null;
-  version: number;
-  isArchived: boolean;
-};
-
-type StoreListingItem = {
-  id: string;
-  templateId: string;
-  sellerId: string;
-  priceCredits: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  template: StoreListingTemplateItem;
-  seller?: {
-    id: string;
-    loginId: string | null;
-    displayName: string | null;
-    role: string;
-  };
-  alreadyPurchased?: boolean;
-  canPurchase?: boolean;
-};
-
-type StorePurchaseHistoryItem = {
-  id: string;
-  listingId: string;
-  templateId: string;
-  buyerId: string;
-  sellerId: string;
-  priceCredits: number;
-  sellerCredit: number;
-  platformFeeCredits: number;
-  createdAt: string;
-  listing: {
-    id: string;
-    priceCredits: number;
-    template: {
-      id: string;
-      title: string;
-      version: number;
-    };
-  };
-  seller?: {
-    id: string;
-    loginId: string | null;
-    displayName: string | null;
-    role: string;
-  };
-  buyer?: {
-    id: string;
-    loginId: string | null;
-    displayName: string | null;
-    role: string;
-  };
-};
-
-type ParticipantAccountItem = {
-  id: string;
-  loginId: string | null;
-  displayName: string | null;
-  locale: "ko" | "en";
-  isActive: boolean;
-  isAnonymized: boolean;
-  enrollmentCount: number;
-  responseCount: number;
-  lastRespondedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+type TemplateItem = { id: string; type: "LIKERT" | "SPECIAL"; visibility: "PRIVATE" | "STORE"; title: string; description: string | null; version: number; createdAt: string; updatedAt: string; };
+type PackageItem = { id: string; code: string; title: string; description: string | null; mode: "CROSS_SECTIONAL" | "LONGITUDINAL"; status: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED"; maxResponsesPerParticipant: number; startsAt: string | null; endsAt: string | null; createdAt: string; updatedAt: string; templates: Array<{ templateId: string; orderIndex: number; title: string; type: "LIKERT" | "SPECIAL" }>; };
+type SpecialRequestItem = { id: string; title: string; description: string; status: "REQUESTED" | "REVIEWING" | "IN_PROGRESS" | "DELIVERED" | "REJECTED" | "CANCELED"; consentPublicSource: boolean; consentAt: string; adminNote: string | null; createdAt: string; updatedAt: string; };
+type StoreOwnedTemplateItem = { id: string; title: string; description: string | null; version: number; updatedAt: string; };
+type StoreListingItem = { id: string; templateId: string; sellerId: string; priceCredits: number; isActive: boolean; createdAt: string; updatedAt: string; template: { id: string; title: string; description: string | null; version: number; isArchived: boolean; }; seller?: { id: string; loginId: string | null; displayName: string | null; role: string; }; alreadyPurchased?: boolean; canPurchase?: boolean; };
+type StorePurchaseHistoryItem = { id: string; listingId: string; templateId: string; buyerId: string; sellerId: string; priceCredits: number; sellerCredit: number; platformFeeCredits: number; createdAt: string; listing: { id: string; priceCredits: number; template: { id: string; title: string; version: number; }; }; seller?: { id: string; loginId: string | null; displayName: string | null; role: string; }; buyer?: { id: string; loginId: string | null; displayName: string | null; role: string; }; };
+type ParticipantAccountItem = { id: string; loginId: string | null; displayName: string | null; locale: "ko" | "en"; isActive: boolean; isAnonymized: boolean; enrollmentCount: number; responseCount: number; lastRespondedAt: string | null; createdAt: string; updatedAt: string; };
 
 type Props = {
   locale: LocaleCode;
-  viewerRole: "RESEARCH_ADMIN" | "PLATFORM_ADMIN";
+  viewerRole: ViewerRole;
   initialView?: AdminViewKey;
   initialTemplates: TemplateItem[];
   initialPackages: PackageItem[];
@@ -155,405 +34,95 @@ type Props = {
   initialParticipants: ParticipantAccountItem[];
 };
 
-const adminViewKeys = [
-  "overview",
-  "templates",
-  "packages",
-  "results",
-  "special_store",
-  "participants",
-] as const;
+const viewKeys: AdminViewKey[] = ["overview", "templates", "packages", "results", "special_store", "participants"];
 
-type AdminViewKey = (typeof adminViewKeys)[number];
-
-function normalizeAdminViewKey(value: string | null | undefined): AdminViewKey {
-  if (!value) {
-    return "overview";
-  }
-  return (adminViewKeys as readonly string[]).includes(value) ? (value as AdminViewKey) : "overview";
+function normView(value?: string | null): AdminViewKey {
+  return viewKeys.includes((value ?? "") as AdminViewKey) ? (value as AdminViewKey) : "overview";
 }
 
-const msg = {
-  ko: {
-    title: "관리자 홈",
-    subtitle: "템플릿/패키지를 생성하고 상태를 운영하세요.",
-    templateSection: "템플릿 관리",
-    packageSection: "패키지 관리",
-    createTemplate: "템플릿 생성",
-    createPackage: "패키지 생성",
-    refresh: "새로고침",
-    save: "저장",
-    loading: "처리 중...",
-    templateTitle: "템플릿 제목",
-    templateDesc: "설명",
-    templateType: "유형",
-    templateVisibility: "공개 범위",
-    likertScaleMin: "최소 척도값",
-    likertScaleMax: "최대 척도값",
-    likertLabels: "척도 라벨(쉼표 또는 줄바꿈 구분)",
-    likertQuestions: "문항(줄바꿈 구분)",
-    specialSchema: "특수 템플릿 JSON",
-    packageCode: "패키지 코드",
-    packageTitle: "패키지 제목",
-    packageDesc: "설명",
-    packageMode: "연구 유형",
-    packageMaxResponses: "1인당 응답 허용 횟수",
-    packageStartsAt: "시작일시",
-    packageEndsAt: "종료일시",
-    packageTemplates: "포함 템플릿",
-    status: "상태",
-    mode: "유형",
-    visibility: "공개",
-    noTemplate: "생성된 템플릿이 없습니다.",
-    noPackage: "생성된 패키지가 없습니다.",
-    successTemplate: "템플릿이 생성되었습니다.",
-    successPackage: "패키지가 생성되었습니다.",
-    successStatus: "패키지 상태가 변경되었습니다.",
-    failDefault: "요청 처리 중 오류가 발생했습니다.",
-    failValidationTemplate: "템플릿 입력값을 확인하세요.",
-    failValidationPackage: "패키지 입력값을 확인하세요.",
-    failJson: "특수 템플릿 JSON 형식이 올바르지 않습니다.",
-    failNeedTemplate: "패키지에 포함할 템플릿을 1개 이상 선택하세요.",
-    statusDraft: "준비중",
-    statusActive: "진행중",
-    statusClosed: "종료",
-    statusArchived: "보관",
-    modeCross: "횡단",
-    modeLong: "종단",
-    typeLikert: "리커트",
-    typeSpecial: "특수",
-    visibilityPrivate: "비공개",
-    visibilityStore: "스토어 공개",
-    setDraft: "준비중으로",
-    setActive: "진행중으로",
-    setClosed: "종료로",
-    setArchived: "보관으로",
-    csvFilters: "CSV 필터",
-    csvFrom: "응답 시작일시",
-    csvTo: "응답 종료일시",
-    csvAttempt: "응답 회차",
-    csvAttemptHint: "비워두면 전체 회차",
-    csvInvalidRange: "CSV 필터 기간을 확인하세요. 종료일시는 시작일시 이후여야 합니다.",
-    exportCsv: "CSV",
-    specialRequestSection: "특수 템플릿 의뢰",
-    specialRequestTitle: "의뢰 제목",
-    specialRequestDescription: "요구사항 상세",
-    specialRequestConsent:
-      "필수 동의: 의뢰 산출물(특수 템플릿 구현 코드)은 MIT 정책에 따라 공개 저장소(GitHub)에 게시될 수 있음을 이해합니다.",
-    specialRequestConsentSub:
-      "소스 공개 여부와 크레딧 보상 지급은 별개 정책으로 처리됩니다.",
-    specialRequestSubmit: "의뢰 등록",
-    specialRequestStatus: "진행상태",
-    specialRequestAdminNote: "어드민 메모",
-    specialRequestNoData: "등록된 의뢰가 없습니다.",
-    specialRequestNeedConsent: "의뢰 등록을 위해 공개 동의 체크가 필요합니다.",
-    specialRequestCreated: "특수 템플릿 의뢰가 등록되었습니다.",
-    storeSection: "특수 템플릿 스토어",
-    storeCreateListing: "내 특수 템플릿 등록",
-    storeTemplateSelect: "템플릿 선택",
-    storePrice: "판매 가격(크레딧)",
-    storeActive: "판매 활성화",
-    storeListButton: "스토어 등록",
-    storeMyListings: "내 등록 목록",
-    storeMarketListings: "구매 가능 목록",
-    storePurchases: "내 구매 내역",
-    storeSales: "내 판매 내역",
-    storeNoOwnedTemplates: "등록 가능한 특수 템플릿이 없습니다.",
-    storeNoMyListings: "내 등록 목록이 없습니다.",
-    storeNoMarketListings: "구매 가능한 목록이 없습니다.",
-    storeNoPurchases: "구매 내역이 없습니다.",
-    storeNoSales: "판매 내역이 없습니다.",
-    storeListingCreated: "스토어 등록이 완료되었습니다.",
-    storeListingUpdated: "등록 정보가 변경되었습니다.",
-    storePurchased: "템플릿 구매가 완료되었습니다.",
-    storeAlreadyPurchased: "이미 구매함",
-    storeBuy: "구매",
-    storeUpdate: "수정",
-    storeSeller: "판매자",
-    storeTemplate: "템플릿",
-    storeCreatedAt: "등록일시",
-    storeBoughtAt: "구매일시",
-    storePriceLabel: "가격",
-    storeFeeLabel: "수수료",
-    storeSellerCreditLabel: "판매자 정산",
-    participantSection: "피검자 계정 관리",
-    participantNoData: "관리 가능한 피검자 계정이 없습니다.",
-    participantLoginId: "로그인 ID",
-    participantDisplayName: "표시 이름",
-    participantLocale: "언어",
-    participantStatus: "상태",
-    participantEnrollments: "등록 패키지",
-    participantResponses: "응답 수",
-    participantLastRespondedAt: "최근 응답",
-    participantCreatedAt: "가입일시",
-    participantAction: "액션",
-    participantActive: "활성",
-    participantInactive: "비활성",
-    participantDeactivate: "비활성화",
-    participantRestore: "복원",
-    participantUpdated: "피검자 계정 상태가 업데이트되었습니다.",
-    dashboardSection: "운영 요약",
-    dashboardTemplates: "템플릿",
-    dashboardPackages: "패키지",
-    dashboardSpecialOpen: "의뢰 처리중",
-    dashboardStoreActive: "활성 스토어 등록",
-    dashboardParticipantsActive: "활성 피검자",
-    dashboardParticipantsAnonymized: "익명화 피검자",
-    participantSearchLabel: "피검자 검색",
-    participantSearchPlaceholder: "ID/표시이름 검색",
-    participantFilterLabel: "상태 필터",
-    filterAll: "전체",
-    filterActive: "활성",
-    filterInactive: "비활성",
-    filterAnonymized: "익명화",
-    specialRequestFilterLabel: "의뢰 상태 필터",
-  },
-  en: {
-    title: "Admin Home",
-    subtitle: "Create templates/packages and operate status flows.",
-    templateSection: "Template Management",
-    packageSection: "Package Management",
-    createTemplate: "Create Template",
-    createPackage: "Create Package",
-    refresh: "Refresh",
-    save: "Save",
-    loading: "Processing...",
-    templateTitle: "Template title",
-    templateDesc: "Description",
-    templateType: "Type",
-    templateVisibility: "Visibility",
-    likertScaleMin: "Scale min",
-    likertScaleMax: "Scale max",
-    likertLabels: "Scale labels (comma/newline separated)",
-    likertQuestions: "Questions (newline separated)",
-    specialSchema: "Special template JSON",
-    packageCode: "Package code",
-    packageTitle: "Package title",
-    packageDesc: "Description",
-    packageMode: "Study mode",
-    packageMaxResponses: "Max responses per participant",
-    packageStartsAt: "Starts at",
-    packageEndsAt: "Ends at",
-    packageTemplates: "Templates in package",
-    status: "Status",
-    mode: "Mode",
-    visibility: "Visibility",
-    noTemplate: "No template created yet.",
-    noPackage: "No package created yet.",
-    successTemplate: "Template created.",
-    successPackage: "Package created.",
-    successStatus: "Package status updated.",
-    failDefault: "Request failed.",
-    failValidationTemplate: "Check template form values.",
-    failValidationPackage: "Check package form values.",
-    failJson: "Invalid JSON for special template.",
-    failNeedTemplate: "Select at least one template.",
-    statusDraft: "Draft",
-    statusActive: "Active",
-    statusClosed: "Closed",
-    statusArchived: "Archived",
-    modeCross: "Cross-sectional",
-    modeLong: "Longitudinal",
-    typeLikert: "Likert",
-    typeSpecial: "Special",
-    visibilityPrivate: "Private",
-    visibilityStore: "Store",
-    setDraft: "Set Draft",
-    setActive: "Set Active",
-    setClosed: "Set Closed",
-    setArchived: "Set Archived",
-    csvFilters: "CSV Filters",
-    csvFrom: "Submitted from",
-    csvTo: "Submitted to",
-    csvAttempt: "Attempt no",
-    csvAttemptHint: "Leave blank for all attempts",
-    csvInvalidRange: "Check CSV filter range. End datetime must be after start datetime.",
-    exportCsv: "Export CSV",
-    specialRequestSection: "Special Template Requests",
-    specialRequestTitle: "Request title",
-    specialRequestDescription: "Requirement details",
-    specialRequestConsent:
-      "Required consent: deliverable implementation code for this special template may be published to a public GitHub repository under MIT.",
-    specialRequestConsentSub:
-      "Source publication and credit compensation are handled as separate policies.",
-    specialRequestSubmit: "Submit request",
-    specialRequestStatus: "Status",
-    specialRequestAdminNote: "Admin note",
-    specialRequestNoData: "No request yet.",
-    specialRequestNeedConsent: "Consent is required before submitting request.",
-    specialRequestCreated: "Special template request submitted.",
-    storeSection: "Special Template Store",
-    storeCreateListing: "List my special template",
-    storeTemplateSelect: "Template",
-    storePrice: "Price (credits)",
-    storeActive: "Listing active",
-    storeListButton: "Create listing",
-    storeMyListings: "My listings",
-    storeMarketListings: "Market listings",
-    storePurchases: "My purchases",
-    storeSales: "My sales",
-    storeNoOwnedTemplates: "No special template available for listing.",
-    storeNoMyListings: "No listing yet.",
-    storeNoMarketListings: "No listing to buy.",
-    storeNoPurchases: "No purchase history.",
-    storeNoSales: "No sales history.",
-    storeListingCreated: "Listing created.",
-    storeListingUpdated: "Listing updated.",
-    storePurchased: "Template purchased.",
-    storeAlreadyPurchased: "Purchased",
-    storeBuy: "Buy",
-    storeUpdate: "Update",
-    storeSeller: "Seller",
-    storeTemplate: "Template",
-    storeCreatedAt: "Listed at",
-    storeBoughtAt: "Purchased at",
-    storePriceLabel: "Price",
-    storeFeeLabel: "Platform fee",
-    storeSellerCreditLabel: "Seller credit",
-    participantSection: "Participant Accounts",
-    participantNoData: "No manageable participant account.",
-    participantLoginId: "Login ID",
-    participantDisplayName: "Display name",
-    participantLocale: "Locale",
-    participantStatus: "Status",
-    participantEnrollments: "Enrollments",
-    participantResponses: "Responses",
-    participantLastRespondedAt: "Last response",
-    participantCreatedAt: "Joined at",
-    participantAction: "Action",
-    participantActive: "Active",
-    participantInactive: "Inactive",
-    participantDeactivate: "Deactivate",
-    participantRestore: "Restore",
-    participantUpdated: "Participant account status updated.",
-    dashboardSection: "Operations Snapshot",
-    dashboardTemplates: "Templates",
-    dashboardPackages: "Packages",
-    dashboardSpecialOpen: "Open requests",
-    dashboardStoreActive: "Active store listings",
-    dashboardParticipantsActive: "Active participants",
-    dashboardParticipantsAnonymized: "Anonymized participants",
-    participantSearchLabel: "Participant search",
-    participantSearchPlaceholder: "Search by ID/display name",
-    participantFilterLabel: "Status filter",
-    filterAll: "All",
-    filterActive: "Active",
-    filterInactive: "Inactive",
-    filterAnonymized: "Anonymized",
-    specialRequestFilterLabel: "Request status filter",
-  },
-} as const;
-
-function statusLabel(locale: LocaleCode, value: PackageItem["status"]) {
-  const t = msg[locale];
-  if (value === "ACTIVE") return t.statusActive;
-  if (value === "CLOSED") return t.statusClosed;
-  if (value === "ARCHIVED") return t.statusArchived;
-  return t.statusDraft;
+function parseJson<T>(response: Response): Promise<T | null> {
+  return response.json().catch(() => null) as Promise<T | null>;
 }
 
-function modeLabel(locale: LocaleCode, value: PackageItem["mode"]) {
-  const t = msg[locale];
-  return value === "LONGITUDINAL" ? t.modeLong : t.modeCross;
+function fmt(locale: LocaleCode, value: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function templateTypeLabel(locale: LocaleCode, value: TemplateItem["type"]) {
-  const t = msg[locale];
-  return value === "SPECIAL" ? t.typeSpecial : t.typeLikert;
+function isoOrNull(value: string) {
+  if (!value.trim()) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function visibilityLabel(locale: LocaleCode, value: TemplateItem["visibility"]) {
-  const t = msg[locale];
-  return value === "STORE" ? t.visibilityStore : t.visibilityPrivate;
+function who(user?: { loginId: string | null; displayName: string | null }) {
+  if (!user) return "-";
+  return user.displayName?.trim() || user.loginId?.trim() || "-";
+}
+
+function templateTypeLabel(locale: LocaleCode, type: "LIKERT" | "SPECIAL") {
+  if (locale === "ko") return type === "SPECIAL" ? "특수" : "리커트";
+  return type === "SPECIAL" ? "Special" : "Likert";
+}
+
+function templateVisibilityLabel(locale: LocaleCode, visibility: "PRIVATE" | "STORE") {
+  if (locale === "ko") return visibility === "STORE" ? "스토어 공개" : "비공개";
+  return visibility === "STORE" ? "Store" : "Private";
+}
+
+function packageModeLabel(locale: LocaleCode, mode: "CROSS_SECTIONAL" | "LONGITUDINAL") {
+  if (locale === "ko") return mode === "LONGITUDINAL" ? "종단" : "횡단";
+  return mode === "LONGITUDINAL" ? "Longitudinal" : "Cross-sectional";
+}
+
+function packageStatusLabel(locale: LocaleCode, status: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED") {
+  if (locale !== "ko") return status;
+  if (status === "ACTIVE") return "진행 중";
+  if (status === "CLOSED") return "종료";
+  if (status === "ARCHIVED") return "보관";
+  return "초안";
 }
 
 function specialRequestStatusLabel(
   locale: LocaleCode,
-  status: SpecialRequestStatus,
+  status: "REQUESTED" | "REVIEWING" | "IN_PROGRESS" | "DELIVERED" | "REJECTED" | "CANCELED",
 ) {
-  if (locale === "en") {
-    return status;
-  }
-  if (status === "REQUESTED") return "접수됨";
-  if (status === "REVIEWING") return "검토중";
-  if (status === "IN_PROGRESS") return "개발중";
-  if (status === "DELIVERED") return "전달완료";
+  if (locale !== "ko") return status;
+  if (status === "REQUESTED") return "접수";
+  if (status === "REVIEWING") return "검토 중";
+  if (status === "IN_PROGRESS") return "작업 중";
+  if (status === "DELIVERED") return "전달 완료";
   if (status === "REJECTED") return "반려";
   return "취소";
-}
-
-function displayUserName(
-  user:
-    | {
-        loginId: string | null;
-        displayName: string | null;
-      }
-    | undefined,
-) {
-  if (!user) {
-    return "-";
-  }
-  return user.displayName?.trim() || user.loginId?.trim() || "-";
-}
-
-function formatMaybeDate(locale: LocaleCode, value: string | null) {
-  if (!value) {
-    return "-";
-  }
-  const formatter = new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-  return formatter.format(new Date(value));
 }
 
 function participantStatusLabel(
   locale: LocaleCode,
   participant: Pick<ParticipantAccountItem, "isActive" | "isAnonymized">,
 ) {
-  if (participant.isAnonymized) {
-    return locale === "ko" ? "익명화됨" : "Anonymized";
-  }
-  return participant.isActive
-    ? locale === "ko"
-      ? "활성"
-      : "Active"
-    : locale === "ko"
-      ? "비활성"
-      : "Inactive";
+  if (participant.isAnonymized) return locale === "ko" ? "익명화됨" : "Anonymized";
+  return participant.isActive ? (locale === "ko" ? "활성" : "Active") : (locale === "ko" ? "비활성" : "Inactive");
 }
 
-export function AdminDashboardClient({
-  locale,
-  viewerRole,
-  initialView,
-  initialTemplates,
-  initialPackages,
-  initialSpecialRequests,
-  initialOwnedSpecialTemplates,
-  initialMyListings,
-  initialMarketListings,
-  initialPurchases,
-  initialSales,
-  initialParticipants,
-}: Props) {
+export function AdminDashboardClient(props: Props) {
+  const { locale, viewerRole, initialView } = props;
+  const isKo = locale === "ko";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const t = useMemo(() => msg[locale], [locale]);
-  const canAuthorSpecialTemplate = viewerRole === "PLATFORM_ADMIN";
+  const purchaseNonceRef = useRef(0);
+  const activeView = normView(searchParams.get("view") ?? initialView ?? "overview");
+  const tr = useCallback((ko: string, en: string) => (isKo ? ko : en), [isKo]);
 
-  const [templates, setTemplates] = useState<TemplateItem[]>(initialTemplates);
-  const [packages, setPackages] = useState<PackageItem[]>(initialPackages);
-  const [specialRequests, setSpecialRequests] = useState<SpecialRequestItem[]>(initialSpecialRequests);
-  const [ownedSpecialTemplates, setOwnedSpecialTemplates] = useState<StoreOwnedTemplateItem[]>(
-    initialOwnedSpecialTemplates,
-  );
-  const [myListings, setMyListings] = useState<StoreListingItem[]>(initialMyListings);
-  const [marketListings, setMarketListings] = useState<StoreListingItem[]>(initialMarketListings);
-  const [purchaseHistory, setPurchaseHistory] = useState<StorePurchaseHistoryItem[]>(initialPurchases);
-  const [salesHistory, setSalesHistory] = useState<StorePurchaseHistoryItem[]>(initialSales);
-  const [participants, setParticipants] = useState<ParticipantAccountItem[]>(initialParticipants);
+  const [templates, setTemplates] = useState(props.initialTemplates);
+  const [packages, setPackages] = useState(props.initialPackages);
+  const [specialRequests, setSpecialRequests] = useState(props.initialSpecialRequests);
+  const [ownedSpecialTemplates, setOwnedSpecialTemplates] = useState(props.initialOwnedSpecialTemplates);
+  const [myListings, setMyListings] = useState(props.initialMyListings);
+  const [marketListings, setMarketListings] = useState(props.initialMarketListings);
+  const [purchaseHistory, setPurchaseHistory] = useState(props.initialPurchases);
+  const [salesHistory, setSalesHistory] = useState(props.initialSales);
+  const [participants, setParticipants] = useState(props.initialParticipants);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -563,1620 +132,489 @@ export function AdminDashboardClient({
   const [templateDescription, setTemplateDescription] = useState("");
   const [likertMin, setLikertMin] = useState(1);
   const [likertMax, setLikertMax] = useState(5);
-  const [likertLabels, setLikertLabels] = useState(
-    locale === "ko"
-      ? "전혀 아니다,아니다,보통이다,그렇다,매우 그렇다"
-      : "Strongly disagree,Disagree,Neutral,Agree,Strongly agree",
-  );
-  const [likertQuestions, setLikertQuestions] = useState(
-    locale === "ko"
-      ? "나는 오늘 집중이 잘 된다."
-      : "I can focus well today.",
-  );
-  const [specialSchemaText, setSpecialSchemaText] = useState(
-    JSON.stringify({ kind: "special", version: 1, fields: [] }, null, 2),
-  );
+  const [likertLabels, setLikertLabels] = useState(isKo ? "전혀 아니다\n아니다\n보통이다\n그렇다\n매우 그렇다" : "Strongly disagree\nDisagree\nNeutral\nAgree\nStrongly agree");
+  const [likertQuestions, setLikertQuestions] = useState("");
+  const [specialSchemaText, setSpecialSchemaText] = useState('{\n  "kind": "special",\n  "version": 1\n}');
 
   const [packageCode, setPackageCode] = useState("");
   const [packageTitle, setPackageTitle] = useState("");
   const [packageDescription, setPackageDescription] = useState("");
-  const [packageMode, setPackageMode] = useState<"CROSS_SECTIONAL" | "LONGITUDINAL">(
-    "CROSS_SECTIONAL",
-  );
+  const [packageMode, setPackageMode] = useState<"CROSS_SECTIONAL" | "LONGITUDINAL">("CROSS_SECTIONAL");
   const [packageMaxResponses, setPackageMaxResponses] = useState(1);
   const [packageStartsAt, setPackageStartsAt] = useState("");
   const [packageEndsAt, setPackageEndsAt] = useState("");
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-  const [aiMode, setAiMode] = useState<"BYOK" | "MANAGED">("MANAGED");
-  const [aiPackageId, setAiPackageId] = useState(initialPackages[0]?.id ?? "");
-  const [aiQuestion, setAiQuestion] = useState(
-    locale === "ko"
-      ? "이 패키지 응답 데이터의 핵심 경향과 해석 시 주의점을 요약해줘."
-      : "Summarize key trends in this package and interpretation caveats.",
-  );
-  const [aiApiKey, setAiApiKey] = useState("");
-  const [aiResult, setAiResult] = useState("");
-  const [aiMeta, setAiMeta] = useState("");
-  const [aiIsRunning, setAiIsRunning] = useState(false);
-  const [specialRequestTitle, setSpecialRequestTitle] = useState("");
-  const [specialRequestDescription, setSpecialRequestDescription] = useState("");
-  const [specialRequestConsent, setSpecialRequestConsent] = useState(false);
-  const [storeTemplateId, setStoreTemplateId] = useState(initialOwnedSpecialTemplates[0]?.id ?? "");
-  const [storePriceCredits, setStorePriceCredits] = useState(100);
-  const [storeIsActive, setStoreIsActive] = useState(true);
-  const [listingDrafts, setListingDrafts] = useState<
-    Record<string, { priceCredits: number; isActive: boolean }>
-  >(() =>
-    Object.fromEntries(
-      initialMyListings.map((listing) => [
-        listing.id,
-        { priceCredits: listing.priceCredits, isActive: listing.isActive },
-      ]),
-    ),
-  );
+
+  const [specialTitle, setSpecialTitle] = useState("");
+  const [specialDescription, setSpecialDescription] = useState("");
+  const [specialConsent, setSpecialConsent] = useState(false);
+
+  const [storeTemplateId, setStoreTemplateId] = useState(props.initialOwnedSpecialTemplates[0]?.id ?? "");
+  const [storePrice, setStorePrice] = useState(100);
+  const [storeActive, setStoreActive] = useState(true);
+  const [listingDrafts, setListingDrafts] = useState<Record<string, { priceCredits: number; isActive: boolean }>>(() => Object.fromEntries(props.initialMyListings.map((listing) => [listing.id, { priceCredits: listing.priceCredits, isActive: listing.isActive }])));
+
+  const [participantQuery, setParticipantQuery] = useState("");
+  const [participantFilter, setParticipantFilter] = useState<ParticipantFilter>("ALL");
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
   const [exportAttempt, setExportAttempt] = useState("");
-  const [participantQuery, setParticipantQuery] = useState("");
-  const [participantFilter, setParticipantFilter] = useState<
-    "ALL" | "ACTIVE" | "INACTIVE" | "ANONYMIZED"
-  >("ALL");
-  const [specialRequestFilter, setSpecialRequestFilter] = useState<"ALL" | SpecialRequestStatus>(
-    "ALL",
-  );
 
-  const rawView = searchParams.get("view");
-  const normalizedViewFromUrl = normalizeAdminViewKey(rawView);
-  const activeView = useMemo(
-    () => normalizeAdminViewKey(rawView ?? initialView),
-    [initialView, rawView],
-  );
-
-  useEffect(() => {
-    if (!rawView) {
-      return;
-    }
-    if (normalizedViewFromUrl !== "overview") {
-      return;
-    }
-
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("view");
-    const nextQuery = nextParams.toString();
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
-  }, [normalizedViewFromUrl, pathname, rawView, router, searchParams]);
-
-  const changeView = useCallback(
-    (nextView: AdminViewKey) => {
-      const nextParams = new URLSearchParams(searchParams.toString());
-      if (nextView === "overview") {
-        nextParams.delete("view");
-      } else {
-        nextParams.set("view", nextView);
-      }
-      const nextQuery = nextParams.toString();
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
-
-  const adminSnapshot = useMemo(() => {
-    const openRequestCount = specialRequests.filter((item) =>
-      ["REQUESTED", "REVIEWING", "IN_PROGRESS"].includes(item.status),
-    ).length;
-    const activeListingCount = myListings.filter((item) => item.isActive).length;
-    const activeParticipantCount = participants.filter(
-      (item) => !item.isAnonymized && item.isActive,
-    ).length;
-    const anonymizedParticipantCount = participants.filter((item) => item.isAnonymized).length;
-
-    return {
-      templateCount: templates.length,
-      packageCount: packages.length,
-      openRequestCount,
-      activeListingCount,
-      activeParticipantCount,
-      anonymizedParticipantCount,
-    };
-  }, [myListings, packages.length, participants, specialRequests, templates.length]);
-
-  const filteredSpecialRequests = useMemo(() => {
-    if (specialRequestFilter === "ALL") {
-      return specialRequests;
-    }
-    return specialRequests.filter((item) => item.status === specialRequestFilter);
-  }, [specialRequestFilter, specialRequests]);
-
-  const filteredParticipants = useMemo(() => {
-    const normalizedQuery = participantQuery.trim().toLowerCase();
-    return participants.filter((item) => {
-      const statusMatched =
-        participantFilter === "ALL"
-          ? true
-          : participantFilter === "ANONYMIZED"
-            ? item.isAnonymized
-            : participantFilter === "ACTIVE"
-              ? !item.isAnonymized && item.isActive
-              : !item.isAnonymized && !item.isActive;
-
-      if (!statusMatched) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      const loginId = item.loginId?.toLowerCase() ?? "";
-      const displayName = item.displayName?.toLowerCase() ?? "";
-      return loginId.includes(normalizedQuery) || displayName.includes(normalizedQuery);
-    });
-  }, [participantFilter, participantQuery, participants]);
+  const changeView = useCallback((view: AdminViewKey) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (view === "overview") params.delete("view");
+    else params.set("view", view);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
     setMessage("");
-
-    const [tplRes, pkgRes, specialRes, listingsRes, purchasesRes, participantsRes] = await Promise.all([
-      fetch("/api/admin/templates", { cache: "no-store" }),
-      fetch("/api/admin/packages", { cache: "no-store" }),
-      fetch("/api/admin/special-requests", { cache: "no-store" }),
-      fetch("/api/admin/store/listings?limit=100", { cache: "no-store" }),
-      fetch("/api/admin/store/purchases?limit=50", { cache: "no-store" }),
-      fetch("/api/admin/participants?limit=200", { cache: "no-store" }),
-    ]);
-
-    const tplJson = (await tplRes.json().catch(() => null)) as
-      | { ok?: boolean; templates?: TemplateItem[] }
-      | null;
-    const pkgJson = (await pkgRes.json().catch(() => null)) as
-      | { ok?: boolean; packages?: PackageItem[] }
-      | null;
-    const specialJson = (await specialRes.json().catch(() => null)) as
-      | { ok?: boolean; requests?: SpecialRequestItem[] }
-      | null;
-    const listingsJson = (await listingsRes.json().catch(() => null)) as
-      | {
-          ok?: boolean;
-          ownedSpecialTemplates?: StoreOwnedTemplateItem[];
-          myListings?: StoreListingItem[];
-          marketListings?: StoreListingItem[];
-        }
-      | null;
-    const purchasesJson = (await purchasesRes.json().catch(() => null)) as
-      | { ok?: boolean; purchases?: StorePurchaseHistoryItem[]; sales?: StorePurchaseHistoryItem[] }
-      | null;
-    const participantsJson = (await participantsRes.json().catch(() => null)) as
-      | { ok?: boolean; participants?: ParticipantAccountItem[] }
-      | null;
-
-    if (
-      !tplRes.ok ||
-      !pkgRes.ok ||
-      !specialRes.ok ||
-      !listingsRes.ok ||
-      !purchasesRes.ok ||
-      !participantsRes.ok ||
-      !tplJson?.ok ||
-      !pkgJson?.ok ||
-      !specialJson?.ok ||
-      !listingsJson?.ok ||
-      !purchasesJson?.ok ||
-      !participantsJson?.ok
-    ) {
-      setMessage(t.failDefault);
-      setIsLoading(false);
-      return;
-    }
-
-    const nextTemplates = tplJson.templates ?? [];
-    const nextPackages = pkgJson.packages ?? [];
-    const nextRequests = specialJson.requests ?? [];
-    const nextOwnedSpecialTemplates = listingsJson.ownedSpecialTemplates ?? [];
-    const nextMyListings = listingsJson.myListings ?? [];
-    const nextMarketListings = listingsJson.marketListings ?? [];
-    const nextPurchases = purchasesJson.purchases ?? [];
-    const nextSales = purchasesJson.sales ?? [];
-    const nextParticipants = participantsJson.participants ?? [];
-
-    setTemplates(nextTemplates);
-    setPackages(nextPackages);
-    setSpecialRequests(nextRequests);
-    setOwnedSpecialTemplates(nextOwnedSpecialTemplates);
-    setMyListings(nextMyListings);
-    setMarketListings(nextMarketListings);
-    setPurchaseHistory(nextPurchases);
-    setSalesHistory(nextSales);
-    setParticipants(nextParticipants);
-    setListingDrafts(
-      Object.fromEntries(
-        nextMyListings.map((listing) => [
-          listing.id,
-          { priceCredits: listing.priceCredits, isActive: listing.isActive },
-        ]),
-      ),
-    );
-    setStoreTemplateId((prev) =>
-      prev && nextOwnedSpecialTemplates.some((tpl) => tpl.id === prev)
-        ? prev
-        : (nextOwnedSpecialTemplates[0]?.id ?? ""),
-    );
-    setAiPackageId((prev) =>
-      prev && nextPackages.some((pkg) => pkg.id === prev) ? prev : (nextPackages[0]?.id ?? ""),
-    );
-    setIsLoading(false);
-  }, [t.failDefault]);
-
-  const buildTemplateSchema = () => {
-    if (templateType === "SPECIAL") {
-      try {
-        const parsed = JSON.parse(specialSchemaText);
-        if (parsed === null || typeof parsed !== "object") {
-          return null;
-        }
-        return parsed as Record<string, unknown>;
-      } catch {
-        return null;
+    try {
+      const [templateRes, packageRes, requestRes, listingRes, purchaseRes, participantRes] = await Promise.all([
+        fetch("/api/admin/templates", { cache: "no-store" }),
+        fetch("/api/admin/packages", { cache: "no-store" }),
+        fetch("/api/admin/special-requests", { cache: "no-store" }),
+        fetch("/api/admin/store/listings?limit=100", { cache: "no-store" }),
+        fetch("/api/admin/store/purchases?limit=50", { cache: "no-store" }),
+        fetch("/api/admin/participants?limit=200", { cache: "no-store" }),
+      ]);
+      const templateJson = await parseJson<{ ok?: boolean; templates?: TemplateItem[] }>(templateRes);
+      const packageJson = await parseJson<{ ok?: boolean; packages?: PackageItem[] }>(packageRes);
+      const requestJson = await parseJson<{ ok?: boolean; requests?: SpecialRequestItem[] }>(requestRes);
+      const listingJson = await parseJson<{ ok?: boolean; ownedSpecialTemplates?: StoreOwnedTemplateItem[]; myListings?: StoreListingItem[]; marketListings?: StoreListingItem[] }>(listingRes);
+      const purchaseJson = await parseJson<{ ok?: boolean; purchases?: StorePurchaseHistoryItem[]; sales?: StorePurchaseHistoryItem[] }>(purchaseRes);
+      const participantJson = await parseJson<{ ok?: boolean; participants?: ParticipantAccountItem[] }>(participantRes);
+      if (!templateRes.ok || !templateJson?.ok || !templateJson.templates || !packageRes.ok || !packageJson?.ok || !packageJson.packages || !requestRes.ok || !requestJson?.ok || !requestJson.requests || !listingRes.ok || !listingJson?.ok || !listingJson.ownedSpecialTemplates || !listingJson.myListings || !listingJson.marketListings || !purchaseRes.ok || !purchaseJson?.ok || !purchaseJson.purchases || !purchaseJson.sales || !participantRes.ok || !participantJson?.ok || !participantJson.participants) {
+        throw new Error("refresh_failed");
       }
+      setTemplates(templateJson.templates);
+      setPackages(packageJson.packages);
+      setSpecialRequests(requestJson.requests);
+      const ownedTemplates = listingJson.ownedSpecialTemplates;
+      const ownListings = listingJson.myListings;
+      const availableListings = listingJson.marketListings;
+      const purchases = purchaseJson.purchases;
+      const sales = purchaseJson.sales;
+      const participantRows = participantJson.participants;
+      setOwnedSpecialTemplates(ownedTemplates);
+      setMyListings(ownListings);
+      setMarketListings(availableListings);
+      setPurchaseHistory(purchases);
+      setSalesHistory(sales);
+      setParticipants(participantRows);
+      setStoreTemplateId((prev) =>
+        prev && ownedTemplates.some((item) => item.id === prev) ? prev : (ownedTemplates[0]?.id ?? ""),
+      );
+      setListingDrafts(
+        Object.fromEntries(
+          ownListings.map((listing) => [
+            listing.id,
+            { priceCredits: listing.priceCredits, isActive: listing.isActive },
+          ]),
+        ),
+      );
+    } catch {
+      setMessage(tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+    } finally {
+      setIsLoading(false);
     }
-
-    const labels = likertLabels
-      .split(/[\n,]/)
-      .map((x) => x.trim())
-      .filter(Boolean);
-    const questions = likertQuestions
-      .split("\n")
-      .map((x) => x.trim())
-      .filter(Boolean);
-
-    if (labels.length < 2 || questions.length < 1 || likertMin >= likertMax) {
-      return null;
-    }
-
-    return {
-      kind: "likert",
-      scale: { min: likertMin, max: likertMax, labels },
-      questions: questions.map((q, i) => ({ id: `q${i + 1}`, text: q })),
-    };
-  };
+  }, [tr]);
+  const updateListingDraft = useCallback((listingId: string, patch: Partial<{ priceCredits: number; isActive: boolean }>) => {
+    setListingDrafts((current) => ({
+      ...current,
+      [listingId]: {
+        priceCredits: patch.priceCredits ?? current[listingId]?.priceCredits ?? 1,
+        isActive: patch.isActive ?? current[listingId]?.isActive ?? true,
+      },
+    }));
+  }, []);
 
   const onCreateTemplate = async (event: FormEvent) => {
     event.preventDefault();
-    setMessage("");
-
-    if (templateType === "SPECIAL" && !canAuthorSpecialTemplate) {
-      setMessage(locale === "ko" ? "특수 템플릿은 의뢰를 통해서만 제작됩니다." : "Special templates are request-only.");
-      return;
-    }
-
-    if (!templateTitle.trim()) {
-      setMessage(t.failValidationTemplate);
-      return;
-    }
-
-    const schema = buildTemplateSchema();
-    if (!schema) {
-      setMessage(templateType === "SPECIAL" ? t.failJson : t.failValidationTemplate);
-      return;
-    }
-
     setIsLoading(true);
-    const response = await fetch("/api/admin/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: templateType,
-        title: templateTitle.trim(),
-        description: templateDescription.trim() || undefined,
-        visibility: templateVisibility,
-        schemaJson: schema,
-      }),
-    });
-
-    if (!response.ok) {
-      setMessage(t.failDefault);
+    setMessage("");
+    try {
+      let schemaJson: Record<string, unknown>;
+      if (templateType === "LIKERT") {
+        const labels = likertLabels.split(/[\n,]/g).map((item) => item.trim()).filter(Boolean);
+        const questions = likertQuestions.split(/\n/g).map((item, index) => ({ id: `Q${index + 1}`, text: item.trim() })).filter((item) => item.text.length > 0);
+        if (labels.length !== likertMax - likertMin + 1) {
+          setMessage(tr("척도 라벨 수가 최소/최대 범위와 맞지 않습니다.", "Scale labels do not match the min/max range."));
+          setIsLoading(false);
+          return;
+        }
+        if (questions.length === 0) {
+          setMessage(tr("질문을 한 개 이상 입력해야 합니다.", "Enter at least one question."));
+          setIsLoading(false);
+          return;
+        }
+        schemaJson = { kind: "likert", scale: { min: likertMin, max: likertMax, labels }, questions };
+      } else {
+        try {
+          schemaJson = JSON.parse(specialSchemaText) as Record<string, unknown>;
+        } catch {
+          setMessage(tr("특수 템플릿 JSON 형식이 올바르지 않습니다.", "Special template JSON is invalid."));
+          setIsLoading(false);
+          return;
+        }
+      }
+      const response = await fetch("/api/admin/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: templateType, title: templateTitle.trim(), description: templateDescription.trim() || undefined, visibility: templateVisibility, schemaJson }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setTemplateTitle("");
+      setTemplateDescription("");
+      setLikertQuestions("");
+      setMessage(tr("템플릿이 생성되었습니다.", "Template created."));
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setTemplateTitle("");
-    setTemplateDescription("");
-    await refreshAll();
-    setMessage(t.successTemplate);
-    setIsLoading(false);
-  };
-
-  const onToggleTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) =>
-      prev.includes(templateId)
-        ? prev.filter((id) => id !== templateId)
-        : [...prev, templateId],
-    );
-  };
-
-  const toIsoOrUndefined = (value: string) => {
-    if (!value.trim()) {
-      return undefined;
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return undefined;
-    }
-    return date.toISOString();
-  };
-
-  const toIsoOrNull = (value: string) => {
-    if (!value.trim()) {
-      return null;
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return null;
-    }
-    return date.toISOString();
-  };
-
-  const isExportRangeInvalid = useMemo(() => {
-    const from = toIsoOrNull(exportFrom);
-    const to = toIsoOrNull(exportTo);
-    if (!from || !to) {
-      return false;
-    }
-    return new Date(to).getTime() < new Date(from).getTime();
-  }, [exportFrom, exportTo]);
-
-  const buildExportHref = (packageId: string) => {
-    const params = new URLSearchParams();
-
-    const from = toIsoOrNull(exportFrom);
-    const to = toIsoOrNull(exportTo);
-    if (from) {
-      params.set("from", from);
-    }
-    if (to) {
-      params.set("to", to);
-    }
-
-    const parsedAttempt = Number.parseInt(exportAttempt, 10);
-    if (exportAttempt.trim() && Number.isInteger(parsedAttempt) && parsedAttempt > 0) {
-      params.set("attempt", String(parsedAttempt));
-    }
-
-    const query = params.toString();
-    if (!query) {
-      return `/api/admin/packages/${packageId}/export`;
-    }
-    return `/api/admin/packages/${packageId}/export?${query}`;
   };
 
   const onCreatePackage = async (event: FormEvent) => {
     event.preventDefault();
-    setMessage("");
-
-    if (!packageCode.trim() || !packageTitle.trim()) {
-      setMessage(t.failValidationPackage);
+    if (selectedTemplateIds.length === 0) {
+      setMessage(tr("패키지에 포함할 템플릿을 한 개 이상 선택해야 합니다.", "Select at least one template."));
       return;
     }
-    if (selectedTemplateIds.length < 1) {
-      setMessage(t.failNeedTemplate);
-      return;
-    }
-
     setIsLoading(true);
-    const response = await fetch("/api/admin/packages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code: packageCode.trim(),
-        title: packageTitle.trim(),
-        description: packageDescription.trim() || undefined,
-        mode: packageMode,
-        maxResponsesPerParticipant: packageMaxResponses,
-        startsAt: toIsoOrUndefined(packageStartsAt),
-        endsAt: toIsoOrUndefined(packageEndsAt),
-        templateIds: selectedTemplateIds,
-      }),
-    });
-
-    if (!response.ok) {
-      setMessage(t.failDefault);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/packages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: packageCode.trim(), title: packageTitle.trim(), description: packageDescription.trim() || undefined, mode: packageMode, maxResponsesPerParticipant: packageMaxResponses, startsAt: isoOrNull(packageStartsAt) ?? undefined, endsAt: isoOrNull(packageEndsAt) ?? undefined, templateIds: selectedTemplateIds }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setPackageCode("");
+      setPackageTitle("");
+      setPackageDescription("");
+      setPackageStartsAt("");
+      setPackageEndsAt("");
+      setPackageMode("CROSS_SECTIONAL");
+      setPackageMaxResponses(1);
+      setSelectedTemplateIds([]);
+      setMessage(tr("패키지가 생성되었습니다.", "Package created."));
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setPackageCode("");
-    setPackageTitle("");
-    setPackageDescription("");
-    setPackageMode("CROSS_SECTIONAL");
-    setPackageMaxResponses(1);
-    setPackageStartsAt("");
-    setPackageEndsAt("");
-    setSelectedTemplateIds([]);
-    await refreshAll();
-    setMessage(t.successPackage);
-    setIsLoading(false);
   };
 
-  const onChangePackageStatus = async (
-    packageId: string,
-    status: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED",
-  ) => {
+  const onChangePackageStatus = async (packageId: string, status: PackageItem["status"]) => {
     setIsLoading(true);
     setMessage("");
-
-    const response = await fetch(`/api/admin/packages/${packageId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!response.ok) {
-      setMessage(t.failDefault);
+    try {
+      const response = await fetch(`/api/admin/packages/${packageId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setMessage(tr("패키지 상태가 변경되었습니다.", "Package status updated."));
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    await refreshAll();
-    setMessage(t.successStatus);
-    setIsLoading(false);
   };
 
   const onCreateSpecialRequest = async (event: FormEvent) => {
     event.preventDefault();
-    setMessage("");
-
-    if (!specialRequestTitle.trim() || !specialRequestDescription.trim()) {
-      setMessage(t.failDefault);
-      return;
-    }
-    if (!specialRequestConsent) {
-      setMessage(t.specialRequestNeedConsent);
-      return;
-    }
-
     setIsLoading(true);
-    const response = await fetch("/api/admin/special-requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: specialRequestTitle.trim(),
-        description: specialRequestDescription.trim(),
-        consentPublicSource: true,
-      }),
-    });
-
-    if (!response.ok) {
-      setMessage(t.failDefault);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/special-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: specialTitle.trim(), description: specialDescription.trim(), consentPublicSource: specialConsent }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setSpecialTitle("");
+      setSpecialDescription("");
+      setSpecialConsent(false);
+      setMessage(tr("특수 템플릿 의뢰가 등록되었습니다.", "Special request submitted."));
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setSpecialRequestTitle("");
-    setSpecialRequestDescription("");
-    setSpecialRequestConsent(false);
-    setMessage(t.specialRequestCreated);
-    await refreshAll();
-    setIsLoading(false);
-  };
-
-  const updateListingDraft = (listingId: string, patch: Partial<{ priceCredits: number; isActive: boolean }>) => {
-    setListingDrafts((prev) => ({
-      ...prev,
-      [listingId]: {
-        priceCredits: patch.priceCredits ?? prev[listingId]?.priceCredits ?? 1,
-        isActive: patch.isActive ?? prev[listingId]?.isActive ?? true,
-      },
-    }));
   };
 
   const onCreateStoreListing = async (event: FormEvent) => {
     event.preventDefault();
-    setMessage("");
-
-    if (!storeTemplateId || !Number.isFinite(storePriceCredits) || Math.trunc(storePriceCredits) < 1) {
-      setMessage(t.failDefault);
-      return;
-    }
-
+    if (!storeTemplateId) return;
     setIsLoading(true);
-    const response = await fetch("/api/admin/store/listings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        templateId: storeTemplateId,
-        priceCredits: Math.trunc(storePriceCredits),
-        isActive: storeIsActive,
-      }),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setMessage(payload?.error ?? t.failDefault);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/store/listings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ templateId: storeTemplateId, priceCredits: Math.max(1, Math.trunc(storePrice)), isActive: storeActive }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setMessage(tr("스토어 등록이 완료되었습니다.", "Store listing created."));
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setMessage(t.storeListingCreated);
-    await refreshAll();
-    setIsLoading(false);
   };
 
   const onUpdateStoreListing = async (listingId: string) => {
     const draft = listingDrafts[listingId];
-    if (!draft) {
-      return;
-    }
-    if (!Number.isFinite(draft.priceCredits) || Math.trunc(draft.priceCredits) < 1) {
-      setMessage(t.failDefault);
-      return;
-    }
-
+    if (!draft) return;
     setIsLoading(true);
-    const response = await fetch(`/api/admin/store/listings/${listingId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        priceCredits: Math.trunc(draft.priceCredits),
-        isActive: draft.isActive,
-      }),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setMessage(payload?.error ?? t.failDefault);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/admin/store/listings/${listingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ priceCredits: Math.max(1, Math.trunc(draft.priceCredits)), isActive: draft.isActive }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setMessage(tr("스토어 등록 정보가 수정되었습니다.", "Store listing updated."));
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setMessage(t.storeListingUpdated);
-    await refreshAll();
-    setIsLoading(false);
   };
 
   const onPurchaseListing = async (listingId: string) => {
+    purchaseNonceRef.current += 1;
     setIsLoading(true);
     setMessage("");
-
-    const response = await fetch("/api/admin/store/purchases", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId }),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setMessage(payload?.error ?? t.failDefault);
-      setIsLoading(false);
-      return;
-    }
-
-    setMessage(t.storePurchased);
-    await refreshAll();
-    setIsLoading(false);
-  };
-
-  const onParticipantAction = async (
-    participantId: string,
-    action: "ACTIVATE" | "DEACTIVATE" | "ANONYMIZE",
-  ) => {
-    if (action === "ANONYMIZE") {
-      const ok = window.confirm(
-        locale === "ko"
-          ? "이 계정을 익명화하면 로그인 식별 정보(ID/비밀번호/표시이름)가 제거됩니다. 계속할까요?"
-          : "This will anonymize login identifiers (ID/password/display name). Continue?",
-      );
-      if (!ok) {
+    try {
+      const response = await fetch("/api/admin/store/purchases", { method: "POST", headers: { "Content-Type": "application/json", "X-Idempotency-Key": `template_purchase_${listingId}_${purchaseNonceRef.current}` }, body: JSON.stringify({ listingId }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
         return;
       }
+      await refreshAll();
+      setMessage(tr("구매가 완료되었습니다.", "Purchase completed."));
+    } finally {
+      setIsLoading(false);
     }
+  };
 
+  const onParticipantAction = async (participantId: string, action: "ACTIVATE" | "DEACTIVATE" | "ANONYMIZE") => {
+    if (action === "ANONYMIZE") {
+      const ok = window.confirm(tr("정말 이 참가자 계정을 익명화할까요? 이 작업은 되돌릴 수 없습니다.", "Anonymize this participant account? This cannot be undone."));
+      if (!ok) return;
+    }
     setIsLoading(true);
     setMessage("");
-
-    const response = await fetch(`/api/admin/participants/${participantId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setMessage(payload?.error ?? t.failDefault);
-      setIsLoading(false);
-      return;
-    }
-
-    await refreshAll();
-    setMessage(t.participantUpdated);
-    setIsLoading(false);
-  };
-
-  const onRunAiAnalysis = async (event: FormEvent) => {
-    event.preventDefault();
-    setMessage("");
-    setAiMeta("");
-
-    if (!aiPackageId || !aiQuestion.trim()) {
-      setMessage(
-        locale === "ko"
-          ? "AI 분석을 위해 패키지와 질문을 입력하세요."
-          : "Select a package and enter a question.",
-      );
-      return;
-    }
-
-    if (aiMode === "BYOK" && !aiApiKey.trim()) {
-      setMessage(locale === "ko" ? "BYOK 모드에서는 API 키가 필요합니다." : "BYOK mode requires API key.");
-      return;
-    }
-
-    setAiIsRunning(true);
-    setAiResult("");
-    const idempotencyKey = `ai_${aiPackageId}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-
-    const response = await fetch("/api/admin/ai/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        packageId: aiPackageId,
-        question: aiQuestion.trim(),
-        mode: aiMode,
-        provider: "openai",
-        apiKey: aiMode === "BYOK" ? aiApiKey.trim() : undefined,
-      }),
-    });
-
-    const payload = (await response.json().catch(() => null)) as
-      | {
-          ok?: boolean;
-          error?: string;
-          retryAfterSec?: number;
-          answer?: string;
-          model?: string;
-          usage?: { totalTokens?: number | null };
-          credits?: { charged?: number; balanceAfter?: number; policyMode?: string } | null;
-        }
-      | null;
-
-    if (!response.ok || !payload?.ok || !payload.answer) {
-      if (payload?.error === "rate_limited") {
-        setMessage(
-          locale === "ko"
-            ? `요청이 너무 많습니다. ${payload.retryAfterSec ?? 0}초 후 다시 시도해주세요.`
-            : `Too many requests. Try again in ${payload.retryAfterSec ?? 0} seconds.`,
-        );
-      } else if (payload?.error === "missing_idempotency_key") {
-        setMessage(locale === "ko" ? "요청 키 생성에 실패했습니다." : "Failed to prepare request key.");
-      } else {
-        setMessage(payload?.error ?? t.failDefault);
+    try {
+      const response = await fetch(`/api/admin/participants/${participantId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
       }
-      setAiIsRunning(false);
-      return;
+      await refreshAll();
+      setMessage(tr("피검자 상태가 변경되었습니다.", "Participant status updated."));
+    } finally {
+      setIsLoading(false);
     }
-
-    setAiResult(payload.answer);
-    const usageText =
-      typeof payload.usage?.totalTokens === "number"
-        ? `tokens=${payload.usage.totalTokens}`
-        : "tokens=unknown";
-    const creditText =
-      payload.credits && typeof payload.credits.charged === "number"
-        ? `credits_charged=${payload.credits.charged}, balance=${payload.credits.balanceAfter ?? "unknown"}, policy=${payload.credits.policyMode ?? "unknown"}`
-        : "credits_charged=0";
-    setAiMeta(`model=${payload.model ?? "unknown"}, ${usageText}, ${creditText}`);
-    setAiIsRunning(false);
   };
 
-  const roleLabel =
-    locale === "ko"
-      ? viewerRole === "PLATFORM_ADMIN"
-        ? "현재 권한: 플랫폼 어드민 (관리자 기능 포함)"
-        : "현재 권한: 연구 관리자"
-      : viewerRole === "PLATFORM_ADMIN"
-        ? "Current role: Platform admin (includes research admin capabilities)"
-        : "Current role: Research admin";
+  const filteredParticipants = useMemo(() => {
+    const q = participantQuery.trim().toLowerCase();
+    return participants.filter((participant) => {
+      if (participantFilter === "ACTIVE" && (!participant.isActive || participant.isAnonymized)) return false;
+      if (participantFilter === "INACTIVE" && (participant.isActive || participant.isAnonymized)) return false;
+      if (participantFilter === "ANONYMIZED" && !participant.isAnonymized) return false;
+      if (!q) return true;
+      return `${participant.loginId ?? ""} ${participant.displayName ?? ""}`.toLowerCase().includes(q);
+    });
+  }, [participantFilter, participantQuery, participants]);
 
-  const adminFlowSteps =
-    locale === "ko"
-      ? ["템플릿을 만들고 문항/스키마를 확정합니다.", "템플릿 묶음으로 설문 패키지를 생성하고 참여코드를 발급합니다.", "피검자가 코드로 참여한 응답을 CSV로 내려받아 분석합니다."]
-      : [
-          "Create templates and finalize question/schema.",
-          "Build a survey package from templates and issue participation code.",
-          "Download participant responses as CSV for analysis.",
-        ];
+  const isExportRangeInvalid = useMemo(() => exportFrom && exportTo ? new Date(exportTo).getTime() < new Date(exportFrom).getTime() : false, [exportFrom, exportTo]);
+  const buildExportHref = useCallback((packageId: string, format: "zip" | "csv") => {
+    const params = new URLSearchParams();
+    params.set("format", format);
+    const from = isoOrNull(exportFrom);
+    const to = isoOrNull(exportTo);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const attempt = Number.parseInt(exportAttempt, 10);
+    if (exportAttempt.trim() && Number.isInteger(attempt) && attempt > 0) params.set("attempt", String(attempt));
+    return `/api/admin/packages/${packageId}/export?${params.toString()}`;
+  }, [exportAttempt, exportFrom, exportTo]);
 
-  const adminTabs = useMemo(
-    () => [
-      { key: "overview" as const, label: locale === "ko" ? "개요" : "Overview" },
-      { key: "templates" as const, label: locale === "ko" ? "템플릿" : "Templates" },
-      { key: "packages" as const, label: locale === "ko" ? "패키지·참여코드" : "Packages & Codes" },
-      { key: "results" as const, label: locale === "ko" ? "결과·AI" : "Results & AI" },
-      {
-        key: "special_store" as const,
-        label: locale === "ko" ? "특수의뢰·스토어" : "Special & Store",
-      },
-      { key: "participants" as const, label: locale === "ko" ? "피검자 관리" : "Participants" },
-    ],
-    [locale],
-  );
-
-  const resultExportPackages = useMemo(
-    () => packages.map((pkg) => ({ id: pkg.id, title: pkg.title, code: pkg.code })),
-    [packages],
-  );
-
+  const cards = [
+    { label: tr("템플릿", "Templates"), value: templates.length },
+    { label: tr("패키지", "Packages"), value: packages.length },
+    { label: tr("열린 특수의뢰", "Open special requests"), value: specialRequests.filter((item) => ["REQUESTED", "REVIEWING", "IN_PROGRESS"].includes(item.status)).length },
+    { label: tr("관리 대상 피검자", "Managed participants"), value: participants.length },
+    { label: tr("활성 특수 판매글", "Active special listings"), value: myListings.filter((item) => item.isActive).length },
+  ];
   return (
-    <main className="sa-page sa-admin-grid" style={{ display: "grid", gap: 20 }}>
-      <section>
-        <h1>{t.title}</h1>
-        <p>{t.subtitle}</p>
-        <p className="sa-role-pill">{roleLabel}</p>
-        <button
-          type="button"
-          onClick={() => void refreshAll()}
-          disabled={isLoading}
-          style={{ padding: "8px 12px" }}
-        >
-          {isLoading ? t.loading : t.refresh}
-        </button>
-        {message ? <p className="sa-inline-message">{message}</p> : null}
-      </section>
-
-      <section className="sa-admin-tab-shell">
-        <nav className="sa-admin-tabs" aria-label={locale === "ko" ? "관리자 작업 영역" : "Admin workspace"}>
-          {adminTabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              className={`sa-admin-tab${activeView === tab.key ? " is-active" : ""}`}
-              onClick={() => changeView(tab.key)}
-              aria-pressed={activeView === tab.key}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </section>
-
-      <section className="sa-role-flow" hidden={activeView !== "overview"}>
-        <h2>{locale === "ko" ? "연구 운영 표준 흐름" : "Research operation flow"}</h2>
-        <ol className="sa-role-flow-list">
-          {adminFlowSteps.map((step, idx) => (
-            <li key={step}>
-              <span>{idx + 1}</span>
-              {step}
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section hidden={activeView !== "overview"}>
-        <h2>{t.dashboardSection}</h2>
-        <div className="sa-metric-grid">
-          <article className="sa-metric-card">
-            <strong>{adminSnapshot.templateCount}</strong>
-            <small>{t.dashboardTemplates}</small>
-          </article>
-          <article className="sa-metric-card">
-            <strong>{adminSnapshot.packageCount}</strong>
-            <small>{t.dashboardPackages}</small>
-          </article>
-          <article className="sa-metric-card">
-            <strong>{adminSnapshot.openRequestCount}</strong>
-            <small>{t.dashboardSpecialOpen}</small>
-          </article>
-          <article className="sa-metric-card">
-            <strong>{adminSnapshot.activeListingCount}</strong>
-            <small>{t.dashboardStoreActive}</small>
-          </article>
-          <article className="sa-metric-card">
-            <strong>{adminSnapshot.activeParticipantCount}</strong>
-            <small>{t.dashboardParticipantsActive}</small>
-          </article>
-          <article className="sa-metric-card">
-            <strong>{adminSnapshot.anonymizedParticipantCount}</strong>
-            <small>{t.dashboardParticipantsAnonymized}</small>
-          </article>
+    <main className="sa-page sa-desktop-only-page" style={{ gap: 20 }}>
+      <section style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div>
+          <h1 style={{ marginBottom: 8 }}>{tr("연구자 콘솔", "Research Admin Console")}</h1>
+          <p style={{ margin: 0, maxWidth: 760 }}>{tr("일반 설문 운영, 결과 내보내기, SkillBook 기반 AI 대화를 관리합니다.", "Manage standard survey operations, exports, and SkillBook-based AI chat.")}</p>
         </div>
-        <div className="sa-admin-quick-links">
-          {adminTabs
-            .filter((tab) => tab.key !== "overview")
-            .map((tab) => (
-              <button key={tab.key} type="button" className="sa-admin-quick-link" onClick={() => changeView(tab.key)}>
-                {tab.label}
-              </button>
-            ))}
+        <button type="button" onClick={() => void refreshAll()} disabled={isLoading}>{isLoading ? tr("처리 중...", "Processing...") : tr("새로고침", "Refresh")}</button>
+      </section>
+
+      <nav style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {viewKeys.map((view) => {
+          const label = view === "overview" ? tr("개요", "Overview") : view === "templates" ? tr("템플릿", "Templates") : view === "packages" ? tr("패키지·참여코드", "Packages") : view === "results" ? tr("결과·AI", "Results & AI") : view === "special_store" ? tr("특수의뢰·스토어", "Special & Store") : tr("피검자 관리", "Participants");
+          const active = activeView === view;
+          return <button key={view} type="button" onClick={() => changeView(view)} style={{ border: active ? "2px solid #2A5F7F" : "1px solid #c1d2dc", background: active ? "#eef5f8" : "#fff", color: "#1e4257", borderRadius: 999, padding: "8px 14px", fontWeight: active ? 700 : 500 }}>{label}</button>;
+        })}
+      </nav>
+
+      {message ? <p className="sa-inline-message">{message}</p> : null}
+
+      <section hidden={activeView !== "overview"} style={{ display: "grid", gap: 12 }}>
+        <h2 style={{ margin: 0 }}>{tr("운영 요약", "Operations snapshot")}</h2>
+        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          {cards.map((card) => <article key={card.label} style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 14, background: "#fff" }}><div style={{ fontSize: 13, opacity: 0.7 }}>{card.label}</div><div style={{ fontSize: 28, fontWeight: 700, marginTop: 8 }}>{card.value}</div></article>)}
         </div>
       </section>
 
-      <section hidden={activeView !== "templates"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{t.templateSection}</h2>
-        <form onSubmit={onCreateTemplate} style={{ display: "grid", gap: 10, marginTop: 8 }}>
-          <label>
-            {t.templateType}
-            <select
-              value={templateType}
-              onChange={(e) => setTemplateType(e.target.value as "LIKERT" | "SPECIAL")}
-              style={{ marginLeft: 8 }}
-            >
-              <option value="LIKERT">{t.typeLikert}</option>
-              {canAuthorSpecialTemplate ? <option value="SPECIAL">{t.typeSpecial}</option> : null}
-            </select>
-          </label>
-
-          <label>
-            {t.templateVisibility}
-            <select
-              value={templateVisibility}
-              onChange={(e) =>
-                setTemplateVisibility(e.target.value as "PRIVATE" | "STORE")
-              }
-              style={{ marginLeft: 8 }}
-            >
-              <option value="PRIVATE">{t.visibilityPrivate}</option>
-              <option value="STORE">{t.visibilityStore}</option>
-            </select>
-          </label>
-
-          <label>
-            {t.templateTitle}
-            <input
-              value={templateTitle}
-              onChange={(e) => setTemplateTitle(e.target.value)}
-              style={{ marginLeft: 8, minWidth: 320 }}
-            />
-          </label>
-
-          <label>
-            {t.templateDesc}
-            <input
-              value={templateDescription}
-              onChange={(e) => setTemplateDescription(e.target.value)}
-              style={{ marginLeft: 8, minWidth: 320 }}
-            />
-          </label>
-
-          {templateType === "LIKERT" ? (
-            <>
-              <label>
-                {t.likertScaleMin}
-                <input
-                  type="number"
-                  value={likertMin}
-                  onChange={(e) => setLikertMin(Number(e.target.value))}
-                  style={{ marginLeft: 8, width: 80 }}
-                />
-              </label>
-              <label>
-                {t.likertScaleMax}
-                <input
-                  type="number"
-                  value={likertMax}
-                  onChange={(e) => setLikertMax(Number(e.target.value))}
-                  style={{ marginLeft: 8, width: 80 }}
-                />
-              </label>
+      <section hidden={activeView !== "templates"} style={{ display: "grid", gap: 16 }}>
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("템플릿 생성", "Create template")}</h2>
+          <form onSubmit={onCreateTemplate} style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
               <label style={{ display: "grid", gap: 6 }}>
-                {t.likertLabels}
-                <textarea
-                  value={likertLabels}
-                  onChange={(e) => setLikertLabels(e.target.value)}
-                  rows={2}
-                />
-              </label>
-              <label style={{ display: "grid", gap: 6 }}>
-                {t.likertQuestions}
-                <textarea
-                  value={likertQuestions}
-                  onChange={(e) => setLikertQuestions(e.target.value)}
-                  rows={4}
-                />
-              </label>
-            </>
-          ) : (
-            <label style={{ display: "grid", gap: 6 }}>
-              {t.specialSchema}
-              <textarea
-                value={specialSchemaText}
-                onChange={(e) => setSpecialSchemaText(e.target.value)}
-                rows={8}
-                style={{ fontFamily: "monospace" }}
-              />
-            </label>
-          )}
-
-          <button type="submit" disabled={isLoading} style={{ padding: "8px 12px", width: 140 }}>
-            {isLoading ? t.loading : t.createTemplate}
-          </button>
-        </form>
-
-        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-          {templates.length === 0 ? (
-            <p>{t.noTemplate}</p>
-          ) : (
-            templates.map((tpl) => (
-              <article key={tpl.id} style={{ border: "1px solid #eee", padding: 10 }}>
-                <strong>{tpl.title}</strong> ({templateTypeLabel(locale, tpl.type)}) |{" "}
-                {t.visibility}: {visibilityLabel(locale, tpl.visibility)}
-                <br />
-                <small>{tpl.description ?? ""}</small>
-              </article>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section hidden={activeView !== "special_store"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{t.specialRequestSection}</h2>
-        <form onSubmit={onCreateSpecialRequest} style={{ display: "grid", gap: 10, marginTop: 8 }}>
-          <label>
-            {t.specialRequestTitle}
-            <input
-              value={specialRequestTitle}
-              onChange={(event) => setSpecialRequestTitle(event.target.value)}
-              style={{ marginLeft: 8, minWidth: 320 }}
-            />
-          </label>
-          <label style={{ display: "grid", gap: 6 }}>
-            {t.specialRequestDescription}
-            <textarea
-              value={specialRequestDescription}
-              onChange={(event) => setSpecialRequestDescription(event.target.value)}
-              rows={5}
-            />
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={specialRequestConsent}
-              onChange={(event) => setSpecialRequestConsent(event.target.checked)}
-            />
-            <span style={{ marginLeft: 6 }}>{t.specialRequestConsent}</span>
-          </label>
-          <small>{t.specialRequestConsentSub}</small>
-          <button type="submit" disabled={isLoading} style={{ width: 140 }}>
-            {isLoading ? t.loading : t.specialRequestSubmit}
-          </button>
-        </form>
-
-        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <label>
-              {t.specialRequestFilterLabel}
-              <select
-                value={specialRequestFilter}
-                onChange={(event) =>
-                  setSpecialRequestFilter(event.target.value as "ALL" | SpecialRequestStatus)
-                }
-                style={{ marginLeft: 8 }}
-              >
-                <option value="ALL">{t.filterAll}</option>
-                <option value="REQUESTED">{specialRequestStatusLabel(locale, "REQUESTED")}</option>
-                <option value="REVIEWING">{specialRequestStatusLabel(locale, "REVIEWING")}</option>
-                <option value="IN_PROGRESS">
-                  {specialRequestStatusLabel(locale, "IN_PROGRESS")}
-                </option>
-                <option value="DELIVERED">{specialRequestStatusLabel(locale, "DELIVERED")}</option>
-                <option value="REJECTED">{specialRequestStatusLabel(locale, "REJECTED")}</option>
-                <option value="CANCELED">{specialRequestStatusLabel(locale, "CANCELED")}</option>
-              </select>
-            </label>
-          </div>
-          {filteredSpecialRequests.length === 0 ? (
-            <p>{t.specialRequestNoData}</p>
-          ) : (
-            filteredSpecialRequests.map((item) => (
-              <article key={item.id} style={{ border: "1px solid #eee", padding: 10 }}>
-                <strong>{item.title}</strong> | {t.specialRequestStatus}:{" "}
-                {specialRequestStatusLabel(locale, item.status)}
-                <br />
-                <small>{new Date(item.createdAt).toLocaleString()}</small>
-                <p style={{ margin: "8px 0" }}>{item.description}</p>
-                <small>
-                  {t.specialRequestAdminNote}: {item.adminNote?.trim() || "-"}
-                </small>
-              </article>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section hidden={activeView !== "results"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{locale === "ko" ? "CSV 내보내기" : "CSV Export"}</h2>
-        <fieldset style={{ border: "1px solid #eee", padding: 10, marginTop: 8 }}>
-          <legend>{t.csvFilters}</legend>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <label>
-              {t.csvFrom}
-              <input
-                type="datetime-local"
-                value={exportFrom}
-                onChange={(event) => setExportFrom(event.target.value)}
-                style={{ marginLeft: 8 }}
-              />
-            </label>
-            <label>
-              {t.csvTo}
-              <input
-                type="datetime-local"
-                value={exportTo}
-                onChange={(event) => setExportTo(event.target.value)}
-                style={{ marginLeft: 8 }}
-              />
-            </label>
-            <label>
-              {t.csvAttempt}
-              <input
-                type="number"
-                min={1}
-                value={exportAttempt}
-                onChange={(event) => setExportAttempt(event.target.value)}
-                style={{ marginLeft: 8, width: 96 }}
-              />
-            </label>
-            <small>{t.csvAttemptHint}</small>
-          </div>
-          {isExportRangeInvalid ? (
-            <p style={{ marginTop: 8, color: "#b00020" }}>{t.csvInvalidRange}</p>
-          ) : null}
-        </fieldset>
-
-        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-          {resultExportPackages.length === 0 ? (
-            <p>{t.noPackage}</p>
-          ) : (
-            resultExportPackages.map((pkg) => (
-              <article key={pkg.id} style={{ border: "1px solid #eee", padding: 10 }}>
-                <strong>{pkg.title}</strong> ({pkg.code})
-                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <a
-                    href={buildExportHref(pkg.id)}
-                    onClick={(event) => {
-                      if (isExportRangeInvalid) {
-                        event.preventDefault();
-                      }
-                    }}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "2px 8px",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      textDecoration: "none",
-                      color: "inherit",
-                      fontSize: 13,
-                      opacity: isExportRangeInvalid ? 0.55 : 1,
-                      pointerEvents: isExportRangeInvalid ? "none" : "auto",
-                    }}
-                  >
-                    {t.exportCsv}
-                  </a>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section hidden={activeView !== "special_store"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{t.storeSection}</h2>
-
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
-          <h3 style={{ marginTop: 0 }}>{t.storeCreateListing}</h3>
-          {ownedSpecialTemplates.length === 0 ? (
-            <p>{t.storeNoOwnedTemplates}</p>
-          ) : (
-            <form onSubmit={onCreateStoreListing} style={{ display: "grid", gap: 10, maxWidth: 560 }}>
-              <label>
-                {t.storeTemplateSelect}
-                <select
-                  value={storeTemplateId}
-                  onChange={(event) => setStoreTemplateId(event.target.value)}
-                  style={{ marginLeft: 8, minWidth: 300 }}
-                >
-                  {ownedSpecialTemplates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.title} (v{tpl.version})
-                    </option>
-                  ))}
+                <span>{tr("유형", "Type")}</span>
+                <select value={templateType} onChange={(event) => setTemplateType(event.target.value as "LIKERT" | "SPECIAL")} disabled={isLoading}>
+                  <option value="LIKERT">{tr("일반 리커트", "Standard Likert")}</option>
+                  {viewerRole === "PLATFORM_ADMIN" ? <option value="SPECIAL">{tr("특수 템플릿", "Special template")}</option> : null}
                 </select>
               </label>
-              <label>
-                {t.storePrice}
-                <input
-                  type="number"
-                  min={1}
-                  max={1_000_000}
-                  value={storePriceCredits}
-                  onChange={(event) => setStorePriceCredits(Number(event.target.value))}
-                  style={{ marginLeft: 8, width: 120 }}
-                />
+              <label style={{ display: "grid", gap: 6 }}>
+                <span>{tr("공개 범위", "Visibility")}</span>
+                <select value={templateVisibility} onChange={(event) => setTemplateVisibility(event.target.value as "PRIVATE" | "STORE")} disabled={isLoading}>
+                  <option value="PRIVATE">{tr("비공개", "Private")}</option>
+                  <option value="STORE">{tr("스토어 공개", "Store")}</option>
+                </select>
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={storeIsActive}
-                  onChange={(event) => setStoreIsActive(event.target.checked)}
-                />
-                <span style={{ marginLeft: 6 }}>{t.storeActive}</span>
-              </label>
-              <button type="submit" disabled={isLoading} style={{ width: 140 }}>
-                {isLoading ? t.loading : t.storeListButton}
-              </button>
-            </form>
-          )}
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <h3>{t.storeMyListings}</h3>
-          {myListings.length === 0 ? (
-            <p>{t.storeNoMyListings}</p>
-          ) : (
-            <div style={{ display: "grid", gap: 8 }}>
-              {myListings.map((listing) => {
-                const draft = listingDrafts[listing.id] ?? {
-                  priceCredits: listing.priceCredits,
-                  isActive: listing.isActive,
-                };
-                return (
-                  <article key={listing.id} style={{ border: "1px solid #eee", padding: 10 }}>
-                    <strong>{listing.template.title}</strong> (v{listing.template.version})
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
-                      <label>
-                        {t.storePriceLabel}
-                        <input
-                          type="number"
-                          min={1}
-                          max={1_000_000}
-                          value={draft.priceCredits}
-                          onChange={(event) =>
-                            updateListingDraft(listing.id, { priceCredits: Number(event.target.value) })
-                          }
-                          style={{ marginLeft: 8, width: 110 }}
-                        />
-                      </label>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={draft.isActive}
-                          onChange={(event) =>
-                            updateListingDraft(listing.id, { isActive: event.target.checked })
-                          }
-                        />
-                        <span style={{ marginLeft: 6 }}>{t.storeActive}</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => void onUpdateStoreListing(listing.id)}
-                        disabled={isLoading}
-                      >
-                        {t.storeUpdate}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
             </div>
-          )}
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <h3>{t.storeMarketListings}</h3>
-          {marketListings.length === 0 ? (
-            <p>{t.storeNoMarketListings}</p>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th align="left">{t.storeTemplate}</th>
-                  <th align="left">{t.storeSeller}</th>
-                  <th align="right">{t.storePriceLabel}</th>
-                  <th align="left">{t.storeCreatedAt}</th>
-                  <th align="left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {marketListings.map((listing) => (
-                  <tr key={listing.id}>
-                    <td>{listing.template.title}</td>
-                    <td>{displayUserName(listing.seller)}</td>
-                    <td align="right">{listing.priceCredits}</td>
-                    <td>{new Date(listing.createdAt).toLocaleString()}</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => void onPurchaseListing(listing.id)}
-                        disabled={isLoading || listing.canPurchase === false}
-                      >
-                        {listing.alreadyPurchased ? t.storeAlreadyPurchased : t.storeBuy}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <h3>{t.storePurchases}</h3>
-          {purchaseHistory.length === 0 ? (
-            <p>{t.storeNoPurchases}</p>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th align="left">{t.storeBoughtAt}</th>
-                  <th align="left">{t.storeTemplate}</th>
-                  <th align="left">{t.storeSeller}</th>
-                  <th align="right">{t.storePriceLabel}</th>
-                  <th align="right">{t.storeFeeLabel}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseHistory.map((item) => (
-                  <tr key={item.id}>
-                    <td>{new Date(item.createdAt).toLocaleString()}</td>
-                    <td>{item.listing.template.title}</td>
-                    <td>{displayUserName(item.seller)}</td>
-                    <td align="right">{item.priceCredits}</td>
-                    <td align="right">{item.platformFeeCredits}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <h3>{t.storeSales}</h3>
-          {salesHistory.length === 0 ? (
-            <p>{t.storeNoSales}</p>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th align="left">{t.storeBoughtAt}</th>
-                  <th align="left">{t.storeTemplate}</th>
-                  <th align="left">{locale === "ko" ? "구매자" : "Buyer"}</th>
-                  <th align="right">{t.storePriceLabel}</th>
-                  <th align="right">{t.storeSellerCreditLabel}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salesHistory.map((item) => (
-                  <tr key={item.id}>
-                    <td>{new Date(item.createdAt).toLocaleString()}</td>
-                    <td>{item.listing.template.title}</td>
-                    <td>{displayUserName(item.buyer)}</td>
-                    <td align="right">{item.priceCredits}</td>
-                    <td align="right">{item.sellerCredit}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-
-      <section hidden={activeView !== "packages"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{t.packageSection}</h2>
-        <form onSubmit={onCreatePackage} style={{ display: "grid", gap: 10, marginTop: 8 }}>
-          <label>
-            {t.packageCode}
-            <input
-              value={packageCode}
-              onChange={(e) => setPackageCode(e.target.value)}
-              style={{ marginLeft: 8, minWidth: 220 }}
-            />
-          </label>
-          <label>
-            {t.packageTitle}
-            <input
-              value={packageTitle}
-              onChange={(e) => setPackageTitle(e.target.value)}
-              style={{ marginLeft: 8, minWidth: 320 }}
-            />
-          </label>
-          <label>
-            {t.packageDesc}
-            <input
-              value={packageDescription}
-              onChange={(e) => setPackageDescription(e.target.value)}
-              style={{ marginLeft: 8, minWidth: 320 }}
-            />
-          </label>
-          <label>
-            {t.packageMode}
-            <select
-              value={packageMode}
-              onChange={(e) =>
-                setPackageMode(e.target.value as "CROSS_SECTIONAL" | "LONGITUDINAL")
-              }
-              style={{ marginLeft: 8 }}
-            >
-              <option value="CROSS_SECTIONAL">{t.modeCross}</option>
-              <option value="LONGITUDINAL">{t.modeLong}</option>
-            </select>
-          </label>
-          <label>
-            {t.packageMaxResponses}
-            <input
-              type="number"
-              min={1}
-              value={packageMaxResponses}
-              onChange={(e) => setPackageMaxResponses(Number(e.target.value))}
-              style={{ marginLeft: 8, width: 80 }}
-            />
-          </label>
-          <label>
-            {t.packageStartsAt}
-            <input
-              type="datetime-local"
-              value={packageStartsAt}
-              onChange={(e) => setPackageStartsAt(e.target.value)}
-              style={{ marginLeft: 8 }}
-            />
-          </label>
-          <label>
-            {t.packageEndsAt}
-            <input
-              type="datetime-local"
-              value={packageEndsAt}
-              onChange={(e) => setPackageEndsAt(e.target.value)}
-              style={{ marginLeft: 8 }}
-            />
-          </label>
-
-          <fieldset style={{ border: "1px solid #eee", padding: 10 }}>
-            <legend>{t.packageTemplates}</legend>
-            {templates.length === 0 ? (
-              <p>{t.noTemplate}</p>
-            ) : (
-              <div style={{ display: "grid", gap: 6 }}>
-                {templates.map((tpl) => (
-                  <label key={tpl.id}>
-                    <input
-                      type="checkbox"
-                      checked={selectedTemplateIds.includes(tpl.id)}
-                      onChange={() => onToggleTemplate(tpl.id)}
-                    />
-                    <span style={{ marginLeft: 6 }}>
-                      {tpl.title} ({templateTypeLabel(locale, tpl.type)})
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </fieldset>
-
-          <button type="submit" disabled={isLoading} style={{ padding: "8px 12px", width: 140 }}>
-            {isLoading ? t.loading : t.createPackage}
-          </button>
-        </form>
-
-        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-          {packages.length === 0 ? (
-            <p>{t.noPackage}</p>
-          ) : (
-            packages.map((pkg) => (
-              <article key={pkg.id} style={{ border: "1px solid #eee", padding: 10 }}>
-                <strong>{pkg.title}</strong> ({pkg.code})<br />
-                {t.status}: {statusLabel(locale, pkg.status)} | {t.mode}:{" "}
-                {modeLabel(locale, pkg.mode)} | max {pkg.maxResponsesPerParticipant}
-                <br />
-                <small>
-                  templates:{" "}
-                  {pkg.templates.map((tpl) => tpl.title).join(", ") || "-"}
-                </small>
-                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    onClick={() => void onChangePackageStatus(pkg.id, "DRAFT")}
-                    disabled={isLoading}
-                  >
-                    {t.setDraft}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onChangePackageStatus(pkg.id, "ACTIVE")}
-                    disabled={isLoading}
-                  >
-                    {t.setActive}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onChangePackageStatus(pkg.id, "CLOSED")}
-                    disabled={isLoading}
-                  >
-                    {t.setClosed}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onChangePackageStatus(pkg.id, "ARCHIVED")}
-                    disabled={isLoading}
-                  >
-                    {t.setArchived}
-                  </button>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("제목", "Title")}</span><input value={templateTitle} onChange={(event) => setTemplateTitle(event.target.value)} disabled={isLoading} /></label>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("설명", "Description")}</span><textarea rows={3} value={templateDescription} onChange={(event) => setTemplateDescription(event.target.value)} disabled={isLoading} /></label>
+            {templateType === "LIKERT" ? (
+              <>
+                <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                  <label style={{ display: "grid", gap: 6 }}><span>{tr("최소 척도값", "Scale min")}</span><input type="number" value={likertMin} onChange={(event) => setLikertMin(Number(event.target.value) || 1)} disabled={isLoading} /></label>
+                  <label style={{ display: "grid", gap: 6 }}><span>{tr("최대 척도값", "Scale max")}</span><input type="number" value={likertMax} onChange={(event) => setLikertMax(Number(event.target.value) || likertMin + 1)} disabled={isLoading} /></label>
                 </div>
-              </article>
-            ))
-          )}
+                <label style={{ display: "grid", gap: 6 }}><span>{tr("척도 라벨", "Scale labels")}</span><textarea rows={4} value={likertLabels} onChange={(event) => setLikertLabels(event.target.value)} disabled={isLoading} /></label>
+                <label style={{ display: "grid", gap: 6 }}><span>{tr("질문 목록", "Questions")}</span><textarea rows={8} value={likertQuestions} onChange={(event) => setLikertQuestions(event.target.value)} disabled={isLoading} /></label>
+              </>
+            ) : <label style={{ display: "grid", gap: 6 }}><span>{tr("특수 템플릿 JSON", "Special template JSON")}</span><textarea rows={10} value={specialSchemaText} onChange={(event) => setSpecialSchemaText(event.target.value)} disabled={isLoading} /></label>}
+            <button type="submit" disabled={isLoading} style={{ width: 180 }}>{isLoading ? tr("처리 중...", "Processing...") : tr("템플릿 생성", "Create template")}</button>
+          </form>
+        </div>
+
+        <div style={{ display: "grid", gap: 10 }}>
+          {templates.length === 0 ? <p>{tr("등록된 템플릿이 없습니다.", "No template available.")}</p> : templates.map((template) => <article key={template.id} style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 14, background: "#fff" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><strong>{template.title}</strong><div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>{templateTypeLabel(locale, template.type)} · {templateVisibilityLabel(locale, template.visibility)} · v{template.version}</div></div><div style={{ fontSize: 13, opacity: 0.75 }}>{fmt(locale, template.updatedAt)}</div></div>{template.description ? <p style={{ marginBottom: 0 }}>{template.description}</p> : null}</article>)}
         </div>
       </section>
 
-      <section hidden={activeView !== "participants"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{t.participantSection}</h2>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <label>
-            {t.participantSearchLabel}
-            <input
-              value={participantQuery}
-              onChange={(event) => setParticipantQuery(event.target.value)}
-              placeholder={t.participantSearchPlaceholder}
-              style={{ marginLeft: 8, minWidth: 220 }}
-            />
-          </label>
-          <label>
-            {t.participantFilterLabel}
-            <select
-              value={participantFilter}
-              onChange={(event) =>
-                setParticipantFilter(
-                  event.target.value as "ALL" | "ACTIVE" | "INACTIVE" | "ANONYMIZED",
-                )
-              }
-              style={{ marginLeft: 8 }}
-            >
-              <option value="ALL">{t.filterAll}</option>
-              <option value="ACTIVE">{t.filterActive}</option>
-              <option value="INACTIVE">{t.filterInactive}</option>
-              <option value="ANONYMIZED">{t.filterAnonymized}</option>
-            </select>
-          </label>
+      <section hidden={activeView !== "packages"} style={{ display: "grid", gap: 16 }}>
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("패키지 생성", "Create package")}</h2>
+          <form onSubmit={onCreatePackage} style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("패키지 코드", "Package code")}</span><input value={packageCode} onChange={(event) => setPackageCode(event.target.value)} disabled={isLoading} /></label>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("제목", "Title")}</span><input value={packageTitle} onChange={(event) => setPackageTitle(event.target.value)} disabled={isLoading} /></label>
+            </div>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("설명", "Description")}</span><textarea rows={3} value={packageDescription} onChange={(event) => setPackageDescription(event.target.value)} disabled={isLoading} /></label>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("연구 형태", "Study mode")}</span><select value={packageMode} onChange={(event) => setPackageMode(event.target.value as "CROSS_SECTIONAL" | "LONGITUDINAL")} disabled={isLoading}><option value="CROSS_SECTIONAL">{tr("횡단", "Cross-sectional")}</option><option value="LONGITUDINAL">{tr("종단", "Longitudinal")}</option></select></label>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("참가자별 최대 응답 횟수", "Max responses per participant")}</span><input type="number" min={1} value={packageMaxResponses} onChange={(event) => setPackageMaxResponses(Number(event.target.value) || 1)} disabled={isLoading} /></label>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("시작 시각", "Starts at")}</span><input type="datetime-local" value={packageStartsAt} onChange={(event) => setPackageStartsAt(event.target.value)} disabled={isLoading} /></label>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("종료 시각", "Ends at")}</span><input type="datetime-local" value={packageEndsAt} onChange={(event) => setPackageEndsAt(event.target.value)} disabled={isLoading} /></label>
+            </div>
+            <fieldset style={{ border: "1px solid #d7e0e6", borderRadius: 10, padding: 12 }}>
+              <legend>{tr("포함 템플릿", "Included templates")}</legend>
+              {templates.length === 0 ? <p>{tr("등록된 템플릿이 없습니다.", "No template available.")}</p> : <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>{templates.map((template) => <label key={template.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", border: "1px solid #e5ebef", borderRadius: 10, padding: 10 }}><input type="checkbox" checked={selectedTemplateIds.includes(template.id)} onChange={() => setSelectedTemplateIds((current) => current.includes(template.id) ? current.filter((id) => id !== template.id) : [...current, template.id])} /><span><strong>{template.title}</strong><br /><small>{templateTypeLabel(locale, template.type)}</small></span></label>)}</div>}
+            </fieldset>
+            <button type="submit" disabled={isLoading} style={{ width: 180 }}>{isLoading ? tr("처리 중...", "Processing...") : tr("패키지 생성", "Create package")}</button>
+          </form>
         </div>
-        {filteredParticipants.length === 0 ? (
-          <p>{t.participantNoData}</p>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th align="left">{t.participantLoginId}</th>
-                <th align="left">{t.participantDisplayName}</th>
-                <th align="left">{t.participantLocale}</th>
-                <th align="left">{t.participantStatus}</th>
-                <th align="right">{t.participantEnrollments}</th>
-                <th align="right">{t.participantResponses}</th>
-                <th align="left">{t.participantLastRespondedAt}</th>
-                <th align="left">{t.participantCreatedAt}</th>
-                <th align="left">{t.participantAction}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredParticipants.map((participant) => (
-                <tr key={participant.id}>
-                  <td>{participant.loginId ?? "-"}</td>
-                  <td>{participant.displayName ?? "-"}</td>
-                  <td>{participant.locale}</td>
-                  <td>{participantStatusLabel(locale, participant)}</td>
-                  <td align="right">{participant.enrollmentCount}</td>
-                  <td align="right">{participant.responseCount}</td>
-                  <td>{formatMaybeDate(locale, participant.lastRespondedAt)}</td>
-                  <td>{formatMaybeDate(locale, participant.createdAt)}</td>
-                  <td>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {!participant.isAnonymized ? (
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() =>
-                            void onParticipantAction(
-                              participant.id,
-                              participant.isActive ? "DEACTIVATE" : "ACTIVATE",
-                            )
-                          }
-                        >
-                          {participant.isActive ? t.participantDeactivate : t.participantRestore}
-                        </button>
-                      ) : null}
-                      {!participant.isAnonymized ? (
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          style={{ color: "#b00020", borderColor: "#b00020" }}
-                          onClick={() => void onParticipantAction(participant.id, "ANONYMIZE")}
-                        >
-                          {locale === "ko" ? "말소(익명화)" : "Anonymize"}
-                        </button>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+
+        <div style={{ display: "grid", gap: 10 }}>
+          {packages.length === 0 ? <p>{tr("등록된 패키지가 없습니다.", "No package available.")}</p> : packages.map((pkg) => <article key={pkg.id} style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 14, background: "#fff" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><strong>{pkg.title}</strong> ({pkg.code})<div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>{tr("상태", "Status")}: {packageStatusLabel(locale, pkg.status)} · {tr("형태", "Mode")}: {packageModeLabel(locale, pkg.mode)}</div></div><div style={{ fontSize: 13, opacity: 0.75 }}>{fmt(locale, pkg.updatedAt)}</div></div>{pkg.description ? <p>{pkg.description}</p> : null}<div style={{ fontSize: 13, opacity: 0.85 }}>{pkg.templates.map((template) => template.title).join(", ") || "-"}</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}><button type="button" disabled={isLoading} onClick={() => void onChangePackageStatus(pkg.id, "DRAFT")}>{tr("초안", "Draft")}</button><button type="button" disabled={isLoading} onClick={() => void onChangePackageStatus(pkg.id, "ACTIVE")}>{tr("진행", "Active")}</button><button type="button" disabled={isLoading} onClick={() => void onChangePackageStatus(pkg.id, "CLOSED")}>{tr("종료", "Closed")}</button><button type="button" disabled={isLoading} onClick={() => void onChangePackageStatus(pkg.id, "ARCHIVED")}>{tr("보관", "Archived")}</button></div></article>)}
+        </div>
+      </section>
+      <section hidden={activeView !== "results"} style={{ display: "grid", gap: 16 }}>
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("결과 내보내기", "Result export")}</h2>
+          <p style={{ marginTop: 0 }}>{tr("기본 다운로드는 ZIP이며, master long CSV는 단일 CSV로도 받을 수 있습니다.", "Default download is ZIP. The master long CSV is also available as a single CSV.")}</p>
+          <fieldset style={{ border: "1px solid #d7e0e6", borderRadius: 10, padding: 12 }}>
+            <legend>{tr("내보내기 필터", "Export filters")}</legend>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("응답 시작 시각", "Submitted from")}</span><input type="datetime-local" value={exportFrom} onChange={(event) => setExportFrom(event.target.value)} /></label>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("응답 종료 시각", "Submitted to")}</span><input type="datetime-local" value={exportTo} onChange={(event) => setExportTo(event.target.value)} /></label>
+              <label style={{ display: "grid", gap: 6 }}><span>{tr("응답 차수", "Attempt no")}</span><input type="number" min={1} value={exportAttempt} onChange={(event) => setExportAttempt(event.target.value)} /></label>
+            </div>
+            <small>{tr("비우면 전체 차수를 내보냅니다.", "Leave blank to export all attempts.")}</small>
+            {isExportRangeInvalid ? <p style={{ color: "#b00020", marginBottom: 0 }}>{tr("CSV 필터 기간을 확인하세요. 종료 시각은 시작 시각 이후여야 합니다.", "Check the export date range. End must be after start.")}</p> : null}
+          </fieldset>
+          <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+            {packages.length === 0 ? <p>{tr("등록된 패키지가 없습니다.", "No package available.")}</p> : packages.map((pkg) => <article key={pkg.id} style={{ border: "1px solid #e5ebef", borderRadius: 10, padding: 12 }}><strong>{pkg.title}</strong> ({pkg.code})<div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}><a href={buildExportHref(pkg.id, "zip")} onClick={(event) => { if (isExportRangeInvalid) event.preventDefault(); }} style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid #c1d2dc", borderRadius: 8, textDecoration: "none", color: "inherit", opacity: isExportRangeInvalid ? 0.5 : 1, pointerEvents: isExportRangeInvalid ? "none" : "auto" }}>{tr("ZIP 내보내기", "Export ZIP")}</a><a href={buildExportHref(pkg.id, "csv")} onClick={(event) => { if (isExportRangeInvalid) event.preventDefault(); }} style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid #c1d2dc", borderRadius: 8, textDecoration: "none", color: "inherit", opacity: isExportRangeInvalid ? 0.5 : 1, pointerEvents: isExportRangeInvalid ? "none" : "auto" }}>{tr("Master CSV", "Master CSV")}</a></div></article>)}
+          </div>
+        </div>
+        <AdminAiSkillBookPanel locale={locale} packages={packages.map((pkg) => ({ id: pkg.id, code: pkg.code, title: pkg.title }))} />
       </section>
 
-      <section hidden={activeView !== "results"} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 14 }}>
-        <h2>{locale === "ko" ? "AI 분석" : "AI Analysis"}</h2>
-        <form onSubmit={onRunAiAnalysis} style={{ display: "grid", gap: 10, marginTop: 8 }}>
-          <label>
-            {locale === "ko" ? "패키지" : "Package"}
-            <select
-              value={aiPackageId}
-              onChange={(event) => setAiPackageId(event.target.value)}
-              style={{ marginLeft: 8, minWidth: 280 }}
-            >
-              {packages.map((pkg) => (
-                <option key={pkg.id} value={pkg.id}>
-                  {pkg.title} ({pkg.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {locale === "ko" ? "모드" : "Mode"}
-            <select
-              value={aiMode}
-              onChange={(event) => setAiMode(event.target.value as "BYOK" | "MANAGED")}
-              style={{ marginLeft: 8 }}
-            >
-              <option value="MANAGED">
-                {locale === "ko" ? "Managed (플랫폼 키/크레딧 차감)" : "Managed (platform key + credits)"}
-              </option>
-              <option value="BYOK">{locale === "ko" ? "BYOK (내 키)" : "BYOK (your key)"}</option>
-            </select>
-          </label>
-          {aiMode === "BYOK" ? (
-            <label>
-              OpenAI API Key
-              <input
-                type="password"
-                value={aiApiKey}
-                onChange={(event) => setAiApiKey(event.target.value)}
-                style={{ marginLeft: 8, minWidth: 420 }}
-              />
-            </label>
-          ) : null}
-          <label style={{ display: "grid", gap: 6 }}>
-            {locale === "ko" ? "질문" : "Question"}
-            <textarea
-              value={aiQuestion}
-              onChange={(event) => setAiQuestion(event.target.value)}
-              rows={3}
-            />
-          </label>
-          <button type="submit" disabled={aiIsRunning || isLoading} style={{ width: 180 }}>
-            {aiIsRunning
-              ? locale === "ko"
-                ? "AI 분석 실행 중..."
-                : "Running AI analysis..."
-              : locale === "ko"
-                ? "AI 분석 실행"
-                : "Run AI analysis"}
-          </button>
-        </form>
-        {aiMeta ? <p style={{ marginTop: 10, fontSize: 13 }}>{aiMeta}</p> : null}
-        {aiResult ? (
-          <pre
-            style={{
-              marginTop: 10,
-              whiteSpace: "pre-wrap",
-              border: "1px solid #eee",
-              borderRadius: 8,
-              padding: 10,
-              background: "#fafafa",
-            }}
-          >
-            {aiResult}
-          </pre>
-        ) : null}
+      <section hidden={activeView !== "special_store"} style={{ display: "grid", gap: 16 }}>
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("특수 템플릿 의뢰", "Special template request")}</h2>
+          <form onSubmit={onCreateSpecialRequest} style={{ display: "grid", gap: 12 }}>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("의뢰 제목", "Request title")}</span><input value={specialTitle} onChange={(event) => setSpecialTitle(event.target.value)} disabled={isLoading} /></label>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("요구사항 상세", "Requirements")}</span><textarea rows={5} value={specialDescription} onChange={(event) => setSpecialDescription(event.target.value)} disabled={isLoading} /></label>
+            <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }}><input type="checkbox" checked={specialConsent} onChange={(event) => setSpecialConsent(event.target.checked)} disabled={isLoading} /><span>{tr("의뢰 구현 코드는 MIT 정책에 따라 공개 저장소에 게시될 수 있음에 동의합니다.", "I understand implementation code may be published in a public repository under MIT.")}</span></label>
+            <button type="submit" disabled={isLoading || !specialConsent} style={{ width: 180 }}>{isLoading ? tr("처리 중...", "Processing...") : tr("의뢰 등록", "Submit request")}</button>
+          </form>
+          <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+            {specialRequests.length === 0 ? <p>{tr("등록된 의뢰가 없습니다.", "No request found.")}</p> : specialRequests.map((request) => <article key={request.id} style={{ border: "1px solid #e5ebef", borderRadius: 10, padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><strong>{request.title}</strong><span>{specialRequestStatusLabel(locale, request.status)}</span></div><p>{request.description}</p><div style={{ fontSize: 13, opacity: 0.75 }}>{fmt(locale, request.createdAt)}</div>{request.adminNote ? <div style={{ marginTop: 8, fontSize: 13 }}><strong>Admin:</strong> {request.adminNote}</div> : null}</article>)}
+          </div>
+        </div>
+
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("특수 템플릿 스토어", "Special template store")}</h2>
+          <div style={{ border: "1px solid #e5ebef", borderRadius: 10, padding: 12 }}>
+            <h3 style={{ marginTop: 0 }}>{tr("스토어 등록", "Create listing")}</h3>
+            {ownedSpecialTemplates.length === 0 ? <p>{tr("등록 가능한 특수 템플릿이 없습니다.", "No special template available for listing.")}</p> : <form onSubmit={onCreateStoreListing} style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", alignItems: "end" }}><label style={{ display: "grid", gap: 6 }}><span>{tr("등록할 템플릿", "Template")}</span><select value={storeTemplateId} onChange={(event) => setStoreTemplateId(event.target.value)} disabled={isLoading}>{ownedSpecialTemplates.map((template) => <option key={template.id} value={template.id}>{template.title} (v{template.version})</option>)}</select></label><label style={{ display: "grid", gap: 6 }}><span>{tr("가격(credits)", "Price (credits)")}</span><input type="number" min={1} value={storePrice} onChange={(event) => setStorePrice(Number(event.target.value) || 1)} disabled={isLoading} /></label><label style={{ display: "flex", gap: 8, alignItems: "center", minHeight: 42 }}><input type="checkbox" checked={storeActive} onChange={(event) => setStoreActive(event.target.checked)} disabled={isLoading} /><span>{tr("활성", "Active")}</span></label><button type="submit" disabled={isLoading}>{isLoading ? tr("처리 중...", "Processing...") : tr("스토어 등록", "Create listing")}</button></form>}
+          </div>
+          <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
+            <div><h3>{tr("내 등록 목록", "My listings")}</h3>{myListings.length === 0 ? <p>{tr("등록된 판매글이 없습니다.", "No listing found.")}</p> : <div style={{ display: "grid", gap: 10 }}>{myListings.map((listing) => { const draft = listingDrafts[listing.id] ?? { priceCredits: listing.priceCredits, isActive: listing.isActive }; return <article key={listing.id} style={{ border: "1px solid #e5ebef", borderRadius: 10, padding: 12 }}><strong>{listing.template.title}</strong><div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", marginTop: 10 }}><label style={{ display: "grid", gap: 6 }}><span>{tr("가격", "Price")}</span><input type="number" min={1} value={draft.priceCredits} onChange={(event) => updateListingDraft(listing.id, { priceCredits: Number(event.target.value) || 1 })} disabled={isLoading} /></label><label style={{ display: "flex", gap: 8, alignItems: "center", minHeight: 42 }}><input type="checkbox" checked={draft.isActive} onChange={(event) => updateListingDraft(listing.id, { isActive: event.target.checked })} disabled={isLoading} /><span>{tr("활성", "Active")}</span></label><button type="button" onClick={() => void onUpdateStoreListing(listing.id)} disabled={isLoading}>{tr("수정", "Update")}</button></div></article>; })}</div>}</div>
+            <div><h3>{tr("구매 가능한 목록", "Market listings")}</h3>{marketListings.length === 0 ? <p>{tr("구매 가능한 판매글이 없습니다.", "No market listing found.")}</p> : <div style={{ display: "grid", gap: 10 }}>{marketListings.map((listing) => <article key={listing.id} style={{ border: "1px solid #e5ebef", borderRadius: 10, padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><strong>{listing.template.title}</strong><div style={{ fontSize: 13, opacity: 0.75 }}>{tr("판매자", "Seller")}: {who(listing.seller)}</div></div><div style={{ fontWeight: 700 }}>{listing.priceCredits}</div></div><div style={{ marginTop: 10 }}><button type="button" disabled={isLoading || listing.canPurchase === false || listing.alreadyPurchased} onClick={() => void onPurchaseListing(listing.id)}>{listing.alreadyPurchased ? tr("구매 완료", "Purchased") : tr("구매", "Buy")}</button></div></article>)}</div>}</div>
+            <div><h3>{tr("내 구매 이력", "My purchases")}</h3>{purchaseHistory.length === 0 ? <p>{tr("구매 이력이 없습니다.", "No purchase history.")}</p> : <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th align="left">{tr("구매 시각", "Purchased at")}</th><th align="left">{tr("템플릿", "Template")}</th><th align="left">{tr("판매자", "Seller")}</th><th align="right">{tr("가격", "Price")}</th><th align="right">{tr("수수료", "Fee")}</th></tr></thead><tbody>{purchaseHistory.map((item) => <tr key={item.id}><td>{fmt(locale, item.createdAt)}</td><td>{item.listing.template.title}</td><td>{who(item.seller)}</td><td align="right">{item.priceCredits}</td><td align="right">{item.platformFeeCredits}</td></tr>)}</tbody></table>}</div>
+            <div><h3>{tr("내 판매 이력", "My sales")}</h3>{salesHistory.length === 0 ? <p>{tr("판매 이력이 없습니다.", "No sales history.")}</p> : <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th align="left">{tr("판매 시각", "Sold at")}</th><th align="left">{tr("템플릿", "Template")}</th><th align="left">{tr("구매자", "Buyer")}</th><th align="right">{tr("가격", "Price")}</th><th align="right">{tr("판매자 정산", "Seller credit")}</th></tr></thead><tbody>{salesHistory.map((item) => <tr key={item.id}><td>{fmt(locale, item.createdAt)}</td><td>{item.listing.template.title}</td><td>{who(item.buyer)}</td><td align="right">{item.priceCredits}</td><td align="right">{item.sellerCredit}</td></tr>)}</tbody></table>}</div>
+          </div>
+        </div>
+        <AdminSkillBookStorePanel locale={locale} />
+      </section>
+
+      <section hidden={activeView !== "participants"} style={{ display: "grid", gap: 16 }}>
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("피검자 계정", "Participant accounts")}</h2>
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 16 }}>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("검색", "Search")}</span><input value={participantQuery} onChange={(event) => setParticipantQuery(event.target.value)} placeholder={tr("ID 또는 표시 이름 검색", "Search by ID or display name")} /></label>
+            <label style={{ display: "grid", gap: 6 }}><span>{tr("상태 필터", "Status filter")}</span><select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value as ParticipantFilter)}><option value="ALL">{tr("전체", "All")}</option><option value="ACTIVE">{tr("활성", "Active")}</option><option value="INACTIVE">{tr("비활성", "Inactive")}</option><option value="ANONYMIZED">{tr("익명화", "Anonymized")}</option></select></label>
+          </div>
+          {filteredParticipants.length === 0 ? <p>{tr("관리 가능한 피검자 계정이 없습니다.", "No manageable participant account.")}</p> : <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th align="left">{tr("로그인 ID", "Login ID")}</th><th align="left">{tr("표시 이름", "Display name")}</th><th align="left">{tr("언어", "Locale")}</th><th align="left">{tr("상태", "Status")}</th><th align="right">{tr("등록 패키지", "Enrollments")}</th><th align="right">{tr("응답 수", "Responses")}</th><th align="left">{tr("최근 응답", "Last response")}</th><th align="left">{tr("가입일", "Joined at")}</th><th align="left">{tr("작업", "Action")}</th></tr></thead><tbody>{filteredParticipants.map((participant) => <tr key={participant.id}><td>{participant.loginId ?? "-"}</td><td>{participant.displayName ?? "-"}</td><td>{participant.locale}</td><td>{participantStatusLabel(locale, participant)}</td><td align="right">{participant.enrollmentCount}</td><td align="right">{participant.responseCount}</td><td>{fmt(locale, participant.lastRespondedAt)}</td><td>{fmt(locale, participant.createdAt)}</td><td><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{!participant.isAnonymized ? <button type="button" disabled={isLoading} onClick={() => void onParticipantAction(participant.id, participant.isActive ? "DEACTIVATE" : "ACTIVATE")}>{participant.isActive ? tr("비활성", "Deactivate") : tr("복원", "Restore")}</button> : null}{!participant.isAnonymized ? <button type="button" disabled={isLoading} onClick={() => void onParticipantAction(participant.id, "ANONYMIZE")}>{tr("익명화", "Anonymize")}</button> : null}</div></td></tr>)}</tbody></table>}
+        </div>
       </section>
     </main>
   );

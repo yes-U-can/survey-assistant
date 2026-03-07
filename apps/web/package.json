@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "e2e": "playwright test",
+    "e2e:admin-core": "playwright test e2e/admin-free-core.spec.ts",
     "e2e:smoke": "playwright test e2e/smoke.spec.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
@@ -18,6 +19,7 @@
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "bcryptjs": "^3.0.3",
+    "fflate": "^0.8.2",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "pg": "^8.19.0",
@@ -27,11 +29,11 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@playwright/test": "^1.55.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

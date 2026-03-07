@@ -14,6 +14,13 @@ corepack pnpm install
 corepack pnpm dev
 ```
 
+## Test Commands
+- Lint: `corepack pnpm --filter web lint`
+- Build: `corepack pnpm --filter web build`
+- Participant smoke: `corepack pnpm --filter web e2e:smoke`
+- Admin free-core smoke: `corepack pnpm --filter web e2e:admin-core`
+- OAuth contract: `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`
+
 ## Database (Neon + Prisma)
 - Prisma schema: `prisma/schema.prisma`
 - Generate client: `corepack pnpm --filter web prisma:generate`
@@ -68,12 +75,28 @@ This app is linked to project `survey_sicp`.
 - Template list/create: `GET/POST /api/admin/templates`
 - Package list/create: `GET/POST /api/admin/packages`
 - Package status update: `PATCH /api/admin/packages/{packageId}/status`
-- Package responses CSV export: `GET /api/admin/packages/{packageId}/export?from=&to=&attempt=`
+- Package export: `GET /api/admin/packages/{packageId}/export?format=zip|csv&from=&to=&attempt=`
+  - default: `format=zip`
+  - compatibility: `format=csv` -> master long CSV only
+  - ZIP bundle contents:
+    - `00_package_overview.csv`
+    - `01_attempts.csv`
+    - `02_codebook.csv`
+    - `90_responses_long.csv`
+    - template-wide CSV files
   - `from`, `to`: ISO datetime filter (`submittedAt`)
   - `attempt`: attempt number filter (`attemptNo`)
-- AI analysis (BYOK/Managed with spend hook): `POST /api/admin/ai/analyze`
-  - Managed credit policy: immediate charge (`SPEND`) and automatic `REFUND` on failure
-  - Charge amount: `AI_MANAGED_CREDIT_PER_REQUEST`
+- AI provider metadata: `GET /api/admin/ai/chat`
+- BYOK AI chat: `POST /api/admin/ai/chat`
+  - providers: `OPENAI | GEMINI | ANTHROPIC`
+  - API key is request-scoped only and is not stored in DB
+  - server injects package `master CSV + codebook` context from DB
+- SkillBooks: `GET/POST /api/admin/skillbooks`
+- SkillBook update: `PATCH /api/admin/skillbooks/{skillBookId}`
+- SkillBook compile: `POST /api/admin/skillbooks/{skillBookId}/compile`
+- SkillBook listings: `GET/POST /api/admin/skillbook-listings`
+- SkillBook listing update: `PATCH /api/admin/skillbook-listings/{listingId}`
+- SkillBook purchases: `POST /api/admin/skillbook-purchases`
 - Special template requests: `GET/POST /api/admin/special-requests`
   - Request UI enforces explicit consent that deliverable source may be published under MIT.
   - Source publication and credit compensation are handled as separate policy tracks.
@@ -95,6 +118,18 @@ This app is linked to project `survey_sicp`.
 - Special template requests: `GET /api/platform-admin/special-requests`
 - Special request status update: `PATCH /api/platform-admin/special-requests/{requestId}/status`
 - Store settlement summary: `GET /api/platform-admin/store/settlements`
+- SkillBook settlement summary: `GET /api/platform-admin/skillbook-settlements`
+
+## Free Core / Paid Expansion Boundary
+- Free core in current code:
+  - Likert template creation
+  - Package execution
+  - ZIP / CSV export
+  - BYOK AI chat
+- Paid expansion planned on top:
+  - platform-provided AI credits
+  - SkillBook Builder
+  - store fees / subscription / billing
 
 ## Special Template Runtime (Participant)
 - Renderer plugin registry: `src/lib/template-runtime/special-renderers.tsx`

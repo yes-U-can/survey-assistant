@@ -2261,7 +2261,191 @@
     - 판매 수수료
     - 플랫폼 제공 AI와 결합한 크레딧 사용
   - 운영 원칙 보강:
-    - 무료 오픈소스 코어는 `일반 리커트 설문 운영 + CSV 다운로드 + BYOK AI 대화`까지로 고정
-    - SkillBook은 무료 코어 위에 얹는 확장 계층으로 정의
-    - 개인용 비공개 SkillBook은 무료 허용이 자연스럽고, 과금은 AI Builder/공개 스토어/플랫폼 제공 AI 자원 구간에 집중하는 편이 타당함
-    - 즉, "지식 자체"보다 "지식 생성 보조와 유통, 플랫폼 자원 사용"이 BM 포인트임
+  - 무료 오픈소스 코어는 `일반 리커트 설문 운영 + CSV 다운로드 + BYOK AI 대화`까지로 고정
+  - SkillBook은 무료 코어 위에 얹는 확장 계층으로 정의
+  - 개인용 비공개 SkillBook은 무료 허용이 자연스럽고, 과금은 AI Builder/공개 스토어/플랫폼 제공 AI 자원 구간에 집중하는 편이 타당함
+  - 즉, "지식 자체"보다 "지식 생성 보조와 유통, 플랫폼 자원 사용"이 BM 포인트임
+
+## 52) Work Session Entry (2026-03-07, Free Core Completion + SkillBook Foundation)
+
+### Session
+- Date: 2026-03-07
+- Owner Request:
+  - `무료 코어 완결 + SkillBook 유료 단계 설계 일치화` 계획을 실제 코드로 구현
+  - 핵심 우선순위:
+    - `ZIP export + 3-provider BYOK chat`
+    - SkillBook store-ready 기반 추가
+- Working Branch: main
+
+### Planned
+1. 패키지 결과 export를 ZIP + master CSV 계약으로 확장
+2. 관리자 AI를 BYOK multi-turn chat로 교체
+3. SkillBook 스키마/API/UI/store/정산 기반 추가
+4. lint/build/smoke/oauth-contract까지 검증
+
+### Done
+1. Prisma 스키마 확장
+- 추가 enum:
+  - `SkillBookVisibility`
+  - `SkillBookStatus`
+- 추가 모델:
+  - `SkillBook`
+  - `SkillBookSource`
+  - `SkillBookListing`
+  - `SkillBookPurchase`
+- 마이그레이션 SQL 생성:
+  - `apps/web/prisma/migrations/20260307110000_add_skillbook_models/migration.sql`
+- 로컬/Neon 동기화:
+  - 기존 마이그레이션 수정 이력 때문에 `migrate dev` 대신 `db push`로 안전 동기화
+
+2. 무료 코어 export 완결
+- 신규:
+  - `apps/web/src/lib/package-dataset.ts`
+  - `apps/web/src/lib/package-export.ts`
+- 변경:
+  - `GET /api/admin/packages/{packageId}/export`
+- 결과:
+  - 기본 응답은 ZIP
+  - `format=csv`는 master long CSV 반환
+  - ZIP 안에 overview/attempts/codebook/master/template-wide CSV 포함
+
+3. 관리자 BYOK chat 구현
+- 신규:
+  - `apps/web/src/lib/ai/providers.ts`
+  - `POST /api/admin/ai/chat`
+- 지원 provider:
+  - OpenAI
+  - Gemini
+  - Anthropic
+- 보안 정책:
+  - API 키는 DB 저장 안 함
+  - 요청마다 전달하고 클라이언트 state에만 유지
+- 데이터 주입 방식:
+  - 업로드 파일 재전송이 아니라 DB에서 읽은 `master CSV + codebook`을 AI context로 사용
+
+4. SkillBook 기반 추가
+- 신규 라이브러리:
+  - `apps/web/src/lib/skillbooks.ts`
+- 신규 API:
+  - `GET/POST /api/admin/skillbooks`
+  - `PATCH /api/admin/skillbooks/{skillBookId}`
+  - `POST /api/admin/skillbooks/{skillBookId}/compile`
+  - `GET/POST /api/admin/skillbook-listings`
+  - `PATCH /api/admin/skillbook-listings/{listingId}`
+  - `POST /api/admin/skillbook-purchases`
+  - `GET /api/platform-admin/skillbook-settlements`
+- 신규 UI:
+  - `apps/web/src/components/admin/AdminAiSkillBookPanel.tsx`
+  - `apps/web/src/components/admin/AdminSkillBookStorePanel.tsx`
+  - `apps/web/src/components/platform/PlatformSkillBookSettlementSection.tsx`
+
+5. 관리자/플랫폼 콘솔 연결
+- `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+  - 기존 손상된 문자열/인코딩 상태를 정리하고 UTF-8 기준으로 재작성
+  - 결과 탭:
+    - ZIP export
+    - Master CSV export
+    - SkillBook CRUD / compile / BYOK chat
+  - 특수의뢰·스토어 탭:
+    - 특수 템플릿 의뢰
+    - 기존 SPECIAL 템플릿 스토어
+    - SkillBook 스토어
+- `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+  - SkillBook 정산 섹션 연결
+
+6. 인코딩/빌드 안정화
+- 이번 라운드 도중 일부 파일에서 invalid UTF-8 문제가 드러남
+- 조치:
+  - 관련 파일을 UTF-8 기준으로 재기록
+  - 손상된 관리자 대시보드는 부분 수정보다 전체 재구성이 안전하다고 판단하고 재작성
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm verify:local` PASS
+- `corepack pnpm --filter web e2e:smoke` PASS (`2 passed`)
+- `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS (`3 passed`)
+
+### Decision Updates
+- New decisions:
+  - 무료 코어 export의 기준 형식은 `ZIP + master long CSV`로 잠금
+  - SkillBook은 처음부터 store-ready 스키마로 설계하되, Builder/과금은 후속 단계로 분리
+  - BYOK API 키 저장은 이번 범위에서 제외하고 요청 단위 전달로 시작
+- Changed decisions:
+  - 관리자 AI는 더 이상 OpenAI 단발 분석만의 개념으로 보지 않고, multi-provider BYOK chat를 무료 코어 일부로 포함
+- Deferred decisions:
+  - SkillBook Builder(플랫폼 키 기반 초안 생성)
+  - 결제 게이트웨이/정기구독
+  - BYOK 키 보관/재사용 UX
+
+### Risks / Blockers
+- Playwright 테스트는 병렬 실행 시 dev server 포트/lock 충돌이 발생함
+- 운영 원칙:
+  - e2e smoke와 oauth-contract는 순차 실행으로 고정하는 편이 안전
+
+### Next Actions
+1. Preview/배포 환경에서 관리자 콘솔의 ZIP export와 BYOK chat 수동 QA
+2. SkillBook Builder 범위 설계(입력 원문 -> AI 초안 -> 사용자 편집)
+3. 무료 코어와 유료 확장(BYOK vs 플랫폼 크레딧) 문서 분리를 README/정책 문서에 반영
+
+## 53) Work Session Entry (2026-03-07, Admin Free-Core Regression + README Sync)
+
+### Goal
+- 2026-03-07 무료 코어 완결 라운드에서 남아 있던 두 가지 공백을 메운다.
+  1. 새 기능 회귀 테스트 추가
+  2. README / web README를 실제 코드 기준으로 동기화
+
+### Completed
+1. 관리자 free-core 회귀 테스트 추가
+- 신규 파일:
+  - `apps/web/e2e/admin-free-core.spec.ts`
+- 검증 범위:
+  - package export가 ZIP 번들과 master CSV를 반환하는지
+  - `/api/admin/ai/chat`가 관리자 소유권 경계를 지키는지
+  - SkillBook create -> compile -> listing -> purchase가 원장까지 반영되는지
+- 구현 방식:
+  - NextAuth JWT session cookie를 테스트에서 직접 발급해 관리자 세션을 재현
+  - 외부 Google 로그인 자동화 없이 admin API 회귀를 검증
+
+2. 테스트 실행 스크립트 추가
+- `apps/web/package.json`
+  - `e2e:admin-core`
+
+3. lint 설정 보정
+- `apps/web/eslint.config.mjs`
+  - `test-results/**`
+  - `playwright-report/**`
+- 이유:
+  - Playwright 산출물 폴더가 없을 때 ESLint가 scandir 에러를 내던 문제 정리
+
+4. 로컬 검증 게이트 보강
+- `scripts/verify-local.ps1`
+  - 기존: lint + build
+  - 변경 후:
+    - lint
+    - build
+    - participant smoke e2e
+    - admin free-core e2e
+    - oauth contract e2e
+
+5. README 동기화
+- `README.md`
+  - 무료 코어 범위
+  - ZIP export 계약
+  - BYOK AI / SkillBook 방향
+  - 추가 E2E 명령
+- `apps/web/README.md`
+  - 새 export API
+  - `/api/admin/ai/chat`
+  - SkillBook API
+  - platform skillbook settlements
+  - free core / paid expansion boundary
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web e2e -- e2e/admin-free-core.spec.ts` PASS (`3 passed`)
+- `corepack pnpm verify:local` PASS
+
+### Notes
+- 이번 admin 회귀 테스트는 실제 Google 브라우저 로그인 자동화가 아니라, JWT session cookie 생성 방식으로 관리자 API를 검증한다.
+- 즉, OAuth 계약 검증과 admin API 회귀 검증을 분리해 안정적으로 유지하는 구조다.

@@ -2,10 +2,68 @@
 
 오픈소스 설문조사 미들웨어 프로젝트.
 
+## Free Core (Open-Source Baseline)
+이 저장소에서 무료로 완결하려는 핵심 기능은 다음입니다.
+
+- 일반 리커트 척도 템플릿 제작
+- 템플릿을 묶은 패키지 생성 및 설문 실행
+- 패키지 결과 다운로드
+  - 기본: ZIP 번들
+  - 호환: 단일 master CSV(`format=csv`)
+- 연구자가 자신의 API 키(BYOK)를 넣고 웹앱 안에서 패키지 데이터와 AI 대화
+
+즉, `설문 실행 -> 결과 다운로드 -> BYOK AI 해석`까지가 무료 코어입니다.
+
 ## Vision
 - 연구소/학교/기관이 자체 설문 시스템을 운영할 수 있도록 지원
 - 일반 템플릿 + 특수 템플릿 + CSV 중심 분석 워크플로우
-- 향후 AI 분석 보조 기능(BYOK) 지원
+- 패키지 데이터를 `ZIP + master CSV`로 내보내고 재사용
+- SkillBook을 통해 연구 방법론을 저장/재사용/유통
+- 연구자 BYOK AI와 플랫폼 제공 AI를 분리한 하이브리드 구조
+
+## Current Product Shape
+- Participant
+  - 익명형 가입/로그인
+  - 참여코드 등록
+  - 설문 응답 및 응답 진행상태 확인
+- Research Admin
+  - 리커트 템플릿 생성
+  - 패키지 생성/상태 관리
+  - 결과 export(ZIP / master CSV)
+  - BYOK AI chat(OpenAI / Gemini / Anthropic)
+  - SkillBook 작성/컴파일/선택
+  - SPECIAL 템플릿 의뢰 및 스토어
+- Platform Admin
+  - 운영 콘솔
+  - 크레딧/정산/운영 현황 확인
+  - SkillBook 정산 요약 확인
+
+## Export Contract
+패키지 결과 기본 다운로드는 ZIP입니다.
+
+- `00_package_overview.csv`
+- `01_attempts.csv`
+- `02_codebook.csv`
+- `90_responses_long.csv`
+- 템플릿별 wide CSV
+
+`format=csv`를 붙이면 `90_responses_long.csv`와 같은 master CSV 1개만 받습니다.
+
+## AI and SkillBook
+- 무료 코어 AI:
+  - 연구자가 자기 API 키를 넣어 대화형으로 사용
+  - 지원 provider: OpenAI / Gemini / Anthropic
+  - API 키는 DB에 저장하지 않음
+- SkillBook:
+  - 연구 방법론/해석 지침을 저장하는 AI용 지식 자산
+  - 현재 범위:
+    - 관리자 CRUD
+    - compile
+    - AI chat에 선택 적용
+    - listing / purchase / settlement foundation
+  - 후속 범위:
+    - SkillBook Builder
+    - 플랫폼 크레딧 과금
 
 ## Current Repository Layout
 - `apps/`: 실행 애플리케이션 (web/api)
@@ -35,7 +93,17 @@
 
 ## Quality Gate
 - 로컬 검증: `corepack pnpm verify:local`
+  - 현재 포함:
+    - web lint
+    - web build
+    - participant smoke e2e
+    - admin free-core e2e
+    - oauth contract e2e
 - Push 전 자동검증 훅 설치: `corepack pnpm hooks:install`
+- 추가 E2E:
+  - `corepack pnpm --filter web e2e:smoke`
+  - `corepack pnpm --filter web e2e:admin-core`
+  - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`
 
 ## OAuth Contract Test
 - 로컬 실행: `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`

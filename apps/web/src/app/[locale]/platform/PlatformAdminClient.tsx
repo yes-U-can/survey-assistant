@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
+import { PlatformSkillBookSettlementSection } from "@/components/platform/PlatformSkillBookSettlementSection";
+
 type LocaleCode = "ko" | "en";
 
 type CreditAction = "ISSUE" | "SPEND" | "REFUND" | "REWARD" | "ADJUSTMENT";
@@ -1742,6 +1744,8 @@ export function PlatformAdminClient({
           </table>
         )}
       </section>
+
+      <PlatformSkillBookSettlementSection locale={locale} />
 
       <section style={{ marginTop: 24 }}>
         <h2>{t.migrations}</h2>

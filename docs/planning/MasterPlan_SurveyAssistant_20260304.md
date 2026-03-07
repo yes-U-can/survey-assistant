@@ -495,3 +495,70 @@ survey-assistant/
     - `.github/workflows/release-on-tag.yml`
 - Current known gap
   - 실제 Google 계정 상호작용 자동화는 수동 체크리스트 병행(정책 유지)
+
+## 35) Build Snapshot Update (2026-03-07, Free Core Completion + SkillBook Foundation)
+- Scope type: 무료 오픈소스 코어 완결 + SkillBook store-ready 기반 추가
+- Completed in this update
+  - 패키지 export 계약을 `ZIP + master long CSV`로 확장
+    - 기본 응답: ZIP
+    - 호환 모드: `format=csv` -> master long CSV 단일 파일
+    - ZIP 구성:
+      - `00_package_overview.csv`
+      - `01_attempts.csv`
+      - `02_codebook.csv`
+      - `90_responses_long.csv`
+      - 템플릿별 wide CSV
+  - 관리자 BYOK AI를 1회성 analyze에서 대화형 chat로 확장
+    - 신규 API: `POST /api/admin/ai/chat`
+    - 지원 provider:
+      - OpenAI
+      - Google Gemini
+      - Anthropic
+    - API 키는 DB 저장 없이 요청 단위로만 전달
+    - 채팅 기록은 서버 저장형이 아니라 클라이언트 보관형으로 시작
+    - AI context는 업로드 파일이 아니라 DB에서 읽은 `master CSV + codebook`으로 구성
+  - SkillBook store-ready 스키마 및 API 추가
+    - 모델:
+      - `SkillBook`
+      - `SkillBookSource`
+      - `SkillBookListing`
+      - `SkillBookPurchase`
+    - enum:
+      - `SkillBookVisibility = PRIVATE | INTERNAL | STORE`
+      - `SkillBookStatus = DRAFT | READY | ARCHIVED`
+    - 관리자 API:
+      - `GET/POST /api/admin/skillbooks`
+      - `PATCH /api/admin/skillbooks/{skillBookId}`
+      - `POST /api/admin/skillbooks/{skillBookId}/compile`
+      - `GET/POST /api/admin/skillbook-listings`
+      - `PATCH /api/admin/skillbook-listings/{listingId}`
+      - `POST /api/admin/skillbook-purchases`
+    - 플랫폼 API:
+      - `GET /api/platform-admin/skillbook-settlements`
+  - 관리자 콘솔에 SkillBook 운영 UI 연결
+    - 결과·AI 탭:
+      - ZIP/CSV export
+      - SkillBook CRUD
+      - SkillBook compile
+      - BYOK multi-turn chat
+    - 특수의뢰·스토어 탭:
+      - 기존 SPECIAL 템플릿 스토어
+      - SkillBook 스토어
+  - 플랫폼 어드민 콘솔에 SkillBook 정산 섹션 연결
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm verify:local` PASS
+  - `corepack pnpm --filter web e2e:smoke` PASS (`2 passed`)
+  - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS (`3 passed`)
+- Follow-up hardening completed in same track
+  - admin free-core regression spec added:
+    - `apps/web/e2e/admin-free-core.spec.ts`
+  - verified scenarios:
+    - ZIP export + master CSV
+    - admin ownership boundary on `/api/admin/ai/chat`
+    - SkillBook purchase ledger flow
+  - `corepack pnpm --filter web e2e -- e2e/admin-free-core.spec.ts` PASS (`3 passed`)
+- Current known gap
+  - SkillBook Builder(플랫폼 키 기반 자동 생성)와 실제 과금/구독 결제는 아직 후속 범위
+  - BYOK API 키 저장/재사용 기능은 보안 설계 별도 트랙으로 미포함
