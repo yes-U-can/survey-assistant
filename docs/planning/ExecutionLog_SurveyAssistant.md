@@ -2449,3 +2449,6 @@
 ### Notes
 - 이번 admin 회귀 테스트는 실제 Google 브라우저 로그인 자동화가 아니라, JWT session cookie 생성 방식으로 관리자 API를 검증한다.
 - 즉, OAuth 계약 검증과 admin API 회귀 검증을 분리해 안정적으로 유지하는 구조다.
+- 후속 보정:
+  - `verify-local.ps1`은 외부 명령 실패가 PowerShell 예외로 자동 전파되지 않는 문제가 있었음
+  - `Invoke-Step` 래퍼를 추가해 각 단계 종료코드를 명시적으로 검사하도록 수정

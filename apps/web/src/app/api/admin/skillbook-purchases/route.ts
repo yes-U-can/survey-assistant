@@ -210,6 +210,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: error.code }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    const detail =
+      process.env.NODE_ENV === "production"
+        ? undefined
+        : error instanceof Error
+          ? error.message
+          : String(error);
+
+    return NextResponse.json({ ok: false, error: "internal_error", detail }, { status: 500 });
   }
 }
