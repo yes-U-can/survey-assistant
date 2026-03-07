@@ -2852,3 +2852,16 @@
     - `© 2026 서울임상심리연구소(Seoul Institute of Clinical Psychology, SICP) & 모오(MOW). All rights reserved.`
 - Verification
   - pending at edit time; run `lint` and `build` after this batch
+## 43) Remove legacy inline legal links (2026-03-07, footer-only legal navigation)
+- Scope type: duplicate legal navigation cleanup
+- Completed in this update
+  - Removed legacy inline `개인정보처리방침 | 이용약관` links from:
+    - admin page body footer
+    - platform page body footer
+    - participant page body footer
+    - admin sign-in helper links
+    - participant auth helper links
+  - Deleted `apps/web/src/components/LegalLinks.tsx`
+  - Legal navigation now exists only in the shared global footer
+- Verification
+  - pending at edit time; run `lint` and `build` after this batch

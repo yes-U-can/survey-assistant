@@ -1,9 +1,8 @@
-import { MigrationJobStatus, UserRole } from "@prisma/client";
+﻿import { MigrationJobStatus, UserRole } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { LegalLinks } from "@/components/LegalLinks";
 import { LogoutButton } from "@/components/LogoutButton";
 
 import { PlatformAdminClient } from "./PlatformAdminClient";
@@ -41,15 +40,15 @@ export default async function PlatformAdminPage({ params }: PageProps) {
   if (session.user.role !== UserRole.PLATFORM_ADMIN) {
     return (
       <main className="sa-page">
-        <h1>{locale === "ko" ? "접근 권한 없음" : "Access Denied"}</h1>
+        <h1>{locale === "ko" ? "?묎렐 沅뚰븳 ?놁쓬" : "Access Denied"}</h1>
         <p>
           {locale === "ko"
-            ? "플랫폼 어드민 계정으로 로그인해야 합니다."
+            ? "?뚮옯???대뱶誘?怨꾩젙?쇰줈 濡쒓렇?명빐???⑸땲??"
             : "You need a platform admin account."}
         </p>
         <p style={{ marginTop: 12 }}>
           <Link href={`/${locale}/auth/admin`}>
-            {locale === "ko" ? "관리자 로그인으로 이동" : "Go to admin sign-in"}
+            {locale === "ko" ? "愿由ъ옄 濡쒓렇?몄쑝濡??대룞" : "Go to admin sign-in"}
           </Link>
         </p>
       </main>
@@ -457,12 +456,12 @@ export default async function PlatformAdminPage({ params }: PageProps) {
   };
 
   const mobileBlockedTitle =
-    locale === "ko" ? "플랫폼 어드민 기능은 PC 전용입니다." : "Platform admin is desktop-only.";
+    locale === "ko" ? "?뚮옯???대뱶誘?湲곕뒫? PC ?꾩슜?낅땲??" : "Platform admin is desktop-only.";
   const mobileBlockedBody =
     locale === "ko"
-      ? "운영/정산/마이그레이션 관리 기능은 모바일에서 제공하지 않습니다. PC 브라우저에서 접속해 주세요."
+      ? "?댁쁺/?뺤궛/留덉씠洹몃젅?댁뀡 愿由?湲곕뒫? 紐⑤컮?쇱뿉???쒓났?섏? ?딆뒿?덈떎. PC 釉뚮씪?곗??먯꽌 ?묒냽??二쇱꽭??"
       : "Operations, settlements, and migration controls are not available on mobile. Please use a desktop browser.";
-  const mobileBlockedLink = locale === "ko" ? "홈으로 이동" : "Back to home";
+  const mobileBlockedLink = locale === "ko" ? "?덉쑝濡??대룞" : "Back to home";
 
   return (
     <>
@@ -481,9 +480,8 @@ export default async function PlatformAdminPage({ params }: PageProps) {
           initialSellerSettlements={initialSellerSettlements}
           initialAlertThresholds={initialAlertThresholds}
         />
-        <footer className="sa-footer">
+                <footer className="sa-footer">
           <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-          <LegalLinks locale={locale} />
           <span className="sa-divider">|</span>
           <Link href={`/${locale}/admin`}>
             {locale === "ko" ? "관리자 콘솔" : "Admin console"}
@@ -505,3 +503,4 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     </>
   );
 }
+

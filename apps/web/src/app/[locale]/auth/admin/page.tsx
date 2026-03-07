@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
-import { LegalLinks } from "@/components/LegalLinks";
 import { NaverSignInButton } from "@/components/NaverSignInButton";
 import { authOptions } from "@/lib/auth";
 import { normalizeLocale, resolveRoleHome } from "@/lib/role-home";
@@ -143,7 +142,6 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
           <div className="sa-auth-links">
             <Link href={`/${locale}/auth/participant`}>{t.toParticipant}</Link>
             <Link href={`/${locale}`}>{t.toHome}</Link>
-            <LegalLinks locale={locale} />
           </div>
         </section>
       </main>

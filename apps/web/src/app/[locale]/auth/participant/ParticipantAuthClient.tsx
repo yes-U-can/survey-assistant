@@ -4,7 +4,6 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { signIn } from "next-auth/react";
 
-import { LegalLinks } from "@/components/LegalLinks";
 
 type Props = {
   locale: "ko" | "en";
@@ -165,7 +164,6 @@ export function ParticipantAuthClient({ locale }: Props) {
         <div className="sa-auth-links">
           <Link href={`/${locale}/auth/admin`}>{t.toAdmin}</Link>
           <Link href={`/${locale}`}>{t.toHome}</Link>
-          <LegalLinks locale={locale} />
         </div>
       </section>
 

@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { LegalLinks } from "@/components/LegalLinks";
 import { LogoutButton } from "@/components/LogoutButton";
 
 import { AdminDashboardClient } from "./AdminDashboardClient";
@@ -479,12 +478,11 @@ export default async function AdminHomePage({ params, searchParams }: PageProps)
         />
         <footer className="sa-footer">
           <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-          <LegalLinks locale={locale} />
           <span className="sa-divider">|</span>
           {session.user.role === UserRole.PLATFORM_ADMIN ? (
             <>
               <Link href={`/${locale}/platform`}>
-                {locale === "ko" ? "?뚮옯???대뱶誘?肄섏넄" : "Platform admin console"}
+                {locale === "ko" ? "플랫폼 어드민 콘솔" : "Platform admin console"}
               </Link>
               <span className="sa-divider">|</span>
             </>
