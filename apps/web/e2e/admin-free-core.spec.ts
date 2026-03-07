@@ -331,6 +331,107 @@ test.describe("admin free core", () => {
     }
   });
 
+  test("migration request create/list stays inside requester scope", async ({ request }) => {
+    test.skip(!prisma, "DATABASE_URL or DIRECT_URL is required.");
+
+    const suffix = `${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const ownerAEmail = `migration_a_${suffix}@example.com`;
+    const ownerBEmail = `migration_b_${suffix}@example.com`;
+
+    let ownerAId: string | null = null;
+    let ownerBId: string | null = null;
+
+    try {
+      const [ownerA, ownerB] = await Promise.all([
+        prisma!.user.create({
+          data: {
+            role: UserRole.RESEARCH_ADMIN,
+            email: ownerAEmail,
+            displayName: `Migration A ${suffix}`,
+            locale: Locale.ko,
+            isActive: true,
+          },
+          select: { id: true, displayName: true },
+        }),
+        prisma!.user.create({
+          data: {
+            role: UserRole.RESEARCH_ADMIN,
+            email: ownerBEmail,
+            displayName: `Migration B ${suffix}`,
+            locale: Locale.ko,
+            isActive: true,
+          },
+          select: { id: true },
+        }),
+      ]);
+      ownerAId = ownerA.id;
+      ownerBId = ownerB.id;
+
+      await prisma!.migrationJob.create({
+        data: {
+          requesterId: ownerB.id,
+          sourceLabel: `Legacy B ${suffix}`,
+          sourceFormat: "SQL dump",
+          requestNote: "Do not leak to owner A.",
+        },
+      });
+
+      const cookie = await buildAdminCookie({
+        id: ownerA.id,
+        role: UserRole.RESEARCH_ADMIN,
+        name: ownerA.displayName,
+      });
+
+      const createResult = await apiJson<{
+        ok?: boolean;
+        job?: { id: string; sourceLabel: string; sourceFormat: string; status: string };
+      }>(request, {
+        cookie,
+        method: "POST",
+        url: "/api/admin/migration-jobs",
+        data: {
+          sourceLabel: `Legacy A ${suffix}`,
+          sourceFormat: "GAS export",
+          requestNote: "Import participants and response history.",
+        },
+      });
+
+      expect(createResult.response.status()).toBe(201);
+      expect(createResult.json?.ok).toBeTruthy();
+      expect(createResult.json?.job?.sourceLabel).toBe(`Legacy A ${suffix}`);
+      expect(createResult.json?.job?.status).toBe("REQUESTED");
+
+      const listResult = await apiJson<{
+        ok?: boolean;
+        jobs?: Array<{ sourceLabel: string; sourceFormat: string; requestNote: string | null }>;
+      }>(request, {
+        cookie,
+        url: "/api/admin/migration-jobs?limit=20",
+      });
+
+      expect(listResult.response.status()).toBe(200);
+      expect(listResult.json?.ok).toBeTruthy();
+      expect(listResult.json?.jobs?.some((job) => job.sourceLabel === `Legacy A ${suffix}`)).toBeTruthy();
+      expect(listResult.json?.jobs?.some((job) => job.sourceLabel === `Legacy B ${suffix}`)).toBeFalsy();
+    } finally {
+      if (ownerAId || ownerBId) {
+        await prisma!.migrationJob.deleteMany({
+          where: {
+            requesterId: {
+              in: [ownerAId, ownerBId].filter((value): value is string => Boolean(value)),
+            },
+          },
+        });
+      }
+      if (ownerAId) {
+        await prisma!.user.deleteMany({ where: { id: ownerAId } });
+      }
+      if (ownerBId) {
+        await prisma!.user.deleteMany({ where: { id: ownerBId } });
+      }
+    }
+  });
+
   test("skillbook create -> compile -> listing -> purchase updates ledger", async ({ request }) => {
     test.skip(!prisma, "DATABASE_URL or DIRECT_URL is required.");
 

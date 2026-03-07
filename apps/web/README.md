@@ -97,6 +97,7 @@ This app is linked to project `survey_sicp`.
   - requires `X-Idempotency-Key`
   - charges credits immediately and auto-refunds on failure
 - Admin own credit wallet: `GET /api/admin/credits`
+- Migration requests: `GET/POST /api/admin/migration-jobs`
 - SkillBooks: `GET/POST /api/admin/skillbooks`
 - SkillBook update: `PATCH /api/admin/skillbooks/{skillBookId}`
 - SkillBook compile: `POST /api/admin/skillbooks/{skillBookId}/compile`
@@ -139,6 +140,9 @@ This app is linked to project `survey_sicp`.
   - platform-provided AI credits
   - SkillBook Builder
   - store fees / subscription / billing
+- Service-intake layer currently included:
+  - special template requests
+  - migration requests
 
 ## Special Template Runtime (Participant)
 - Renderer plugin registry: `src/lib/template-runtime/special-renderers.tsx`

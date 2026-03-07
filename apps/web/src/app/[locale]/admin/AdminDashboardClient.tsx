@@ -15,6 +15,7 @@ type ParticipantFilter = "ALL" | "ACTIVE" | "INACTIVE" | "ANONYMIZED";
 type TemplateItem = { id: string; type: "LIKERT" | "SPECIAL"; visibility: "PRIVATE" | "STORE"; title: string; description: string | null; version: number; createdAt: string; updatedAt: string; };
 type PackageItem = { id: string; code: string; title: string; description: string | null; mode: "CROSS_SECTIONAL" | "LONGITUDINAL"; status: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED"; maxResponsesPerParticipant: number; startsAt: string | null; endsAt: string | null; createdAt: string; updatedAt: string; templates: Array<{ templateId: string; orderIndex: number; title: string; type: "LIKERT" | "SPECIAL" }>; };
 type SpecialRequestItem = { id: string; title: string; description: string; status: "REQUESTED" | "REVIEWING" | "IN_PROGRESS" | "DELIVERED" | "REJECTED" | "CANCELED"; consentPublicSource: boolean; consentAt: string; adminNote: string | null; createdAt: string; updatedAt: string; };
+type MigrationJobItem = { id: string; sourceLabel: string; sourceFormat: string; status: "REQUESTED" | "ACCEPTED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELED"; requestNote: string | null; resultNote: string | null; requestedAt: string; completedAt: string | null; };
 type StoreOwnedTemplateItem = { id: string; title: string; description: string | null; version: number; updatedAt: string; };
 type StoreListingItem = { id: string; templateId: string; sellerId: string; priceCredits: number; isActive: boolean; createdAt: string; updatedAt: string; template: { id: string; title: string; description: string | null; version: number; isArchived: boolean; }; seller?: { id: string; loginId: string | null; displayName: string | null; role: string; }; alreadyPurchased?: boolean; canPurchase?: boolean; };
 type StorePurchaseHistoryItem = { id: string; listingId: string; templateId: string; buyerId: string; sellerId: string; priceCredits: number; sellerCredit: number; platformFeeCredits: number; createdAt: string; listing: { id: string; priceCredits: number; template: { id: string; title: string; version: number; }; }; seller?: { id: string; loginId: string | null; displayName: string | null; role: string; }; buyer?: { id: string; loginId: string | null; displayName: string | null; role: string; }; };
@@ -27,6 +28,7 @@ type Props = {
   initialTemplates: TemplateItem[];
   initialPackages: PackageItem[];
   initialSpecialRequests: SpecialRequestItem[];
+  initialMigrationJobs: MigrationJobItem[];
   initialOwnedSpecialTemplates: StoreOwnedTemplateItem[];
   initialMyListings: StoreListingItem[];
   initialMarketListings: StoreListingItem[];
@@ -97,6 +99,19 @@ function specialRequestStatusLabel(
   return "취소";
 }
 
+function migrationStatusLabel(
+  locale: LocaleCode,
+  status: "REQUESTED" | "ACCEPTED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELED",
+) {
+  if (locale !== "ko") return status;
+  if (status === "REQUESTED") return "접수";
+  if (status === "ACCEPTED") return "수락";
+  if (status === "RUNNING") return "진행 중";
+  if (status === "COMPLETED") return "완료";
+  if (status === "FAILED") return "실패";
+  return "취소";
+}
+
 function participantStatusLabel(
   locale: LocaleCode,
   participant: Pick<ParticipantAccountItem, "isActive" | "isAnonymized">,
@@ -118,6 +133,7 @@ export function AdminDashboardClient(props: Props) {
   const [templates, setTemplates] = useState(props.initialTemplates);
   const [packages, setPackages] = useState(props.initialPackages);
   const [specialRequests, setSpecialRequests] = useState(props.initialSpecialRequests);
+  const [migrationJobs, setMigrationJobs] = useState(props.initialMigrationJobs);
   const [ownedSpecialTemplates, setOwnedSpecialTemplates] = useState(props.initialOwnedSpecialTemplates);
   const [myListings, setMyListings] = useState(props.initialMyListings);
   const [marketListings, setMarketListings] = useState(props.initialMarketListings);
@@ -149,6 +165,9 @@ export function AdminDashboardClient(props: Props) {
   const [specialTitle, setSpecialTitle] = useState("");
   const [specialDescription, setSpecialDescription] = useState("");
   const [specialConsent, setSpecialConsent] = useState(false);
+  const [migrationSourceLabel, setMigrationSourceLabel] = useState("");
+  const [migrationSourceFormat, setMigrationSourceFormat] = useState("CSV");
+  const [migrationRequestNote, setMigrationRequestNote] = useState("");
 
   const [storeTemplateId, setStoreTemplateId] = useState(props.initialOwnedSpecialTemplates[0]?.id ?? "");
   const [storePrice, setStorePrice] = useState(100);
@@ -173,10 +192,11 @@ export function AdminDashboardClient(props: Props) {
     setIsLoading(true);
     setMessage("");
     try {
-      const [templateRes, packageRes, requestRes, listingRes, purchaseRes, participantRes] = await Promise.all([
+      const [templateRes, packageRes, requestRes, migrationRes, listingRes, purchaseRes, participantRes] = await Promise.all([
         fetch("/api/admin/templates", { cache: "no-store" }),
         fetch("/api/admin/packages", { cache: "no-store" }),
         fetch("/api/admin/special-requests", { cache: "no-store" }),
+        fetch("/api/admin/migration-jobs?limit=50", { cache: "no-store" }),
         fetch("/api/admin/store/listings?limit=100", { cache: "no-store" }),
         fetch("/api/admin/store/purchases?limit=50", { cache: "no-store" }),
         fetch("/api/admin/participants?limit=200", { cache: "no-store" }),
@@ -184,15 +204,17 @@ export function AdminDashboardClient(props: Props) {
       const templateJson = await parseJson<{ ok?: boolean; templates?: TemplateItem[] }>(templateRes);
       const packageJson = await parseJson<{ ok?: boolean; packages?: PackageItem[] }>(packageRes);
       const requestJson = await parseJson<{ ok?: boolean; requests?: SpecialRequestItem[] }>(requestRes);
+      const migrationJson = await parseJson<{ ok?: boolean; jobs?: MigrationJobItem[] }>(migrationRes);
       const listingJson = await parseJson<{ ok?: boolean; ownedSpecialTemplates?: StoreOwnedTemplateItem[]; myListings?: StoreListingItem[]; marketListings?: StoreListingItem[] }>(listingRes);
       const purchaseJson = await parseJson<{ ok?: boolean; purchases?: StorePurchaseHistoryItem[]; sales?: StorePurchaseHistoryItem[] }>(purchaseRes);
       const participantJson = await parseJson<{ ok?: boolean; participants?: ParticipantAccountItem[] }>(participantRes);
-      if (!templateRes.ok || !templateJson?.ok || !templateJson.templates || !packageRes.ok || !packageJson?.ok || !packageJson.packages || !requestRes.ok || !requestJson?.ok || !requestJson.requests || !listingRes.ok || !listingJson?.ok || !listingJson.ownedSpecialTemplates || !listingJson.myListings || !listingJson.marketListings || !purchaseRes.ok || !purchaseJson?.ok || !purchaseJson.purchases || !purchaseJson.sales || !participantRes.ok || !participantJson?.ok || !participantJson.participants) {
+      if (!templateRes.ok || !templateJson?.ok || !templateJson.templates || !packageRes.ok || !packageJson?.ok || !packageJson.packages || !requestRes.ok || !requestJson?.ok || !requestJson.requests || !migrationRes.ok || !migrationJson?.ok || !migrationJson.jobs || !listingRes.ok || !listingJson?.ok || !listingJson.ownedSpecialTemplates || !listingJson.myListings || !listingJson.marketListings || !purchaseRes.ok || !purchaseJson?.ok || !purchaseJson.purchases || !purchaseJson.sales || !participantRes.ok || !participantJson?.ok || !participantJson.participants) {
         throw new Error("refresh_failed");
       }
       setTemplates(templateJson.templates);
       setPackages(packageJson.packages);
       setSpecialRequests(requestJson.requests);
+      setMigrationJobs(migrationJson.jobs);
       const ownedTemplates = listingJson.ownedSpecialTemplates;
       const ownListings = listingJson.myListings;
       const availableListings = listingJson.marketListings;
@@ -349,6 +371,36 @@ export function AdminDashboardClient(props: Props) {
     }
   };
 
+  const onCreateMigrationJob = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/migration-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceLabel: migrationSourceLabel.trim(),
+          sourceFormat: migrationSourceFormat.trim(),
+          requestNote: migrationRequestNote.trim() || undefined,
+        }),
+      });
+      const payload = await parseJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !payload?.ok) {
+        setMessage(payload?.error ?? tr("요청 처리 중 오류가 발생했습니다.", "Request failed."));
+        setIsLoading(false);
+        return;
+      }
+      await refreshAll();
+      setMigrationSourceLabel("");
+      setMigrationSourceFormat("CSV");
+      setMigrationRequestNote("");
+      setMessage(tr("데이터 마이그레이션 의뢰가 등록되었습니다.", "Migration request submitted."));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onCreateStoreListing = async (event: FormEvent) => {
     event.preventDefault();
     if (!storeTemplateId) return;
@@ -458,6 +510,7 @@ export function AdminDashboardClient(props: Props) {
     { label: tr("템플릿", "Templates"), value: templates.length },
     { label: tr("패키지", "Packages"), value: packages.length },
     { label: tr("열린 특수의뢰", "Open special requests"), value: specialRequests.filter((item) => ["REQUESTED", "REVIEWING", "IN_PROGRESS"].includes(item.status)).length },
+    { label: tr("열린 마이그레이션 의뢰", "Open migration requests"), value: migrationJobs.filter((item) => ["REQUESTED", "ACCEPTED", "RUNNING"].includes(item.status)).length },
     { label: tr("관리 대상 피검자", "Managed participants"), value: participants.length },
     { label: tr("활성 특수 판매글", "Active special listings"), value: myListings.filter((item) => item.isActive).length },
   ];
@@ -579,6 +632,80 @@ export function AdminDashboardClient(props: Props) {
       </section>
 
       <section hidden={activeView !== "special_store"} style={{ display: "grid", gap: 16 }}>
+        <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
+          <h2 style={{ marginTop: 0 }}>{tr("데이터 마이그레이션 의뢰", "Data migration request")}</h2>
+          <form onSubmit={onCreateMigrationJob} style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span>{tr("이전 시스템 이름", "Legacy system label")}</span>
+                <input
+                  value={migrationSourceLabel}
+                  onChange={(event) => setMigrationSourceLabel(event.target.value)}
+                  placeholder={tr("예: 구 웹사이트 설문 시스템", "Example: Legacy lab survey system")}
+                  disabled={isLoading}
+                />
+              </label>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span>{tr("백업 형식", "Backup format")}</span>
+                <input
+                  value={migrationSourceFormat}
+                  onChange={(event) => setMigrationSourceFormat(event.target.value)}
+                  placeholder={tr("예: CSV / XLSX / SQL dump / GAS export", "Example: CSV / XLSX / SQL dump / GAS export")}
+                  disabled={isLoading}
+                />
+              </label>
+            </div>
+            <label style={{ display: "grid", gap: 6 }}>
+              <span>{tr("요청 메모", "Request note")}</span>
+              <textarea
+                rows={5}
+                value={migrationRequestNote}
+                onChange={(event) => setMigrationRequestNote(event.target.value)}
+                placeholder={tr("어떤 데이터를 옮겨야 하는지, 주의사항은 무엇인지 적어 주세요.", "Describe what should be migrated and any constraints.")}
+                disabled={isLoading}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={isLoading || !migrationSourceLabel.trim() || !migrationSourceFormat.trim()}
+              style={{ width: 220 }}
+            >
+              {isLoading ? tr("처리 중...", "Processing...") : tr("마이그레이션 의뢰 등록", "Submit migration request")}
+            </button>
+          </form>
+          <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+            {migrationJobs.length === 0 ? (
+              <p>{tr("등록된 마이그레이션 의뢰가 없습니다.", "No migration request found.")}</p>
+            ) : (
+              migrationJobs.map((job) => (
+                <article key={job.id} style={{ border: "1px solid #e5ebef", borderRadius: 10, padding: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <strong>{job.sourceLabel}</strong>
+                      <div style={{ fontSize: 13, opacity: 0.75 }}>{job.sourceFormat}</div>
+                    </div>
+                    <span>{migrationStatusLabel(locale, job.status)}</span>
+                  </div>
+                  {job.requestNote ? <p style={{ marginBottom: 8 }}>{job.requestNote}</p> : null}
+                  <div style={{ fontSize: 13, opacity: 0.75 }}>
+                    {tr("요청 시각", "Requested at")}: {fmt(locale, job.requestedAt)}
+                  </div>
+                  {job.resultNote ? (
+                    <div style={{ marginTop: 8, fontSize: 13 }}>
+                      <strong>{tr("처리 메모", "Result note")}:</strong> {job.resultNote}
+                    </div>
+                  ) : null}
+                  {job.completedAt ? (
+                    <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+                      {tr("완료 시각", "Completed at")}: {fmt(locale, job.completedAt)}
+                    </div>
+                  ) : null}
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+
         <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
           <h2 style={{ marginTop: 0 }}>{tr("특수 템플릿 의뢰", "Special template request")}</h2>
           <form onSubmit={onCreateSpecialRequest} style={{ display: "grid", gap: 12 }}>

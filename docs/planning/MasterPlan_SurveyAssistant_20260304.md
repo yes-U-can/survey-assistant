@@ -596,3 +596,29 @@ survey-assistant/
   - 실제 결제 게이트웨이/정기구독은 아직 없음
   - Managed provider API key가 환경변수로 설정되어야 유료 AI 실행이 실제 동작함
   - Builder는 현재 초안 생성 단계이며, 자동 품질평가/검수 루프는 아직 없음
+
+## 37) Build Snapshot Update (2026-03-07, Migration Request Intake for Research Admin)
+- Scope type: 서비스형 BM/운영 기능 보강
+- Completed in this update
+  - 연구자용 데이터 마이그레이션 의뢰 API 추가
+    - `GET/POST /api/admin/migration-jobs`
+    - 연구자 본인 의뢰만 조회하도록 requester scope 고정
+    - 생성 시 rate limit 적용
+  - 연구자 콘솔 연결
+    - `특수의뢰·스토어` 탭에 데이터 마이그레이션 의뢰 등록/조회 섹션 추가
+    - 입력 항목:
+      - 이전 시스템 이름
+      - 백업 형식
+      - 요청 메모
+  - 관리자 서버 페이지 초기 데이터 연결
+    - `apps/web/src/app/[locale]/admin/page.tsx`
+  - admin free-core 회귀 테스트 확장
+    - 연구자 A는 자기 마이그레이션 의뢰만 조회 가능
+    - 연구자 B 의뢰는 노출되지 않음
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm verify:local` PASS
+- Current known gap
+  - 실제 데이터 업로드/자동 변환 파이프라인은 아직 없음
+  - 현재는 `의뢰 등록 -> 플랫폼 어드민 운영 큐 처리` 단계까지 구현

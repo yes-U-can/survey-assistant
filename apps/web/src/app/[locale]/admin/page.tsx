@@ -104,6 +104,7 @@ export default async function AdminHomePage({ params, searchParams }: PageProps)
     templates,
     packages,
     specialRequests,
+    migrationJobs,
     ownedSpecialTemplates,
     myListings,
     marketListings,
@@ -159,6 +160,21 @@ export default async function AdminHomePage({ params, searchParams }: PageProps)
         adminNote: true,
         createdAt: true,
         updatedAt: true,
+      },
+    }),
+    prisma.migrationJob.findMany({
+      where: { requesterId: session.user.id },
+      orderBy: { requestedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        sourceLabel: true,
+        sourceFormat: true,
+        status: true,
+        requestNote: true,
+        resultNote: true,
+        requestedAt: true,
+        completedAt: true,
       },
     }),
     prisma.template.findMany({
@@ -386,6 +402,12 @@ export default async function AdminHomePage({ params, searchParams }: PageProps)
     updatedAt: item.updatedAt.toISOString(),
   }));
 
+  const initialMigrationJobs = migrationJobs.map((item) => ({
+    ...item,
+    requestedAt: item.requestedAt.toISOString(),
+    completedAt: item.completedAt?.toISOString() ?? null,
+  }));
+
   const initialOwnedSpecialTemplates = ownedSpecialTemplates.map((tpl) => ({
     ...tpl,
     updatedAt: tpl.updatedAt.toISOString(),
@@ -447,6 +469,7 @@ export default async function AdminHomePage({ params, searchParams }: PageProps)
           initialTemplates={initialTemplates}
           initialPackages={initialPackages}
           initialSpecialRequests={initialSpecialRequests}
+          initialMigrationJobs={initialMigrationJobs}
           initialOwnedSpecialTemplates={initialOwnedSpecialTemplates}
           initialMyListings={initialMyListings}
           initialMarketListings={initialMarketListings}

@@ -31,11 +31,13 @@
   - 패키지 생성/상태 관리
   - 결과 export(ZIP / master CSV)
   - BYOK AI chat(OpenAI / Gemini / Anthropic)
+  - 데이터 마이그레이션 의뢰 등록/조회
   - SkillBook 작성/컴파일/선택
   - SPECIAL 템플릿 의뢰 및 스토어
 - Platform Admin
   - 운영 콘솔
   - 크레딧/정산/운영 현황 확인
+  - 마이그레이션 의뢰 큐 운영
   - SkillBook 정산 요약 확인
 
 ## Export Contract
@@ -105,6 +107,7 @@
     - web build
     - participant smoke e2e
     - admin free-core e2e
+    - admin paid-BM e2e
     - oauth contract e2e
 - Push 전 자동검증 훅 설치: `corepack pnpm hooks:install`
 - 추가 E2E:

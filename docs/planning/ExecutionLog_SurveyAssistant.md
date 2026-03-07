@@ -2545,3 +2545,64 @@
 - Playwright 스펙은 병렬 실행 시 dev server 포트 충돌이 다시 발생하므로, admin-core/admin-paid는 순차 실행 원칙을 유지한다.
 - SkillBook Builder는 현재 `draft 생성 -> 사용자 검토 -> 저장` 구조다.
 - 즉, “AI가 자동 저장”이 아니라 “AI가 초안 생성, 연구자가 검토 후 저장” 구조로 설계했다.
+
+## 55) Work Session Entry (2026-03-07, Migration Request Intake for Research Admin)
+
+### Goal
+- 남아 있던 서비스형 기능 공백 중 `데이터 마이그레이션 의뢰` 흐름을 연구자 콘솔까지 연결한다.
+- 이미 존재하던 `MigrationJob` 모델과 플랫폼 어드민 운영 API를 재사용하고, 연구자 측 `등록/조회` 진입선만 추가한다.
+
+### Completed
+1. 연구자용 migration request API 추가
+- 신규:
+  - `apps/web/src/app/api/admin/migration-jobs/route.ts`
+- 제공 기능:
+  - `GET /api/admin/migration-jobs`
+  - `POST /api/admin/migration-jobs`
+- 정책:
+  - requester scope로 본인 의뢰만 조회
+  - 생성 시 rate limit 적용
+  - audit log 기록
+
+2. 연구자 콘솔 연결
+- 변경:
+  - `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+- 추가 내용:
+  - `특수의뢰·스토어` 탭에 데이터 마이그레이션 의뢰 폼/목록
+  - 입력값:
+    - 이전 시스템 이름
+    - 백업 형식
+    - 요청 메모
+  - overview 카드에 열린 마이그레이션 의뢰 수 표시
+
+3. 서버 초기 데이터 연결
+- 변경:
+  - `apps/web/src/app/[locale]/admin/page.tsx`
+- 역할:
+  - 연구자 본인 migration job 50건을 서버에서 읽어 초기 props로 전달
+
+4. 회귀 테스트 확장
+- 변경:
+  - `apps/web/e2e/admin-free-core.spec.ts`
+- 새 검증:
+  - 연구자 A가 migration request를 생성 가능
+  - 연구자 A 목록 조회 시 자기 의뢰만 보임
+  - 연구자 B 의뢰는 노출되지 않음
+
+5. 문서 동기화
+- 변경:
+  - `README.md`
+  - `apps/web/README.md`
+  - `docs/planning/MasterPlan_SurveyAssistant_20260304.md`
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm verify:local` PASS
+
+### Notes
+- 이번 배치로 `데이터 마이그레이션`은 "자동 변환기"가 아니라 우선 `서비스 의뢰 intake` 단계까지 구현됐다.
+- 즉, 현재 제품 수준은:
+  - 연구자: 의뢰 등록/조회
+  - 플랫폼 어드민: 운영 큐 조회/상태 변경
+- 실제 파일 업로드/매핑/자동 변환 워크플로는 후속 단계다.
