@@ -110,7 +110,6 @@ model User {
   loginId      String?  @unique
   email        String?  @unique
   googleSub    String?  @unique
-  naverSub     String?  @unique
   passwordHash String?
   displayName  String?
   locale       Locale   @default(ko)

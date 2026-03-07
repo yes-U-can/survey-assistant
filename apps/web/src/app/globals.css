@@ -695,41 +695,8 @@ textarea {
   flex-shrink: 0;
 }
 
-.sa-naver-btn {
-  border: 1px solid #03c75a;
-  border-radius: 999px;
-  min-height: 44px;
-  padding: 0 18px 0 12px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #03c75a;
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
-}
 
-.sa-naver-btn:hover {
-  border-color: #02b350;
-  background: #02b350;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-}
 
-.sa-naver-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-weight: 900;
-  flex-shrink: 0;
-}
 
 .sa-participant-enroll-form {
   margin-top: 16px;
@@ -1283,11 +1250,6 @@ body::after {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.09);
 }
 
-.sa-naver-btn {
-  min-height: 46px;
-  padding-right: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.09);
-}
 
 .sa-inline-message {
   font-size: 0.86rem;
@@ -1490,9 +1452,6 @@ body::after {
 .sa-home-card:hover,
 .sa-nav-chip:hover,
 .sa-google-btn:hover,
-.sa-naver-btn:hover {
-  transform: none;
-}
 
 .sa-home-card:hover {
   box-shadow: var(--shadow-soft);
@@ -1519,9 +1478,6 @@ body::after {
   box-shadow: none;
 }
 
-.sa-naver-btn {
-  box-shadow: none;
-}
 
 .sa-participant-progress-fill,
 .card-progress-fill {

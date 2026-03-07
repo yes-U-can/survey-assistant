@@ -1,4 +1,4 @@
-﻿# Survey Assistant - Execution Log & Feedback Loop
+# Survey Assistant - Execution Log & Feedback Loop
 
 - Last Updated: 2026-03-04
 - Purpose: 세션 간 연속성 보장, 다른 AI/개발자 인수인계, 계획-구현 정합성 점검
@@ -2865,3 +2865,18 @@
   - Legal navigation now exists only in the shared global footer
 - Verification
   - pending at edit time; run `lint` and `build` after this batch
+
+## 44) Naver OAuth Rollback (2026-03-07, revert admin OAuth to Google-only)
+- Scope type: auth scope simplification
+- Completed in this update
+  - Removed Naver admin OAuth support from runtime code
+  - Admin sign-in page is Google-only again
+  - Removed Naver OAuth contract checks from E2E and workflow env
+  - Removed `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` from active env/setup docs
+  - Removed `NaverSignInButton` and related CSS
+  - Removed `naverSub` from current Prisma schema definition
+- Verification
+  - corepack pnpm --filter web lint PASS
+  - corepack pnpm --filter web build PASS
+  - corepack pnpm verify:local PASS
+  - runtime/search check: active app code no longer contains Naver OAuth references

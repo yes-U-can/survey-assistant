@@ -3,7 +3,6 @@ import { compare } from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import NaverProvider from "next-auth/providers/naver";
 
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -13,19 +12,6 @@ type AuthUser = {
   role: UserRole;
   locale: Locale;
   name?: string | null;
-};
-
-type AdminOAuthProvider = "google" | "naver";
-
-type NaverRawProfile = {
-  response?: {
-    email?: string;
-    name?: string;
-    nickname?: string;
-    profile_image?: string;
-  };
-  email?: string;
-  name?: string;
 };
 
 const bootstrapPlatformAdminEmails = new Set(
@@ -124,13 +110,13 @@ async function checkParticipantLoginRateLimit(params: {
   }
 }
 
-function getAdminOAuthAccountData(provider: AdminOAuthProvider, subject: string) {
-  return provider === "google" ? { googleSub: subject } : { naverSub: subject };
+function getAdminOAuthAccountData(subject: string) {
+  return { googleSub: subject };
 }
 
-async function findAdminUserByOAuthSubject(provider: AdminOAuthProvider, subject: string) {
+async function findAdminUserByOAuthSubject(subject: string) {
   return prisma.user.findUnique({
-    where: provider === "google" ? { googleSub: subject } : { naverSub: subject },
+    where: { googleSub: subject },
     select: {
       id: true,
       role: true,
@@ -139,9 +125,9 @@ async function findAdminUserByOAuthSubject(provider: AdminOAuthProvider, subject
   });
 }
 
-async function refreshAdminOAuthTokenClaims(provider: AdminOAuthProvider, subject: string) {
+async function refreshAdminOAuthTokenClaims(subject: string) {
   return prisma.user.findUnique({
-    where: provider === "google" ? { googleSub: subject } : { naverSub: subject },
+    where: { googleSub: subject },
     select: {
       id: true,
       role: true,
@@ -153,7 +139,6 @@ async function refreshAdminOAuthTokenClaims(provider: AdminOAuthProvider, subjec
 }
 
 function extractAdminOAuthProfile(params: {
-  provider: AdminOAuthProvider;
   providerAccountId: string | null | undefined;
   profile: unknown;
 }) {
@@ -162,55 +147,29 @@ function extractAdminOAuthProfile(params: {
     return null;
   }
 
-  if (params.provider === "google") {
-    const profile = params.profile as { email?: string; name?: string } | undefined;
-    const email = normalizeEmail(typeof profile?.email === "string" ? profile.email : null);
-    const displayName =
-      typeof profile?.name === "string" && profile.name.trim()
-        ? profile.name.trim()
-        : email ?? "Research Admin";
-
-    return {
-      subject,
-      email,
-      displayName,
-    };
-  }
-
-  const profile = params.profile as NaverRawProfile | undefined;
-  const email = normalizeEmail(
-    typeof profile?.response?.email === "string"
-      ? profile.response.email
-      : typeof profile?.email === "string"
-        ? profile.email
-        : null,
-  );
-  const rawName =
-    typeof profile?.response?.name === "string" && profile.response.name.trim()
-      ? profile.response.name.trim()
-      : typeof profile?.response?.nickname === "string" && profile.response.nickname.trim()
-        ? profile.response.nickname.trim()
-        : typeof profile?.name === "string" && profile.name.trim()
-          ? profile.name.trim()
-          : null;
+  const profile = params.profile as { email?: string; name?: string } | undefined;
+  const email = normalizeEmail(typeof profile?.email === "string" ? profile.email : null);
+  const displayName =
+    typeof profile?.name === "string" && profile.name.trim()
+      ? profile.name.trim()
+      : email ?? "Research Admin";
 
   return {
     subject,
     email,
-    displayName: rawName ?? email ?? "Research Admin",
+    displayName,
   };
 }
 
 async function validateAdminOAuthSignIn(params: {
-  provider: AdminOAuthProvider;
   subject: string;
   email: string | null;
   displayName: string;
 }) {
   const now = new Date();
 
-  const providerAccountData = getAdminOAuthAccountData(params.provider, params.subject);
-  const byProviderSubject = await findAdminUserByOAuthSubject(params.provider, params.subject);
+  const providerAccountData = getAdminOAuthAccountData(params.subject);
+  const byProviderSubject = await findAdminUserByOAuthSubject(params.subject);
 
   if (byProviderSubject) {
     if (
@@ -420,30 +379,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
-if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
-  providers.push(
-    NaverProvider({
-      clientId: process.env.NAVER_CLIENT_ID,
-      clientSecret: process.env.NAVER_CLIENT_SECRET,
-      profile(profile) {
-        const resolvedName =
-          typeof profile.response?.name === "string" && profile.response.name.trim()
-            ? profile.response.name.trim()
-            : typeof profile.response?.nickname === "string" && profile.response.nickname.trim()
-              ? profile.response.nickname.trim()
-              : "Naver Admin";
-
-        return {
-          id: profile.response.id,
-          name: resolvedName,
-          email: profile.response.email,
-          image: profile.response.profile_image,
-        };
-      },
-    }),
-  );
-}
-
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -453,13 +388,11 @@ export const authOptions: NextAuthOptions = {
   providers,
   callbacks: {
     async signIn({ account, profile }) {
-      if (account?.provider !== "google" && account?.provider !== "naver") {
+      if (account?.provider !== "google") {
         return true;
       }
 
-      const provider = account.provider as AdminOAuthProvider;
       const extracted = extractAdminOAuthProfile({
-        provider,
         providerAccountId: account.providerAccountId,
         profile,
       });
@@ -469,7 +402,6 @@ export const authOptions: NextAuthOptions = {
 
       try {
         return await validateAdminOAuthSignIn({
-          provider,
           subject: extracted.subject,
           email: extracted.email,
           displayName: extracted.displayName,
@@ -487,11 +419,10 @@ export const authOptions: NextAuthOptions = {
         token.name = participant.name ?? token.name;
       }
 
-      if (account?.provider === "google" || account?.provider === "naver") {
-        const provider = account.provider as AdminOAuthProvider;
+      if (account?.provider === "google") {
         const subject = account.providerAccountId;
         if (subject) {
-          const dbUser = await refreshAdminOAuthTokenClaims(provider, subject);
+          const dbUser = await refreshAdminOAuthTokenClaims(subject);
           if (!dbUser || !dbUser.isActive) {
             delete token.uid;
             delete token.role;
