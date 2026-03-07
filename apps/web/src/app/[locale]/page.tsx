@@ -1,10 +1,10 @@
 import Link from "next/link";
 
+import { AppFooter } from "@/components/AppFooter";
 import {
   AdminPortalIllustration,
   ParticipantPortalIllustration,
 } from "@/components/HomePortalIllustrations";
-import { LegalLinks } from "@/components/LegalLinks";
 
 type HomeCard = {
   href: string;
@@ -62,45 +62,45 @@ export default async function LocaleHome({
   const cards: HomeCard[] = [copy.participant, copy.admin];
 
   return (
-    <main className="sa-page sa-home sa-home-portal">
-      <div className="sa-home-portal-grid-shell">
-        <div className="sa-home-portal-grid">
-          {cards.map((card, index) => (
-            <Link
-              key={card.href}
-              className={`sa-home-portal-card${index === 0 ? " is-primary" : ""}`}
-              href={card.href}
-            >
-              <div className="sa-home-portal-card-layout">
-                <div className="sa-home-portal-main">
-                  <div className="sa-home-portal-heading">
-                    <strong>{card.title}</strong>
-                    <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
-                      {card.devices.map((device) => (
-                        <span key={device} className="sa-home-device-badge">
-                          {device}
-                        </span>
-                      ))}
+    <>
+      <main className="sa-page sa-home sa-home-portal">
+        <div className="sa-home-portal-grid-shell">
+          <div className="sa-home-portal-grid">
+            {cards.map((card, index) => (
+              <Link
+                key={card.href}
+                className={`sa-home-portal-card${index === 0 ? " is-primary" : ""}`}
+                href={card.href}
+              >
+                <div className="sa-home-portal-card-layout">
+                  <div className="sa-home-portal-main">
+                    <div className="sa-home-portal-heading">
+                      <strong>{card.title}</strong>
+                      <div className="sa-home-portal-badges" aria-label={copy.deviceAria}>
+                        {card.devices.map((device) => (
+                          <span key={device} className="sa-home-device-badge">
+                            {device}
+                          </span>
+                        ))}
+                      </div>
                     </div>
+                    <p>{card.description}</p>
                   </div>
-                  <p>{card.description}</p>
+                  <div className="sa-home-portal-visual" aria-hidden="true">
+                    {card.kind === "participant" ? (
+                      <ParticipantPortalIllustration />
+                    ) : (
+                      <AdminPortalIllustration />
+                    )}
+                  </div>
                 </div>
-                <div className="sa-home-portal-visual" aria-hidden="true">
-                  {card.kind === "participant" ? (
-                    <ParticipantPortalIllustration />
-                  ) : (
-                    <AdminPortalIllustration />
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      </main>
 
-      <footer className="sa-footer sa-home-portal-footer">
-        <LegalLinks locale={locale} withLeadingDivider={false} />
-      </footer>
-    </main>
+      <AppFooter locale={locale} />
+    </>
   );
 }

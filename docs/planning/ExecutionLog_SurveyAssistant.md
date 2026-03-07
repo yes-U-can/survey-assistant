@@ -2797,3 +2797,30 @@
   1. add PortOne hosted checkout session creation
   2. add webhook sync for payment success/failure/cancel
   3. switch request queue from manual fulfillment-only to payment-backed fulfillment
+
+## 40) Footer and Static Pages Alignment (2026-03-07, Footer/About/Contact/Legal UI Cleanup)
+- Scope type: public information architecture and static-page UX polish
+- Completed in this update
+  - Replaced the minimal footer-only legal links on the home page with a shared product footer
+  - Added shared `AppFooter` with:
+    - copyright line
+    - `서비스 소개 / 문의하기 / 이용약관 / 개인정보처리방침`
+    - `Version 1.0.0` fallback via `NEXT_PUBLIC_APP_VERSION`
+  - Added shared `StaticPageShell` so public info pages use one consistent card-style layout
+  - Added new pages:
+    - `apps/web/src/app/[locale]/about/page.tsx`
+    - `apps/web/src/app/[locale]/contact/page.tsx`
+  - Rewrote:
+    - `apps/web/src/app/[locale]/legal/privacy/page.tsx`
+    - `apps/web/src/app/[locale]/legal/terms/page.tsx`
+  - UI direction intentionally matched the sibling reference project at a structural level:
+    - centered white card
+    - clear page title / meta / intro
+    - section blocks with readable spacing
+    - shared footer on the page bottom
+  - Footer version policy corrected:
+    - Survey Assistant default display is now `Version 1.0.0`
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm verify:local` PASS
