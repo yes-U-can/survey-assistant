@@ -2458,3 +2458,90 @@
   - 조치:
     - `apps/web/src/lib/rate-limit.ts`를 낙관적 `findUnique/create/updateMany` 재시도 방식으로 변경
     - participant smoke를 3회 반복 실행해 재현되지 않음을 확인
+
+## 54) Work Session Entry (2026-03-07, Paid BM App Layer: Managed AI + SkillBook Builder)
+
+### Goal
+- 무료 코어 다음 단계로, 앱 내부에서 바로 쓸 수 있는 유료 BM 기능을 구현한다.
+- 이번 배치의 범위는 다음으로 잠금:
+  1. 플랫폼 제공 AI 키를 쓰는 Managed AI chat
+  2. SkillBook Builder
+  3. 관리자 자신의 크레딧 확인 UI/API
+- 결제 게이트웨이/구독 청구는 이번 범위에서 제외
+
+### Completed
+1. Managed AI 공통 설정 추가
+- 신규:
+  - `apps/web/src/lib/ai/managed.ts`
+- 역할:
+  - provider별 managed API key 조회
+  - provider별 managed model 조회
+  - Managed AI chat / SkillBook Builder credit cost 조회
+
+2. 관리자 Managed AI chat 확장
+- 변경:
+  - `POST /api/admin/ai/chat`
+- 추가 기능:
+  - `mode=MANAGED`
+  - `X-Idempotency-Key` 요구
+  - 즉시 차감(`SPEND`) + 실패 시 자동 환불(`REFUND`)
+  - provider는 OpenAI / Gemini / Anthropic 중 선택 가능
+- 관련 파일:
+  - `apps/web/src/app/api/admin/ai/chat/route.ts`
+
+3. 관리자 자기 지갑 조회 API 추가
+- 신규:
+  - `GET /api/admin/credits`
+- 제공 데이터:
+  - 내 지갑 잔액
+  - 최근 크레딧 거래 내역
+- 관련 파일:
+  - `apps/web/src/app/api/admin/credits/route.ts`
+
+4. SkillBook Builder API 추가
+- 신규:
+  - `POST /api/admin/skillbooks/builder`
+- 동작:
+  - 연구 메모 + 목표를 바탕으로 SkillBook 초안 생성
+  - 즉시 차감 + 실패 시 자동 환불
+  - 결과는 즉시 DB 저장하지 않고 draft로 반환
+  - 사용자가 검토 후 기존 SkillBook 생성 API로 저장
+- 관련 파일:
+  - `apps/web/src/app/api/admin/skillbooks/builder/route.ts`
+
+5. 관리자 UI 추가
+- 신규:
+  - `apps/web/src/components/admin/AdminManagedAiPanel.tsx`
+- 포함 기능:
+  - 내 크레딧/최근 내역
+  - Managed AI chat
+  - SkillBook Builder draft 생성
+  - Builder draft를 private SkillBook으로 저장
+- 연결:
+  - `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+
+6. paid-BM 회귀 테스트 추가
+- 신규:
+  - `apps/web/e2e/admin-paid-bm.spec.ts`
+- 검증 범위:
+  - `/api/admin/credits` 응답
+  - Managed AI chat의 idempotency 계약
+  - SkillBook Builder의 idempotency 계약
+- 스크립트:
+  - `apps/web/package.json` -> `e2e:admin-paid`
+  - `scripts/verify-local.ps1`에 paid-BM e2e 추가
+
+7. 문서 동기화
+- `README.md`
+- `apps/web/README.md`
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm --filter web e2e:admin-core` PASS
+- `corepack pnpm --filter web e2e:admin-paid` PASS
+
+### Notes
+- Playwright 스펙은 병렬 실행 시 dev server 포트 충돌이 다시 발생하므로, admin-core/admin-paid는 순차 실행 원칙을 유지한다.
+- SkillBook Builder는 현재 `draft 생성 -> 사용자 검토 -> 저장` 구조다.
+- 즉, “AI가 자동 저장”이 아니라 “AI가 초안 생성, 연구자가 검토 후 저장” 구조로 설계했다.

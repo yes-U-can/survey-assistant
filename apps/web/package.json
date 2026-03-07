@@ -10,6 +10,7 @@
     "lint": "eslint",
     "e2e": "playwright test",
     "e2e:admin-core": "playwright test e2e/admin-free-core.spec.ts",
+    "e2e:admin-paid": "playwright test e2e/admin-paid-bm.spec.ts",
     "e2e:smoke": "playwright test e2e/smoke.spec.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",

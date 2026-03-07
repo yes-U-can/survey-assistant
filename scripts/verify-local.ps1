@@ -38,6 +38,10 @@ Invoke-Step "Running admin free-core e2e" {
   corepack pnpm --filter web e2e:admin-core
 }
 
+Invoke-Step "Running admin paid-bm e2e" {
+  corepack pnpm --filter web e2e:admin-paid
+}
+
 Invoke-Step "Running OAuth contract e2e" {
   corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts
 }

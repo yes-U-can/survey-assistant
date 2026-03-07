@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useMemo, useRef, useState } from "react";
 
 import { AdminAiSkillBookPanel } from "@/components/admin/AdminAiSkillBookPanel";
+import { AdminManagedAiPanel } from "@/components/admin/AdminManagedAiPanel";
 import { AdminSkillBookStorePanel } from "@/components/admin/AdminSkillBookStorePanel";
 
 type LocaleCode = "ko" | "en";
@@ -574,6 +575,7 @@ export function AdminDashboardClient(props: Props) {
           </div>
         </div>
         <AdminAiSkillBookPanel locale={locale} packages={packages.map((pkg) => ({ id: pkg.id, code: pkg.code, title: pkg.title }))} />
+        <AdminManagedAiPanel locale={locale} packages={packages.map((pkg) => ({ id: pkg.id, code: pkg.code, title: pkg.title }))} />
       </section>
 
       <section hidden={activeView !== "special_store"} style={{ display: "grid", gap: 16 }}>

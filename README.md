@@ -54,6 +54,12 @@
   - 연구자가 자기 API 키를 넣어 대화형으로 사용
   - 지원 provider: OpenAI / Gemini / Anthropic
   - API 키는 DB에 저장하지 않음
+- 유료 BM AI:
+  - 플랫폼 제공 AI 키를 `크레딧`으로 사용하는 Managed AI chat
+  - SkillBook Builder가 연구 메모를 SkillBook 초안으로 변환
+  - 정책:
+    - 실행 시작 시 즉시 차감
+    - 실패 시 자동 환불
 - SkillBook:
   - 연구 방법론/해석 지침을 저장하는 AI용 지식 자산
   - 현재 범위:
@@ -61,9 +67,10 @@
     - compile
     - AI chat에 선택 적용
     - listing / purchase / settlement foundation
+    - Builder 초안 생성 및 저장
   - 후속 범위:
-    - SkillBook Builder
     - 플랫폼 크레딧 과금
+    - 실결제 / 구독
 
 ## Current Repository Layout
 - `apps/`: 실행 애플리케이션 (web/api)
@@ -103,6 +110,7 @@
 - 추가 E2E:
   - `corepack pnpm --filter web e2e:smoke`
   - `corepack pnpm --filter web e2e:admin-core`
+  - `corepack pnpm --filter web e2e:admin-paid`
   - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`
 
 ## OAuth Contract Test

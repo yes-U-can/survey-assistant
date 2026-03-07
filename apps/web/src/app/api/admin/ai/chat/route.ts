@@ -1,10 +1,13 @@
+import { CreditTxnType } from "@prisma/client";
 import { Locale } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { notFoundOrNoAccessResponse } from "@/lib/admin-scope";
 import { writeAuditLog } from "@/lib/audit-log";
+import { getManagedChatCreditCost, getManagedProviderApiKey, getManagedProviderModel } from "@/lib/ai/managed";
 import { runByokChat, ByokProviderError, getDefaultModel, type AiProvider } from "@/lib/ai/providers";
+import { applyCreditMutationWithPrisma, CreditLedgerError } from "@/lib/credit-ledger";
 import { buildPackageChatContext, loadOwnedPackageDataset } from "@/lib/package-dataset";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit, getRequestIp, rateLimitedResponse } from "@/lib/rate-limit";
@@ -17,12 +20,21 @@ const messageSchema = z.object({
 
 const chatSchema = z.object({
   packageId: z.string().trim().min(1),
+  mode: z.enum(["BYOK", "MANAGED"]).default("BYOK"),
   provider: z.enum(["OPENAI", "GEMINI", "ANTHROPIC"]),
   model: z.string().trim().min(1).max(200).optional(),
-  apiKey: z.string().trim().min(10).max(400),
+  apiKey: z.string().trim().min(10).max(400).optional(),
   skillBookId: z.string().trim().min(1).optional(),
   messages: z.array(messageSchema).min(1).max(40),
   temperature: z.number().min(0).max(2).optional(),
+}).superRefine((value, ctx) => {
+  if (value.mode === "BYOK" && !value.apiKey?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "apiKey is required when mode is BYOK",
+      path: ["apiKey"],
+    });
+  }
 });
 
 export async function POST(request: Request) {
@@ -53,6 +65,11 @@ export async function POST(request: Request) {
   const parsed = chatSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
+  }
+
+  const idempotencySeed = request.headers.get("x-idempotency-key")?.trim() ?? null;
+  if (parsed.data.mode === "MANAGED" && !idempotencySeed) {
+    return NextResponse.json({ ok: false, error: "missing_idempotency_key" }, { status: 400 });
   }
 
   const dataset = await loadOwnedPackageDataset(session.user.id, parsed.data.packageId);
@@ -88,10 +105,54 @@ export async function POST(request: Request) {
       locale,
     });
 
+    const apiKey =
+      parsed.data.mode === "BYOK"
+        ? parsed.data.apiKey!.trim()
+        : getManagedProviderApiKey(parsed.data.provider as AiProvider);
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { ok: false, error: "missing_managed_provider_api_key" },
+        { status: 400 },
+      );
+    }
+
+    let charge:
+      | {
+          charged: number;
+          balanceAfter: number;
+          transactionId: string;
+        }
+      | null = null;
+
+    if (parsed.data.mode === "MANAGED") {
+      try {
+        const result = await applyCreditMutationWithPrisma({
+          userId: session.user.id,
+          type: CreditTxnType.SPEND,
+          amount: getManagedChatCreditCost(),
+          memo: `managed_ai_chat_start:${dataset.code}`,
+          referenceId: dataset.id,
+          idempotencyKey: `managed_ai_chat_spend:${session.user.id}:${idempotencySeed}`,
+        });
+
+        charge = {
+          charged: getManagedChatCreditCost(),
+          balanceAfter: result.wallet.balance,
+          transactionId: result.transaction.id,
+        };
+      } catch (error) {
+        if (error instanceof CreditLedgerError && error.code === "insufficient_balance") {
+          return NextResponse.json({ ok: false, error: "insufficient_balance" }, { status: 402 });
+        }
+        return NextResponse.json({ ok: false, error: "credit_ledger_error" }, { status: 500 });
+      }
+    }
+
     const result = await runByokChat({
       provider: parsed.data.provider as AiProvider,
-      apiKey: parsed.data.apiKey,
-      model: parsed.data.model,
+      apiKey,
+      model: getManagedProviderModel(parsed.data.provider as AiProvider, parsed.data.model) ?? parsed.data.model,
       temperature: parsed.data.temperature,
       systemPrompt,
       messages: parsed.data.messages,
@@ -107,9 +168,11 @@ export async function POST(request: Request) {
       targetId: parsed.data.packageId,
       statusCode: 200,
       detail: {
+        mode: parsed.data.mode,
         provider: parsed.data.provider,
         model: result.model,
         skillBookId: skillBook?.id ?? null,
+        chargedCredits: charge?.charged ?? 0,
       },
     });
 
@@ -118,6 +181,15 @@ export async function POST(request: Request) {
       assistantMessage: result.message,
       model: result.model,
       usage: result.usage,
+      credits:
+        parsed.data.mode === "MANAGED" && charge
+          ? {
+              charged: charge.charged,
+              balanceAfter: charge.balanceAfter,
+              refunded: false,
+              policyMode: "immediate_charge_refund",
+            }
+          : null,
       context: {
         packageCode: dataset.code,
         skillBookTitle: skillBook?.title ?? null,
@@ -129,10 +201,66 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof ByokProviderError) {
+      if (parsed.data.mode === "MANAGED" && idempotencySeed) {
+        try {
+          const refund = await applyCreditMutationWithPrisma({
+            userId: session.user.id,
+            type: CreditTxnType.REFUND,
+            amount: getManagedChatCreditCost(),
+            memo: `managed_ai_chat_refund:${dataset.code}`,
+            referenceId: parsed.data.packageId,
+            idempotencyKey: `managed_ai_chat_refund:${session.user.id}:${idempotencySeed}`,
+          });
+
+          return NextResponse.json(
+            {
+              ok: false,
+              error: error.code,
+              refunded: true,
+              refundTransactionId: refund.transaction.id,
+            },
+            { status: error.status >= 400 && error.status < 600 ? error.status : 502 },
+          );
+        } catch {
+          return NextResponse.json(
+            { ok: false, error: "refund_failed_after_provider_error" },
+            { status: 500 },
+          );
+        }
+      }
+
       return NextResponse.json(
         { ok: false, error: error.code },
         { status: error.status >= 400 && error.status < 600 ? error.status : 502 },
       );
+    }
+
+    if (parsed.data.mode === "MANAGED" && idempotencySeed) {
+      try {
+        const refund = await applyCreditMutationWithPrisma({
+          userId: session.user.id,
+          type: CreditTxnType.REFUND,
+          amount: getManagedChatCreditCost(),
+          memo: `managed_ai_chat_refund:${dataset.code}`,
+          referenceId: parsed.data.packageId,
+          idempotencyKey: `managed_ai_chat_refund:${session.user.id}:${idempotencySeed}`,
+        });
+
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "internal_error",
+            refunded: true,
+            refundTransactionId: refund.transaction.id,
+          },
+          { status: 500 },
+        );
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: "refund_failed_after_internal_error" },
+          { status: 500 },
+        );
+      }
     }
 
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });

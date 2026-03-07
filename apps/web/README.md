@@ -19,6 +19,7 @@ corepack pnpm dev
 - Build: `corepack pnpm --filter web build`
 - Participant smoke: `corepack pnpm --filter web e2e:smoke`
 - Admin free-core smoke: `corepack pnpm --filter web e2e:admin-core`
+- Admin paid-BM smoke: `corepack pnpm --filter web e2e:admin-paid`
 - OAuth contract: `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts`
 
 ## Database (Neon + Prisma)
@@ -91,9 +92,17 @@ This app is linked to project `survey_sicp`.
   - providers: `OPENAI | GEMINI | ANTHROPIC`
   - API key is request-scoped only and is not stored in DB
   - server injects package `master CSV + codebook` context from DB
+- Managed AI chat: `POST /api/admin/ai/chat`
+  - `mode=MANAGED`
+  - requires `X-Idempotency-Key`
+  - charges credits immediately and auto-refunds on failure
+- Admin own credit wallet: `GET /api/admin/credits`
 - SkillBooks: `GET/POST /api/admin/skillbooks`
 - SkillBook update: `PATCH /api/admin/skillbooks/{skillBookId}`
 - SkillBook compile: `POST /api/admin/skillbooks/{skillBookId}/compile`
+- SkillBook Builder: `POST /api/admin/skillbooks/builder`
+  - platform-managed AI
+  - returns a generated draft for review before save
 - SkillBook listings: `GET/POST /api/admin/skillbook-listings`
 - SkillBook listing update: `PATCH /api/admin/skillbook-listings/{listingId}`
 - SkillBook purchases: `POST /api/admin/skillbook-purchases`

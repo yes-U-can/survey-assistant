@@ -565,3 +565,34 @@ survey-assistant/
 - Current known gap
   - SkillBook Builder(플랫폼 키 기반 자동 생성)와 실제 과금/구독 결제는 아직 후속 범위
   - BYOK API 키 저장/재사용 기능은 보안 설계 별도 트랙으로 미포함
+
+## 36) Build Snapshot Update (2026-03-07, Paid BM App Layer: Managed AI + SkillBook Builder)
+- Scope type: 유료 BM의 앱 내부 실행 레이어
+- Completed in this update
+  - `POST /api/admin/ai/chat`
+    - `mode=MANAGED` 추가
+    - `X-Idempotency-Key` 요구
+    - 즉시 차감 + 실패 환불 정책 적용
+  - `GET /api/admin/credits`
+    - 관리자 자신의 지갑/거래 내역 조회
+  - `POST /api/admin/skillbooks/builder`
+    - 플랫폼 제공 AI로 SkillBook draft 생성
+    - draft는 즉시 저장하지 않고 검토 후 저장 구조
+  - 관리자 UI 추가:
+    - `AdminManagedAiPanel`
+    - Managed AI chat
+    - SkillBook Builder
+    - 내 크레딧 현황
+  - paid-BM 회귀 테스트 추가:
+    - `apps/web/e2e/admin-paid-bm.spec.ts`
+    - `e2e:admin-paid`
+  - `verify-local` 게이트에 paid-BM e2e 포함
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm --filter web e2e:admin-core` PASS
+  - `corepack pnpm --filter web e2e:admin-paid` PASS
+- Current known gap
+  - 실제 결제 게이트웨이/정기구독은 아직 없음
+  - Managed provider API key가 환경변수로 설정되어야 유료 AI 실행이 실제 동작함
+  - Builder는 현재 초안 생성 단계이며, 자동 품질평가/검수 루프는 아직 없음
