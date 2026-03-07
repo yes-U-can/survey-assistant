@@ -165,8 +165,9 @@ export async function POST(request: Request) {
     `store_purchase:${session.user.id}:${parsed.data.listingId}`;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const listing = await tx.templateStoreListing.findUnique({
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const listing = await tx.templateStoreListing.findUnique({
         where: { id: parsed.data.listingId },
         select: {
           id: true,
@@ -289,13 +290,18 @@ export async function POST(request: Request) {
         },
       });
 
-      return {
-        purchase,
-        buyerBalance: buyerMutation.wallet.balance,
-        sellerBalance: sellerMutation.wallet.balance,
-        copiedTemplate,
-      };
-    });
+        return {
+          purchase,
+          buyerBalance: buyerMutation.wallet.balance,
+          sellerBalance: sellerMutation.wallet.balance,
+          copiedTemplate,
+        };
+      },
+      {
+        maxWait: 15_000,
+        timeout: 15_000,
+      },
+    );
 
     writeAuditLog({
       action: "admin.store.purchase",

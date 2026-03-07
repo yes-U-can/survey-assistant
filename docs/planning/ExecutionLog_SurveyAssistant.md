@@ -2715,3 +2715,85 @@
   - 플랫폼 어드민 승인/이행
   - 이행 결과가 실제 프로필/지갑에 반영
 - 아직 남은 것은 외부 카드 결제/정기결제 인프라다.
+
+## 57) Work Session Entry (2026-03-07, Naver OAuth Preparation + Payment Gateway Deferral)
+### Summary
+- Decision updated:
+  - external payment gateway implementation remains intentionally deferred until PortOne/PG review is complete
+  - current billing UX should clearly communicate `request intake now, hosted checkout later`
+- In the same pass, admin OAuth was generalized from Google-only to Google+Naver-ready.
+
+### Completed
+1. Admin OAuth generalized
+- changed `apps/web/src/lib/auth.ts`
+- added conditional Naver provider support via `next-auth/providers/naver`
+- admin invite/bootstrap policy remains the same for both providers
+- same invited account can now be linked by email to Google and Naver separately
+- new DB field added:
+  - `User.naverSub String? @unique`
+
+2. Admin sign-in UI updated
+- changed `apps/web/src/app/[locale]/auth/admin/page.tsx`
+- added Naver sign-in button alongside Google when env vars exist
+- copy updated from Google-only to generic admin OAuth flow
+- mobile policy remains desktop-only for admin/platform roles
+
+3. Naver button component and styles added
+- new file:
+  - `apps/web/src/components/NaverSignInButton.tsx`
+- changed:
+  - `apps/web/src/app/globals.css`
+- added:
+  - oauth button row layout
+  - Naver green button style
+
+4. Billing UI clarified as deferred-checkout state
+- changed:
+  - `apps/web/src/components/admin/AdminBillingPanel.tsx`
+  - `apps/web/src/components/platform/PlatformBillingOpsSection.tsx`
+- added explanatory text that:
+  - PortOne/PG review is pending
+  - plan/top-up flows currently create requests
+  - hosted checkout / recurring billing hooks will be connected later
+
+5. OAuth contract test expanded
+- changed:
+  - `apps/web/e2e/oauth-contract.spec.ts`
+  - `.github/workflows/web-e2e-oauth-contract.yml`
+- now covers:
+  - configured provider buttons on admin sign-in page
+  - Google redirect contract
+  - Naver redirect contract when env exists
+
+6. Env/docs updated
+- changed:
+  - `.env.example`
+  - `docs/setup/EnvironmentSetup.md`
+  - `README.md`
+- added `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`
+- documented payment gateway boundary as deferred
+
+7. Stability fix discovered during verification
+- `SkillBook purchase` flow hit Prisma interactive transaction timeout during admin-core e2e
+- fixed by increasing transaction `maxWait` / `timeout` in:
+  - `apps/web/src/app/api/admin/skillbook-purchases/route.ts`
+  - `apps/web/src/app/api/admin/store/purchases/route.ts`
+- result: purchase ledger regression is stable again
+
+### Verification
+- `corepack pnpm --filter web exec prisma generate` PASS
+- `corepack pnpm --filter web exec prisma db push --accept-data-loss` PASS
+- `corepack pnpm verify:local` PASS
+  - lint PASS
+  - build PASS
+  - participant smoke PASS
+  - admin free-core PASS
+  - admin paid-BM PASS
+  - oauth contract PASS
+
+### Notes
+- external payment modal/hosted checkout remains intentionally out of scope until PortOne onboarding is finished
+- current best next step after gateway review completes:
+  1. add PortOne hosted checkout session creation
+  2. add webhook sync for payment success/failure/cancel
+  3. switch request queue from manual fulfillment-only to payment-backed fulfillment

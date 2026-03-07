@@ -3,6 +3,7 @@ import { compare } from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import NaverProvider from "next-auth/providers/naver";
 
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -12,6 +13,19 @@ type AuthUser = {
   role: UserRole;
   locale: Locale;
   name?: string | null;
+};
+
+type AdminOAuthProvider = "google" | "naver";
+
+type NaverRawProfile = {
+  response?: {
+    email?: string;
+    name?: string;
+    nickname?: string;
+    profile_image?: string;
+  };
+  email?: string;
+  name?: string;
 };
 
 const bootstrapPlatformAdminEmails = new Set(
@@ -110,40 +124,113 @@ async function checkParticipantLoginRateLimit(params: {
   }
 }
 
-async function validateGoogleAdminSignIn(params: {
-  googleSub: string;
-  email: string | null;
-  displayName: string;
-}) {
-  const now = new Date();
+function getAdminOAuthAccountData(provider: AdminOAuthProvider, subject: string) {
+  return provider === "google" ? { googleSub: subject } : { naverSub: subject };
+}
 
-  const byGoogleSub = await prisma.user.findUnique({
-    where: { googleSub: params.googleSub },
+async function findAdminUserByOAuthSubject(provider: AdminOAuthProvider, subject: string) {
+  return prisma.user.findUnique({
+    where: provider === "google" ? { googleSub: subject } : { naverSub: subject },
     select: {
       id: true,
       role: true,
       isActive: true,
     },
   });
+}
 
-  if (byGoogleSub) {
+async function refreshAdminOAuthTokenClaims(provider: AdminOAuthProvider, subject: string) {
+  return prisma.user.findUnique({
+    where: provider === "google" ? { googleSub: subject } : { naverSub: subject },
+    select: {
+      id: true,
+      role: true,
+      locale: true,
+      displayName: true,
+      isActive: true,
+    },
+  });
+}
+
+function extractAdminOAuthProfile(params: {
+  provider: AdminOAuthProvider;
+  providerAccountId: string | null | undefined;
+  profile: unknown;
+}) {
+  const subject = params.providerAccountId?.trim();
+  if (!subject) {
+    return null;
+  }
+
+  if (params.provider === "google") {
+    const profile = params.profile as { email?: string; name?: string } | undefined;
+    const email = normalizeEmail(typeof profile?.email === "string" ? profile.email : null);
+    const displayName =
+      typeof profile?.name === "string" && profile.name.trim()
+        ? profile.name.trim()
+        : email ?? "Research Admin";
+
+    return {
+      subject,
+      email,
+      displayName,
+    };
+  }
+
+  const profile = params.profile as NaverRawProfile | undefined;
+  const email = normalizeEmail(
+    typeof profile?.response?.email === "string"
+      ? profile.response.email
+      : typeof profile?.email === "string"
+        ? profile.email
+        : null,
+  );
+  const rawName =
+    typeof profile?.response?.name === "string" && profile.response.name.trim()
+      ? profile.response.name.trim()
+      : typeof profile?.response?.nickname === "string" && profile.response.nickname.trim()
+        ? profile.response.nickname.trim()
+        : typeof profile?.name === "string" && profile.name.trim()
+          ? profile.name.trim()
+          : null;
+
+  return {
+    subject,
+    email,
+    displayName: rawName ?? email ?? "Research Admin",
+  };
+}
+
+async function validateAdminOAuthSignIn(params: {
+  provider: AdminOAuthProvider;
+  subject: string;
+  email: string | null;
+  displayName: string;
+}) {
+  const now = new Date();
+
+  const providerAccountData = getAdminOAuthAccountData(params.provider, params.subject);
+  const byProviderSubject = await findAdminUserByOAuthSubject(params.provider, params.subject);
+
+  if (byProviderSubject) {
     if (
-      byGoogleSub.role !== UserRole.RESEARCH_ADMIN &&
-      byGoogleSub.role !== UserRole.PLATFORM_ADMIN
+      byProviderSubject.role !== UserRole.RESEARCH_ADMIN &&
+      byProviderSubject.role !== UserRole.PLATFORM_ADMIN
     ) {
       return buildAdminDenyRedirect("account_role_not_admin");
     }
-    if (!byGoogleSub.isActive) {
+    if (!byProviderSubject.isActive) {
       return buildAdminDenyRedirect("admin_inactive");
     }
 
     await prisma.user.update({
-      where: { id: byGoogleSub.id },
+      where: { id: byProviderSubject.id },
       data: {
         email: params.email,
         displayName: params.displayName,
         disabledReason: null,
         lastLoginAt: now,
+        ...providerAccountData,
       },
     });
     return true;
@@ -173,10 +260,10 @@ async function validateGoogleAdminSignIn(params: {
     await prisma.user.update({
       where: { id: byEmail.id },
       data: {
-        googleSub: params.googleSub,
         displayName: params.displayName,
         lastLoginAt: now,
         disabledReason: null,
+        ...providerAccountData,
       },
     });
     return true;
@@ -187,11 +274,11 @@ async function validateGoogleAdminSignIn(params: {
       data: {
         role: UserRole.PLATFORM_ADMIN,
         email: params.email,
-        googleSub: params.googleSub,
         displayName: params.displayName,
         locale: Locale.ko,
         isActive: true,
         lastLoginAt: now,
+        ...providerAccountData,
       },
     });
     return true;
@@ -224,11 +311,11 @@ async function validateGoogleAdminSignIn(params: {
       data: {
         role: invite.role,
         email: params.email as string,
-        googleSub: params.googleSub,
         displayName: params.displayName,
         locale: Locale.ko,
         isActive: true,
         lastLoginAt: now,
+        ...providerAccountData,
       },
       select: { id: true },
     });
@@ -244,19 +331,6 @@ async function validateGoogleAdminSignIn(params: {
   });
 
   return true;
-}
-
-async function refreshGoogleTokenClaims(googleSub: string) {
-  return prisma.user.findUnique({
-    where: { googleSub },
-    select: {
-      id: true,
-      role: true,
-      locale: true,
-      displayName: true,
-      isActive: true,
-    },
-  });
 }
 
 async function refreshTokenClaimsByUserId(userId: string) {
@@ -346,6 +420,30 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
+if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
+  providers.push(
+    NaverProvider({
+      clientId: process.env.NAVER_CLIENT_ID,
+      clientSecret: process.env.NAVER_CLIENT_SECRET,
+      profile(profile) {
+        const resolvedName =
+          typeof profile.response?.name === "string" && profile.response.name.trim()
+            ? profile.response.name.trim()
+            : typeof profile.response?.nickname === "string" && profile.response.nickname.trim()
+              ? profile.response.nickname.trim()
+              : "Naver Admin";
+
+        return {
+          id: profile.response.id,
+          name: resolvedName,
+          email: profile.response.email,
+          image: profile.response.profile_image,
+        };
+      },
+    }),
+  );
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -355,26 +453,26 @@ export const authOptions: NextAuthOptions = {
   providers,
   callbacks: {
     async signIn({ account, profile }) {
-      if (account?.provider !== "google") {
+      if (account?.provider !== "google" && account?.provider !== "naver") {
         return true;
       }
 
-      const googleSub = account.providerAccountId;
-      if (!googleSub) {
-        return buildAdminDenyRedirect("google_sub_missing");
+      const provider = account.provider as AdminOAuthProvider;
+      const extracted = extractAdminOAuthProfile({
+        provider,
+        providerAccountId: account.providerAccountId,
+        profile,
+      });
+      if (!extracted) {
+        return buildAdminDenyRedirect("oauth_subject_missing");
       }
 
-      const email = normalizeEmail(typeof profile?.email === "string" ? profile.email : null);
-      const displayName =
-        typeof profile?.name === "string" && profile.name.trim()
-          ? profile.name.trim()
-          : email ?? "Research Admin";
-
       try {
-        return await validateGoogleAdminSignIn({
-          googleSub,
-          email,
-          displayName,
+        return await validateAdminOAuthSignIn({
+          provider,
+          subject: extracted.subject,
+          email: extracted.email,
+          displayName: extracted.displayName,
         });
       } catch {
         return buildAdminDenyRedirect("auth_internal_error");
@@ -389,10 +487,11 @@ export const authOptions: NextAuthOptions = {
         token.name = participant.name ?? token.name;
       }
 
-      if (account?.provider === "google") {
-        const googleSub = account.providerAccountId;
-        if (googleSub) {
-          const dbUser = await refreshGoogleTokenClaims(googleSub);
+      if (account?.provider === "google" || account?.provider === "naver") {
+        const provider = account.provider as AdminOAuthProvider;
+        const subject = account.providerAccountId;
+        if (subject) {
+          const dbUser = await refreshAdminOAuthTokenClaims(provider, subject);
           if (!dbUser || !dbUser.isActive) {
             delete token.uid;
             delete token.role;

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -106,7 +106,7 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
         ),
       );
     } catch {
-      setMessage(tr("결제 운영 데이터를 불러오지 못했습니다.", "Failed to load billing ops data."));
+      setMessage(tr("寃곗젣 ?댁쁺 ?곗씠?곕? 遺덈윭?ㅼ? 紐삵뻽?듬땲??", "Failed to load billing ops data."));
     } finally {
       setIsLoading(false);
     }
@@ -166,12 +166,12 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
       });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.ok) {
-        setMessage(result?.error ?? tr("결제 요청 갱신에 실패했습니다.", "Failed to update billing request."));
+        setMessage(result?.error ?? tr("寃곗젣 ?붿껌 媛깆떊???ㅽ뙣?덉뒿?덈떎.", "Failed to update billing request."));
         setIsLoading(false);
         return;
       }
       await refresh();
-      setMessage(tr("결제 요청이 갱신되었습니다.", "Billing request updated."));
+      setMessage(tr("寃곗젣 ?붿껌??媛깆떊?섏뿀?듬땲??", "Billing request updated."));
     } finally {
       setIsLoading(false);
     }
@@ -180,20 +180,26 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
   return (
     <section style={{ marginTop: 24, display: "grid", gap: 16 }}>
       <div>
-        <h2>{tr("결제 운영", "Billing operations")}</h2>
+        <h2>{tr("寃곗젣 ?댁쁺", "Billing operations")}</h2>
+        <p style={{ margin: "8px 0 0", maxWidth: 760, color: "#3e5b6d" }}>
+          {tr(
+            "현재는 포트원/PG 심사 대기 중이라 실제 결제창과 자동 청구는 아직 연결하지 않았습니다. 이 화면에서는 요청 큐를 운영하고, 심사가 끝나면 같은 흐름에 실결제 이벤트를 연결합니다.",
+            "External checkout and recurring charge execution are still deferred while PortOne and PG review is pending. This screen currently operates the request queue that will later connect to real payment events.",
+          )}
+        </p>
         {message ? <p className="sa-inline-message">{message}</p> : null}
         <button type="button" onClick={() => void refresh()} disabled={isLoading}>
-          {isLoading ? tr("처리 중...", "Processing...") : tr("새로고침", "Refresh")}
+          {isLoading ? tr("泥섎━ 以?..", "Processing...") : tr("?덈줈怨좎묠", "Refresh")}
         </button>
       </div>
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
         <article style={{ border: "1px solid #d7e0e6", borderRadius: 10, padding: 12, background: "#fff" }}>
-          <div style={{ fontSize: 13, opacity: 0.75 }}>{tr("유료 플랜 계정", "Paid plan accounts")}</div>
+          <div style={{ fontSize: 13, opacity: 0.75 }}>{tr("?좊즺 ?뚮옖 怨꾩젙", "Paid plan accounts")}</div>
           <div style={{ fontSize: 24, fontWeight: 700, marginTop: 8 }}>{activePaidProfiles.length}</div>
         </article>
         <article style={{ border: "1px solid #d7e0e6", borderRadius: 10, padding: 12, background: "#fff" }}>
-          <div style={{ fontSize: 13, opacity: 0.75 }}>{tr("열린 결제 요청", "Open billing requests")}</div>
+          <div style={{ fontSize: 13, opacity: 0.75 }}>{tr("?대┛ 寃곗젣 ?붿껌", "Open billing requests")}</div>
           <div style={{ fontSize: 24, fontWeight: 700, marginTop: 8 }}>
             {requests.filter((item) => ["REQUESTED", "REVIEWING", "APPROVED"].includes(item.status)).length}
           </div>
@@ -203,15 +209,15 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
       <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
         <h3 style={{ marginTop: 0 }}>{tr("구독 프로필", "Subscription profiles")}</h3>
         {profiles.length === 0 ? (
-          <p>{tr("등록된 구독 프로필이 없습니다.", "No billing profile found.")}</p>
+          <p>{tr("?깅줉??援щ룆 ?꾨줈?꾩씠 ?놁뒿?덈떎.", "No billing profile found.")}</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th align="left">{tr("계정", "Account")}</th>
-                <th align="left">{tr("플랜", "Plan")}</th>
+                <th align="left">{tr("怨꾩젙", "Account")}</th>
+                <th align="left">{tr("?뚮옖", "Plan")}</th>
                 <th align="right">{tr("크레딧", "Credits")}</th>
-                <th align="left">{tr("만료", "Period ends")}</th>
+                <th align="left">{tr("留뚮즺", "Period ends")}</th>
               </tr>
             </thead>
             <tbody>
@@ -231,16 +237,16 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
       <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
         <h3 style={{ marginTop: 0 }}>{tr("결제 요청 큐", "Billing request queue")}</h3>
         {requests.length === 0 ? (
-          <p>{tr("등록된 결제 요청이 없습니다.", "No billing request found.")}</p>
+          <p>{tr("?깅줉??寃곗젣 ?붿껌???놁뒿?덈떎.", "No billing request found.")}</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th align="left">{tr("요청 시각", "Requested at")}</th>
+                <th align="left">{tr("?붿껌 ?쒓컖", "Requested at")}</th>
                 <th align="left">{tr("요청자", "Requester")}</th>
-                <th align="left">{tr("유형", "Type")}</th>
-                <th align="left">{tr("요청 내용", "Requested value")}</th>
-                <th align="left">{tr("처리", "Processing")}</th>
+                <th align="left">{tr("?좏삎", "Type")}</th>
+                <th align="left">{tr("?붿껌 ?댁슜", "Requested value")}</th>
+                <th align="left">{tr("泥섎━", "Processing")}</th>
               </tr>
             </thead>
             <tbody>
@@ -250,7 +256,7 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
                   <tr key={item.id}>
                     <td>{fmt(locale, item.requestedAt)}</td>
                     <td>{who(item.requester)}</td>
-                    <td>{item.type === "SUBSCRIPTION" ? tr("구독", "Subscription") : tr("크레딧 충전", "Credit top-up")}</td>
+                    <td>{item.type === "SUBSCRIPTION" ? tr("援щ룆", "Subscription") : tr("?щ젅??異⑹쟾", "Credit top-up")}</td>
                     <td>{item.type === "SUBSCRIPTION" ? item.requestedPlanCode : item.requestedCreditAmount}</td>
                     <td>
                       <div style={{ display: "grid", gap: 8 }}>
@@ -268,7 +274,7 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
                             </select>
                             <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
                               <input type="checkbox" checked={draft?.autoRenew ?? false} onChange={(event) => updateDraft(item.id, { autoRenew: event.target.checked })} disabled={isLoading} />
-                              <span>{tr("자동 갱신", "Auto-renew")}</span>
+                              <span>{tr("?먮룞 媛깆떊", "Auto-renew")}</span>
                             </label>
                             <input type="datetime-local" value={draft?.currentPeriodEndsAt ?? ""} onChange={(event) => updateDraft(item.id, { currentPeriodEndsAt: event.target.value })} disabled={isLoading} />
                           </>
@@ -276,7 +282,7 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
                           <input type="number" min={1} value={draft?.grantCreditAmount ?? item.requestedCreditAmount ?? 1} onChange={(event) => updateDraft(item.id, { grantCreditAmount: Number(event.target.value) || 1 })} disabled={isLoading} />
                         )}
                         <textarea rows={3} value={draft?.adminNote ?? item.adminNote ?? ""} onChange={(event) => updateDraft(item.id, { adminNote: event.target.value })} disabled={isLoading} />
-                        <button type="button" onClick={() => void onApply(item.id)} disabled={isLoading}>{tr("반영", "Apply")}</button>
+                        <button type="button" onClick={() => void onApply(item.id)} disabled={isLoading}>{tr("諛섏쁺", "Apply")}</button>
                       </div>
                     </td>
                   </tr>
@@ -289,3 +295,4 @@ export function PlatformBillingOpsSection({ locale }: { locale: LocaleCode }) {
     </section>
   );
 }
+

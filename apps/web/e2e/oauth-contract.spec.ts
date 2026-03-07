@@ -1,4 +1,4 @@
-﻿import { expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 const ADMIN_CALLBACK_URL = "/en/admin";
 
@@ -6,31 +6,51 @@ function resolveExpectedOrigin() {
   return new URL(process.env.NEXTAUTH_URL ?? "http://127.0.0.1:3000").origin;
 }
 
+async function getCsrfToken(request: Parameters<typeof test>[0]["request"]) {
+  const csrfResponse = await request.get("/api/auth/csrf");
+  expect(csrfResponse.ok()).toBeTruthy();
+  const csrfJson = (await csrfResponse.json()) as { csrfToken?: string };
+  expect(typeof csrfJson.csrfToken).toBe("string");
+  return csrfJson.csrfToken as string;
+}
+
 test.describe("oauth contract", () => {
-  test("admin sign-in page renders google sign-in contract", async ({ page }) => {
+  test("admin sign-in page renders configured oauth providers", async ({ page }) => {
     await page.goto("/en/auth/admin");
 
     await expect(page.getByRole("heading", { level: 1, name: "Research Admin Sign-In" })).toBeVisible();
-    const googleButton = page.locator("a.sa-google-btn").first();
-    await expect(googleButton).toBeVisible();
 
-    const href = await googleButton.getAttribute("href");
-    expect(href).toBeTruthy();
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+      const googleButton = page.locator("a.sa-google-btn").first();
+      await expect(googleButton).toBeVisible();
 
-    const hrefUrl = new URL(href as string, "http://localhost");
-    expect(hrefUrl.pathname).toBe("/api/auth/signin/google");
-    expect(hrefUrl.searchParams.get("callbackUrl")).toBe(ADMIN_CALLBACK_URL);
+      const href = await googleButton.getAttribute("href");
+      expect(href).toBeTruthy();
+
+      const hrefUrl = new URL(href as string, "http://localhost");
+      expect(hrefUrl.pathname).toBe("/api/auth/signin/google");
+      expect(hrefUrl.searchParams.get("callbackUrl")).toBe(ADMIN_CALLBACK_URL);
+    }
+
+    if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
+      const naverButton = page.locator("a.sa-naver-btn").first();
+      await expect(naverButton).toBeVisible();
+
+      const href = await naverButton.getAttribute("href");
+      expect(href).toBeTruthy();
+
+      const hrefUrl = new URL(href as string, "http://localhost");
+      expect(hrefUrl.pathname).toBe("/api/auth/signin/naver");
+      expect(hrefUrl.searchParams.get("callbackUrl")).toBe(ADMIN_CALLBACK_URL);
+    }
   });
 
   test("google sign-in endpoint returns redirect contract", async ({ request }) => {
-    const csrfResponse = await request.get("/api/auth/csrf");
-    expect(csrfResponse.ok()).toBeTruthy();
-    const csrfJson = (await csrfResponse.json()) as { csrfToken?: string };
-    expect(typeof csrfJson.csrfToken).toBe("string");
+    const csrfToken = await getCsrfToken(request);
 
     const response = await request.post("/api/auth/signin/google", {
       form: {
-        csrfToken: csrfJson.csrfToken as string,
+        csrfToken,
         callbackUrl: ADMIN_CALLBACK_URL,
         json: "true",
       },
@@ -50,6 +70,42 @@ test.describe("oauth contract", () => {
     if (oauthUrl.hostname.includes("google")) {
       const redirectUri = oauthUrl.searchParams.get("redirect_uri");
       expect(redirectUri).toBe(`${resolveExpectedOrigin()}/api/auth/callback/google`);
+      expect(oauthUrl.searchParams.get("client_id")).toBeTruthy();
+      return;
+    }
+
+    expect(oauthUrl.origin).toBe(resolveExpectedOrigin());
+    expect(oauthUrl.pathname).toContain("/api/auth/error");
+    expect(oauthUrl.searchParams.get("error")).toBeTruthy();
+  });
+
+  test("naver sign-in endpoint returns redirect contract", async ({ request }) => {
+    test.skip(!process.env.NAVER_CLIENT_ID || !process.env.NAVER_CLIENT_SECRET, "Naver env is not configured.");
+
+    const csrfToken = await getCsrfToken(request);
+
+    const response = await request.post("/api/auth/signin/naver", {
+      form: {
+        csrfToken,
+        callbackUrl: ADMIN_CALLBACK_URL,
+        json: "true",
+      },
+      maxRedirects: 0,
+    });
+
+    expect([200, 302, 303, 307]).toContain(response.status());
+    const location = response.headers()["location"];
+    const responseJson = location
+      ? null
+      : ((await response.json().catch(() => null)) as { url?: string } | null);
+    const extractedLocation = location ?? responseJson?.url;
+
+    expect(extractedLocation).toBeTruthy();
+
+    const oauthUrl = new URL(extractedLocation as string);
+    if (oauthUrl.hostname.includes("nid.naver.com")) {
+      const redirectUri = oauthUrl.searchParams.get("redirect_uri");
+      expect(redirectUri).toBe(`${resolveExpectedOrigin()}/api/auth/callback/naver`);
       expect(oauthUrl.searchParams.get("client_id")).toBeTruthy();
       return;
     }

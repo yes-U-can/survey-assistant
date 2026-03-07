@@ -664,3 +664,35 @@ survey-assistant/
 - Current known gap
   - Stripe 등 외부 실결제 게이트웨이는 아직 미연동
   - 자동 정기결제 청구/웹훅 정산은 후속 범위
+
+## 39) Build Snapshot Update (2026-03-07, Naver OAuth Preparation + Deferred Payment Gateway Boundary)
+- Scope type: 인증 확장 + 외부 결제 연동 보류 정합성 정리
+- Completed in this update
+  - Admin OAuth generalized from Google-only to Google+Naver-ready
+    - `next-auth/providers/naver` wired in
+    - invite/bootstrap policy reused for Naver
+    - new `User.naverSub` unique field added
+  - Admin sign-in page updated
+    - Google / Naver button rendering by env presence
+    - copy updated to generic invited-admin OAuth flow
+    - desktop-only admin policy unchanged
+  - Billing UI boundary clarified
+    - research-admin billing panel now explains that hosted checkout is pending PortOne/PG review
+    - platform-admin billing ops now explains that current queue is pre-checkout/manual fulfillment oriented
+  - OAuth contract automation expanded
+    - page contract now checks configured provider buttons
+    - Naver redirect contract test added
+    - workflow env updated with dummy Naver credentials for CI
+  - Env/docs updated
+    - `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` added to env template/docs
+    - payment gateway deferral explicitly documented
+  - Stability fix in same batch
+    - increased interactive transaction timeout for store purchase and skillbook purchase flows
+    - reason: admin free-core e2e exposed 5-second timeout under purchase-copy-ledger flow
+- Verification
+  - `corepack pnpm --filter web exec prisma generate` PASS
+  - `corepack pnpm --filter web exec prisma db push --accept-data-loss` PASS
+  - `corepack pnpm verify:local` PASS
+- Current known gap
+  - PortOne hosted checkout / webhook sync still intentionally deferred
+  - actual Naver OAuth activation still depends on NAVER Developers review and env injection

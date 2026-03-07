@@ -44,8 +44,9 @@ export async function POST(request: Request) {
     `skillbook_purchase:${session.user.id}:${parsed.data.listingId}`;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const listing = await tx.skillBookListing.findUnique({
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const listing = await tx.skillBookListing.findUnique({
         where: { id: parsed.data.listingId },
         include: {
           skillBook: {
@@ -166,13 +167,18 @@ export async function POST(request: Request) {
         },
       });
 
-      return {
-        purchase,
-        buyerBalance: buyerMutation.wallet.balance,
-        sellerBalance: sellerMutation.wallet.balance,
-        copiedSkillBook,
-      };
-    });
+        return {
+          purchase,
+          buyerBalance: buyerMutation.wallet.balance,
+          sellerBalance: sellerMutation.wallet.balance,
+          copiedSkillBook,
+        };
+      },
+      {
+        maxWait: 15_000,
+        timeout: 15_000,
+      },
+    );
 
     return NextResponse.json(
       {

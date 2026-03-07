@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { LegalLinks } from "@/components/LegalLinks";
+import { NaverSignInButton } from "@/components/NaverSignInButton";
 import { authOptions } from "@/lib/auth";
 import { normalizeLocale, resolveRoleHome } from "@/lib/role-home";
 
@@ -30,46 +31,51 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
     typeof rawCallbackUrl === "string" && rawCallbackUrl.startsWith(`/${locale}/`)
       ? rawCallbackUrl
       : fallbackCallback;
+
   const isGoogleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const isNaverEnabled = Boolean(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET);
+  const hasOAuthProvider = isGoogleEnabled || isNaverEnabled;
 
   const t =
     locale === "ko"
       ? {
-          title: "연구 관리자 로그인",
+          title: "연구자 간편 로그인",
           subtitle:
-            "Google 간편 로그인을 사용합니다. 로그인 후 계정 이메일 정책에 따라 관리자 또는 플랫폼 어드민 권한이 자동 판별됩니다.",
+            "초대된 연구자 또는 운영자 계정은 Google 또는 Naver로 로그인할 수 있습니다. 로그인 후 이메일 정책에 따라 연구자 또는 플랫폼 어드민 권한이 연결됩니다.",
           flowTitle: "로그인 흐름",
-          flow: ["Google 인증", "권한 자동 판별", "관리자 콘솔 진입"],
-          button: "Google로 계속하기",
+          flow: ["간편 로그인 인증", "초대/권한 확인", "관리 콘솔 진입"],
+          googleButton: "Google로 계속하기",
+          naverButton: "네이버로 계속하기",
           setupMissing:
-            "Google OAuth 환경변수가 설정되지 않았습니다. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET를 확인하세요.",
-          toParticipant: "피검자 화면으로 이동",
+            "간편 로그인 환경변수가 아직 연결되지 않았습니다. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET 또는 NAVER_CLIENT_ID / NAVER_CLIENT_SECRET를 확인하세요.",
+          toParticipant: "피검자 로그인으로 이동",
           toHome: "홈으로 이동",
-          mobileBlockedTitle: "관리자 로그인은 PC 웹 전용입니다.",
+          mobileBlockedTitle: "연구자 로그인은 PC 웹 전용입니다.",
           mobileBlockedBody:
-            "관리자/플랫폼 어드민 기능은 모바일을 지원하지 않습니다. PC 브라우저에서 로그인해 주세요.",
+            "연구자와 플랫폼 어드민 기능은 모바일을 지원하지 않습니다. PC 브라우저에서 로그인해 주세요.",
         }
       : {
           title: "Research Admin Sign-In",
           subtitle:
-            "Use Google sign-in. After authentication, role is resolved automatically as research admin or platform admin by email policy.",
+            "Invited research-admin and platform-admin accounts can sign in with Google or Naver. After authentication, role access is resolved by email policy.",
           flowTitle: "Sign-in flow",
-          flow: ["Google auth", "Role resolution", "Enter admin console"],
-          button: "Continue with Google",
+          flow: ["OAuth sign-in", "Invite and role check", "Enter admin console"],
+          googleButton: "Continue with Google",
+          naverButton: "Continue with Naver",
           setupMissing:
-            "Google OAuth environment variables are missing. Check GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.",
+            "OAuth environment variables are not configured yet. Check GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET or NAVER_CLIENT_ID / NAVER_CLIENT_SECRET.",
           toParticipant: "Go to participant auth",
           toHome: "Back to home",
           mobileBlockedTitle: "Admin sign-in is desktop-only.",
           mobileBlockedBody:
-            "Admin and platform-admin functions are not supported on mobile. Please sign in from a desktop browser.",
+            "Research-admin and platform-admin functions are not supported on mobile. Please sign in from a desktop browser.",
         };
 
   const errorMessage =
     authError === "admin_not_invited"
       ? locale === "ko"
         ? "초대되지 않은 관리자 계정입니다."
-        : "This Google account is not invited for admin access."
+        : "This account is not invited for admin access."
       : authError === "admin_inactive"
         ? locale === "ko"
           ? "비활성화된 관리자 계정입니다."
@@ -78,15 +84,19 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
           ? locale === "ko"
             ? "해당 계정은 관리자 권한이 없습니다."
             : "This account is not an admin account."
-          : authError === "rate_limited"
+          : authError === "admin_email_required"
             ? locale === "ko"
-              ? "요청이 너무 많습니다. 잠시 후 다시 시도하세요."
-              : "Too many attempts. Please try again later."
-            : authError
+              ? "이메일 제공 동의가 필요합니다."
+              : "Email permission is required for admin sign-in."
+            : authError === "rate_limited"
               ? locale === "ko"
-                ? "로그인에 실패했습니다. 잠시 후 다시 시도하세요."
-                : "Sign-in failed. Please try again."
-              : null;
+                ? "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
+                : "Too many attempts. Please try again later."
+              : authError
+                ? locale === "ko"
+                  ? "로그인에 실패했습니다. 잠시 후 다시 시도해 주세요."
+                  : "Sign-in failed. Please try again."
+                : null;
 
   return (
     <>
@@ -104,12 +114,20 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
             ))}
           </ol>
 
-          {isGoogleEnabled ? (
-            <div style={{ marginTop: 14 }}>
-              <GoogleSignInButton
-                href={`/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-                label={t.button}
-              />
+          {hasOAuthProvider ? (
+            <div className="sa-oauth-buttons" style={{ marginTop: 14 }}>
+              {isGoogleEnabled ? (
+                <GoogleSignInButton
+                  href={`/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+                  label={t.googleButton}
+                />
+              ) : null}
+              {isNaverEnabled ? (
+                <NaverSignInButton
+                  href={`/api/auth/signin/naver?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+                  label={t.naverButton}
+                />
+              ) : null}
             </div>
           ) : (
             <p className="sa-inline-message" style={{ marginTop: 12 }}>

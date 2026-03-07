@@ -22,6 +22,7 @@
   - `DATABASE_URL`, `DIRECT_URL` for `development`, `preview`, `production`
   - `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`
   - `PLATFORM_ADMIN_EMAILS` for `development`, `production`
   - AI runtime: `OPENAI_API_KEY`, `AI_OPENAI_MODEL`, `AI_OPENAI_TEMPERATURE`, `AI_MANAGED_CREDIT_PER_REQUEST`
 
@@ -55,3 +56,14 @@
 1. Participant response UI (Likert renderer) integration.
 2. CSV export MVP for package results.
 3. AI usage metering hook that writes `SPEND` transactions.
+
+## 10) Payment Gateway Boundary (Current)
+- PortOne / PG review is still pending.
+- Current web app supports:
+  - plan request intake
+  - credit top-up request intake
+  - platform-admin approval / fulfillment
+- Deferred until gateway review completes:
+  - hosted checkout modal
+  - PortOne payment event webhook sync
+  - recurring charge execution
