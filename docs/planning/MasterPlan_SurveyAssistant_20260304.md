@@ -622,3 +622,45 @@ survey-assistant/
 - Current known gap
   - 실제 데이터 업로드/자동 변환 파이프라인은 아직 없음
   - 현재는 `의뢰 등록 -> 플랫폼 어드민 운영 큐 처리` 단계까지 구현
+
+## 38) Build Snapshot Update (2026-03-07, Subscription + Top-up Billing Operations)
+- Scope type: 유료 BM 운영층 완결
+- Completed in this update
+  - Prisma billing 모델 추가
+    - `BillingProfile`
+    - `BillingRequest`
+    - enums:
+      - `BillingPlanCode = FREE | CLOUD_BASIC | CLOUD_PRO`
+      - `BillingRequestType = SUBSCRIPTION | CREDIT_TOPUP`
+      - `BillingRequestStatus = REQUESTED | REVIEWING | APPROVED | FULFILLED | REJECTED | CANCELED`
+  - 연구자 결제 API 추가
+    - `GET /api/admin/billing`
+    - `POST /api/admin/billing/requests`
+  - 플랫폼 어드민 결제 운영 API 추가
+    - `GET /api/platform-admin/billing/profiles`
+    - `GET /api/platform-admin/billing/requests`
+    - `PATCH /api/platform-admin/billing/requests/{requestId}`
+  - 연구자 콘솔 UI 추가
+    - 플랜 카탈로그
+    - 구독 플랜 요청
+    - 크레딧 충전 요청
+    - 최근 결제 요청 조회
+  - 플랫폼 어드민 콘솔 UI 추가
+    - 구독 프로필 목록
+    - 결제 요청 큐
+    - 요청 이행 시:
+      - 구독 프로필 반영
+      - 크레딧 발행
+  - paid-BM 회귀 테스트 확장
+    - 구독 요청 생성
+    - 크레딧 충전 요청 생성
+    - 플랫폼 어드민 FULFILLED 처리
+    - 프로필/지갑 반영 검증
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm --filter web e2e:admin-paid` PASS
+  - `corepack pnpm verify:local` PASS
+- Current known gap
+  - Stripe 등 외부 실결제 게이트웨이는 아직 미연동
+  - 자동 정기결제 청구/웹훅 정산은 후속 범위

@@ -2606,3 +2606,112 @@
   - 연구자: 의뢰 등록/조회
   - 플랫폼 어드민: 운영 큐 조회/상태 변경
 - 실제 파일 업로드/매핑/자동 변환 워크플로는 후속 단계다.
+
+## 56) Work Session Entry (2026-03-07, Subscription + Credit Top-up Billing Operations)
+
+### Goal
+- 유료 BM에서 비어 있던 `구독/결제 운영층`을 구현한다.
+- 외부 결제 게이트웨이 연동 전 단계로, 앱 내부에서 실제로 운영 가능한 흐름을 잠근다.
+- 목표 범위:
+  1. 플랜 카탈로그
+  2. 연구자 결제 요청(구독 / 크레딧 충전)
+  3. 플랫폼 어드민 승인/이행
+
+### Completed
+1. Billing 스키마 추가
+- 변경:
+  - `apps/web/prisma/schema.prisma`
+- 신규 enum:
+  - `BillingPlanCode`
+  - `BillingRequestType`
+  - `BillingRequestStatus`
+- 신규 모델:
+  - `BillingProfile`
+  - `BillingRequest`
+
+2. 플랜 카탈로그 정의
+- 신규:
+  - `apps/web/src/lib/billing/plans.ts`
+- 기본 플랜:
+  - `FREE`
+  - `CLOUD_BASIC`
+  - `CLOUD_PRO`
+
+3. 연구자 결제 API 추가
+- 신규:
+  - `apps/web/src/app/api/admin/billing/route.ts`
+  - `apps/web/src/app/api/admin/billing/requests/route.ts`
+- 제공 기능:
+  - 현재 플랜/크레딧/최근 결제 요청 조회
+  - 구독 요청 생성
+  - 크레딧 충전 요청 생성
+
+4. 플랫폼 어드민 결제 운영 API 추가
+- 신규:
+  - `apps/web/src/app/api/platform-admin/billing/profiles/route.ts`
+  - `apps/web/src/app/api/platform-admin/billing/requests/route.ts`
+  - `apps/web/src/app/api/platform-admin/billing/requests/[requestId]/route.ts`
+- 제공 기능:
+  - 구독 프로필 조회
+  - 결제 요청 큐 조회
+  - 상태 변경
+  - `FULFILLED` 처리 시:
+    - 구독 요청: `BillingProfile` 갱신
+    - 크레딧 요청: 원장 발행(`ISSUE`)
+
+5. 연구자 콘솔 UI 추가
+- 신규:
+  - `apps/web/src/components/admin/AdminBillingPanel.tsx`
+- 연결:
+  - `apps/web/src/app/[locale]/admin/AdminDashboardClient.tsx`
+- 포함 기능:
+  - 플랜 카탈로그
+  - 구독 플랜 요청
+  - 크레딧 충전 요청
+  - 최근 결제 요청 확인
+
+6. 플랫폼 어드민 콘솔 UI 추가
+- 신규:
+  - `apps/web/src/components/platform/PlatformBillingOpsSection.tsx`
+- 연결:
+  - `apps/web/src/app/[locale]/platform/PlatformAdminClient.tsx`
+- 포함 기능:
+  - 유료 플랜 계정 요약
+  - 구독 프로필 목록
+  - 결제 요청 큐 처리
+
+7. DB 반영
+- `prisma migrate dev`는 기존 migration drift 때문에 사용 불가
+- 이번에도 기존 운영 원칙대로 `prisma db push`로 실제 DB를 schema에 맞춤
+
+8. paid-BM 회귀 테스트 확장
+- 변경:
+  - `apps/web/e2e/admin-paid-bm.spec.ts`
+- 새 검증:
+  - 연구자 billing overview 조회
+  - 구독 요청 생성
+  - 크레딧 충전 요청 생성
+  - 플랫폼 어드민 fulfillment 후:
+    - `BillingProfile.planCode` 반영
+    - wallet balance 증가
+
+9. 문서 동기화
+- 변경:
+  - `README.md`
+  - `apps/web/README.md`
+  - `docs/planning/MasterPlan_SurveyAssistant_20260304.md`
+
+### Verification
+- `corepack pnpm --filter web lint` PASS
+- `corepack pnpm --filter web build` PASS
+- `corepack pnpm --filter web e2e:admin-paid` PASS (`4 passed`)
+- `corepack pnpm verify:local` PASS
+
+### Notes
+- 이번 배치까지 구현된 것은 `앱 내부 유료 BM 운영층`이다.
+- 즉, 현재 가능한 것:
+  - 플랜 요청
+  - 크레딧 충전 요청
+  - 플랫폼 어드민 승인/이행
+  - 이행 결과가 실제 프로필/지갑에 반영
+- 아직 남은 것은 외부 카드 결제/정기결제 인프라다.

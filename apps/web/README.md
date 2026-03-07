@@ -97,6 +97,10 @@ This app is linked to project `survey_sicp`.
   - requires `X-Idempotency-Key`
   - charges credits immediately and auto-refunds on failure
 - Admin own credit wallet: `GET /api/admin/credits`
+- Billing overview: `GET /api/admin/billing`
+- Billing requests: `POST /api/admin/billing/requests`
+  - `SUBSCRIPTION`
+  - `CREDIT_TOPUP`
 - Migration requests: `GET/POST /api/admin/migration-jobs`
 - SkillBooks: `GET/POST /api/admin/skillbooks`
 - SkillBook update: `PATCH /api/admin/skillbooks/{skillBookId}`
@@ -121,6 +125,9 @@ This app is linked to project `survey_sicp`.
 - Admin invite list/create: `GET/POST /api/platform-admin/admin-invites`
 - Admin invite update: `PATCH /api/platform-admin/admin-invites/{inviteId}`
 - Overview: `GET /api/platform-admin/overview`
+- Billing profiles: `GET /api/platform-admin/billing/profiles`
+- Billing requests: `GET /api/platform-admin/billing/requests`
+- Billing request update: `PATCH /api/platform-admin/billing/requests/{requestId}`
 - Credit ledger list: `GET /api/platform-admin/credits`
 - Mutate admin credits (issue/spend/refund/reward/adjustment): `POST /api/platform-admin/credits`
 - Migration jobs list: `GET /api/platform-admin/migration-jobs`
@@ -139,7 +146,14 @@ This app is linked to project `survey_sicp`.
 - Paid expansion planned on top:
   - platform-provided AI credits
   - SkillBook Builder
-  - store fees / subscription / billing
+  - store fees
+- Billing operations now implemented:
+  - hosted plan request intake
+  - credit top-up request intake
+  - platform-admin fulfillment workflow
+- Still deferred:
+  - external payment gateway
+  - automatic recurring billing
 - Service-intake layer currently included:
   - special template requests
   - migration requests

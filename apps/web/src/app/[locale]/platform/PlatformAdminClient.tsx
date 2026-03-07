@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
+import { PlatformBillingOpsSection } from "@/components/platform/PlatformBillingOpsSection";
 import { PlatformSkillBookSettlementSection } from "@/components/platform/PlatformSkillBookSettlementSection";
 
 type LocaleCode = "ko" | "en";
@@ -1746,6 +1747,7 @@ export function PlatformAdminClient({
       </section>
 
       <PlatformSkillBookSettlementSection locale={locale} />
+      <PlatformBillingOpsSection locale={locale} />
 
       <section style={{ marginTop: 24 }}>
         <h2>{t.migrations}</h2>

@@ -31,12 +31,14 @@
   - 패키지 생성/상태 관리
   - 결과 export(ZIP / master CSV)
   - BYOK AI chat(OpenAI / Gemini / Anthropic)
+  - 구독 플랜 요청 / 크레딧 충전 요청
   - 데이터 마이그레이션 의뢰 등록/조회
   - SkillBook 작성/컴파일/선택
   - SPECIAL 템플릿 의뢰 및 스토어
 - Platform Admin
   - 운영 콘솔
   - 크레딧/정산/운영 현황 확인
+  - 결제 요청 큐 / 구독 프로필 운영
   - 마이그레이션 의뢰 큐 운영
   - SkillBook 정산 요약 확인
 
@@ -59,6 +61,10 @@
 - 유료 BM AI:
   - 플랫폼 제공 AI 키를 `크레딧`으로 사용하는 Managed AI chat
   - SkillBook Builder가 연구 메모를 SkillBook 초안으로 변환
+ - 유료 BM 운영층:
+  - 구독 플랜 요청
+  - 크레딧 충전 요청
+  - 플랫폼 어드민 승인/이행
   - 정책:
     - 실행 시작 시 즉시 차감
     - 실패 시 자동 환불
@@ -71,8 +77,7 @@
     - listing / purchase / settlement foundation
     - Builder 초안 생성 및 저장
   - 후속 범위:
-    - 플랫폼 크레딧 과금
-    - 실결제 / 구독
+    - 실결제 게이트웨이 연동
 
 ## Current Repository Layout
 - `apps/`: 실행 애플리케이션 (web/api)
@@ -109,6 +114,16 @@
     - admin free-core e2e
     - admin paid-BM e2e
     - oauth contract e2e
+
+## Billing Boundary
+- 현재 구현 완료:
+  - 구독 플랜 카탈로그
+  - 연구자 결제 요청(구독 / 크레딧 충전)
+  - 플랫폼 어드민 승인/이행
+  - 결제 요청 이행 시 구독 프로필 반영 / 크레딧 즉시 발행
+- 아직 미구현:
+  - Stripe 같은 외부 결제 게이트웨이
+  - 카드 자동결제 / 정기결제 청구
 - Push 전 자동검증 훅 설치: `corepack pnpm hooks:install`
 - 추가 E2E:
   - `corepack pnpm --filter web e2e:smoke`

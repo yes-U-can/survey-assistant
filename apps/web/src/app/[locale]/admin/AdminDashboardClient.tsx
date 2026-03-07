@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useMemo, useRef, useState } from "react";
 
 import { AdminAiSkillBookPanel } from "@/components/admin/AdminAiSkillBookPanel";
+import { AdminBillingPanel } from "@/components/admin/AdminBillingPanel";
 import { AdminManagedAiPanel } from "@/components/admin/AdminManagedAiPanel";
 import { AdminSkillBookStorePanel } from "@/components/admin/AdminSkillBookStorePanel";
 
@@ -632,6 +633,8 @@ export function AdminDashboardClient(props: Props) {
       </section>
 
       <section hidden={activeView !== "special_store"} style={{ display: "grid", gap: 16 }}>
+        <AdminBillingPanel locale={locale} />
+
         <div style={{ border: "1px solid #d7e0e6", borderRadius: 12, padding: 16, background: "#fff" }}>
           <h2 style={{ marginTop: 0 }}>{tr("데이터 마이그레이션 의뢰", "Data migration request")}</h2>
           <form onSubmit={onCreateMigrationJob} style={{ display: "grid", gap: 12 }}>

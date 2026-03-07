@@ -59,6 +59,26 @@ enum CreditTxnType {
   ADJUSTMENT
 }
 
+enum BillingPlanCode {
+  FREE
+  CLOUD_BASIC
+  CLOUD_PRO
+}
+
+enum BillingRequestType {
+  SUBSCRIPTION
+  CREDIT_TOPUP
+}
+
+enum BillingRequestStatus {
+  REQUESTED
+  REVIEWING
+  APPROVED
+  FULFILLED
+  REJECTED
+  CANCELED
+}
+
 enum MigrationJobStatus {
   REQUESTED
   ACCEPTED
@@ -115,6 +135,8 @@ model User {
   skillBookPurchasesAsSeller SkillBookPurchase[]    @relation("SkillBookPurchaseSeller")
   adminInvitesIssued       AdminInvite[]            @relation("AdminInviteInviter")
   acceptedAdminInvites     AdminInvite[]            @relation("AdminInviteAcceptedBy")
+  billingProfile           BillingProfile?
+  billingRequests          BillingRequest[]         @relation("BillingRequester")
 }
 
 model CreditWallet {
@@ -139,6 +161,40 @@ model CreditTransaction {
   referenceId String?
 
   wallet CreditWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model BillingProfile {
+  id                    String          @id @default(cuid())
+  userId                String          @unique
+  planCode              BillingPlanCode @default(FREE)
+  autoRenew             Boolean         @default(false)
+  currentPeriodStartsAt DateTime?
+  currentPeriodEndsAt   DateTime?
+  note                  String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([planCode, updatedAt])
+}
+
+model BillingRequest {
+  id                    String               @id @default(cuid())
+  requesterId           String
+  type                  BillingRequestType
+  status                BillingRequestStatus @default(REQUESTED)
+  requestedPlanCode     BillingPlanCode?
+  requestedCreditAmount Int?
+  requestNote           String?
+  adminNote             String?
+  requestedAt           DateTime             @default(now())
+  resolvedAt            DateTime?
+
+  requester User @relation("BillingRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+
+  @@index([requesterId, requestedAt])
+  @@index([status, requestedAt])
 }
 
 model Template {
