@@ -667,37 +667,13 @@ textarea {
   font-weight: 600;
 }
 
-.sa-google-btn {
-  border: 1px solid #dadce0;
-  border-radius: 999px;
+.sa-gis-button-shell {
+  width: min(100%, 380px);
+}
+
+.sa-gis-button-slot {
+  width: 100%;
   min-height: 44px;
-  padding: 0 18px 0 12px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  color: #1f1f1f;
-  font-weight: 700;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
-}
-
-.sa-google-btn:hover {
-  border-color: #c4c7c5;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-}
-
-.sa-google-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  flex-shrink: 0;
 }
 
 
@@ -1249,13 +1225,6 @@ body::after {
   min-height: 40px;
 }
 
-.sa-google-btn {
-  min-height: 46px;
-  padding-right: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.09);
-}
-
-
 .sa-inline-message {
   font-size: 0.86rem;
 }
@@ -1455,10 +1424,7 @@ body::after {
 }
 
 .sa-home-card:hover,
-.sa-nav-chip:hover,
-.sa-google-btn:hover,
-
-.sa-home-card:hover {
+.sa-nav-chip:hover {
   box-shadow: var(--shadow-soft);
   border-color: color-mix(in srgb, var(--brand-700) 24%, white);
 }
@@ -1478,11 +1444,6 @@ body::after {
 .sa-admin-tab {
   background: #ffffff;
 }
-
-.sa-google-btn {
-  box-shadow: none;
-}
-
 
 .sa-participant-progress-fill,
 .card-progress-fill {

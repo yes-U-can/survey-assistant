@@ -1,5 +1,6 @@
 ﻿import { AdminInviteStatus, Locale, UserRole } from "@prisma/client";
 import { compare } from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -31,6 +32,14 @@ const sessionPolicy = {
   updateAge: parseIntEnv("AUTH_SESSION_UPDATE_AGE_SEC", 60 * 60 * 24, 60, 60 * 60 * 24 * 30),
 };
 
+const hasGoogleOAuthEnv = Boolean(
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
+);
+
+const googleTokenVerifier = process.env.GOOGLE_CLIENT_ID
+  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+  : null;
+
 function parseIntEnv(name: string, fallback: number, min: number, max: number) {
   const raw = process.env[name];
   if (!raw) {
@@ -56,6 +65,12 @@ function normalizeEmail(input: string | null | undefined) {
 
 function buildAdminDenyRedirect(error: string) {
   return `/auth/admin?error=${encodeURIComponent(error)}`;
+}
+
+function extractAdminErrorCodeFromRedirectPath(path: string) {
+  const [, query = ""] = path.split("?");
+  const params = new URLSearchParams(query);
+  return params.get("error") ?? "auth_internal_error";
 }
 
 function extractRequestHeader(
@@ -370,11 +385,94 @@ const participantCredentials = CredentialsProvider({
 
 const providers: NextAuthOptions["providers"] = [participantCredentials];
 
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+if (hasGoogleOAuthEnv) {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID!;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
+
+  providers.push(
+    CredentialsProvider({
+      id: "google-id-token",
+      name: "Google ID Token",
+      credentials: {
+        credential: { label: "Google ID token", type: "text" },
+      },
+      async authorize(credentials): Promise<AuthUser | null> {
+        if (!googleTokenVerifier || !process.env.GOOGLE_CLIENT_ID) {
+          throw new Error("oauth_not_configured");
+        }
+
+        const credential = credentials?.credential?.trim();
+        if (!credential) {
+          throw new Error("google_credential_missing");
+        }
+
+        let payload:
+          | {
+              sub?: string;
+              email?: string;
+              name?: string;
+              email_verified?: boolean;
+            }
+          | undefined;
+
+        try {
+          const ticket = await googleTokenVerifier.verifyIdToken({
+            idToken: credential,
+            audience: googleClientId,
+          });
+          payload = ticket.getPayload();
+        } catch {
+          throw new Error("google_token_invalid");
+        }
+
+        const subject = payload?.sub?.trim();
+        if (!subject) {
+          throw new Error("oauth_subject_missing");
+        }
+
+        const email = normalizeEmail(payload?.email);
+        if (!email) {
+          throw new Error("admin_email_required");
+        }
+
+        if (!payload?.email_verified) {
+          throw new Error("admin_email_not_verified");
+        }
+
+        const displayName =
+          typeof payload?.name === "string" && payload.name.trim()
+            ? payload.name.trim()
+            : email;
+
+        const signInResult = await validateAdminOAuthSignIn({
+          subject,
+          email,
+          displayName,
+        });
+
+        if (signInResult !== true) {
+          throw new Error(extractAdminErrorCodeFromRedirectPath(signInResult));
+        }
+
+        const dbUser = await refreshAdminOAuthTokenClaims(subject);
+        if (!dbUser || !dbUser.isActive) {
+          throw new Error("admin_inactive");
+        }
+
+        return {
+          id: dbUser.id,
+          role: dbUser.role,
+          locale: dbUser.locale,
+          name: dbUser.displayName,
+        };
+      },
+    }),
+  );
+
   providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
     }),
   );
 }
@@ -411,7 +509,11 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, account, user }) {
-      if (account?.provider === "participant-credentials" && user) {
+      if (
+        (account?.provider === "participant-credentials" ||
+          account?.provider === "google-id-token") &&
+        user
+      ) {
         const participant = user as AuthUser;
         token.uid = participant.id;
         token.role = participant.role;

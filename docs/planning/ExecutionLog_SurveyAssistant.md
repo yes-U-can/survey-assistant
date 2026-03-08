@@ -2900,3 +2900,19 @@
 - Workspace shell now owns `auth`, `participant`, `admin`, and `platform`, using a dedicated `WorkspaceHeader` plus shared footer.
 - Home cards now point to `/{locale}/participant` and `/{locale}/admin` as app entry routes; authentication stays behind those routes instead of being the visible primary target.
 - Validation: `pnpm --filter web lint` PASS, clean build PASS after clearing stale `.next` cache.
+
+## 46) Admin Google Sign-In Standardization (2026-03-08, switch from custom button to official GIS)
+- Scope type: auth UX hardening and standards alignment
+- Completed in this update
+  - Replaced the custom `GoogleSignInButton` with an official Google Identity Services rendered button on the research-admin sign-in page
+  - Added a new Auth.js credentials provider `google-id-token` so GIS ID tokens are verified server-side before admin invite/role policy is applied
+  - Reused the existing admin invite/bootstrap policy after Google token verification, instead of introducing a second admin policy path
+  - Added `google-auth-library` to verify Google ID tokens against `GOOGLE_CLIENT_ID`
+  - Updated the admin sign-in page so the server component now delegates the login UI to a dedicated GIS client component
+  - Reworked the OAuth contract E2E to validate GIS shell rendering and provider exposure instead of the old custom link button contract
+  - Removed the now-unused custom Google button component and related legacy CSS rules
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS
+  - `corepack pnpm verify:local` PASS
