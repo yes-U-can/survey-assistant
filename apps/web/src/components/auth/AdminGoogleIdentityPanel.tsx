@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Script from "next/script";
@@ -100,7 +100,7 @@ function resolveAuthErrorMessage(locale: LocaleCode, errorCode: string | null) {
                 : errorCode === "google_credential_missing"
                   ? "Google did not return a valid credential. Please try again."
                   : errorCode === "oauth_not_configured"
-                    ? "OAuth environment variables are not configured yet."
+                    ? "Google Identity Services is not configured yet."
                     : errorCode === "oauth_subject_missing"
                       ? "Google account subject is missing."
                       : errorCode === "rate_limited"
@@ -140,7 +140,7 @@ export function AdminGoogleIdentityPanel({
             flowTitle: "로그인 흐름",
             flow: ["Google 계정 인증", "초대 및 권한 확인", "관리 콘솔 진입"],
             setupMissing:
-              "간편 로그인 환경변수가 아직 연결되지 않았습니다. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET를 확인해 주세요.",
+              "간편 로그인 환경변수가 아직 연결되지 않았습니다. GOOGLE_CLIENT_ID를 확인해 주세요.",
             loadingButton: "Google 로그인 버튼을 불러오는 중입니다...",
             toParticipant: "피검자 로그인으로 이동",
             toHome: "홈으로 이동",
@@ -153,7 +153,7 @@ export function AdminGoogleIdentityPanel({
             flowTitle: "Sign-in flow",
             flow: ["Google account sign-in", "Invite and role check", "Enter admin console"],
             setupMissing:
-              "OAuth environment variables are not configured yet. Check GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.",
+              "Google Identity Services is not configured yet. Check GOOGLE_CLIENT_ID.",
             loadingButton: "Loading the Google sign-in button...",
             toParticipant: "Go to participant auth",
             toHome: "Back to home",

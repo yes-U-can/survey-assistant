@@ -53,7 +53,7 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
           locale={locale}
           callbackUrl={callbackUrl}
           initialErrorCode={authError}
-          isGoogleEnabled={Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)}
+          isGoogleEnabled={Boolean(process.env.GOOGLE_CLIENT_ID)}
           googleClientId={process.env.GOOGLE_CLIENT_ID ?? null}
         />
       </main>
@@ -70,3 +70,4 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
     </>
   );
 }
+

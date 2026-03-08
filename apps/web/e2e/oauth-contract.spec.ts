@@ -8,7 +8,7 @@ test.describe("oauth contract", () => {
 
     await expect(page.getByRole("heading", { level: 1, name: "Research Admin Sign-In" })).toBeVisible();
 
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    if (process.env.GOOGLE_CLIENT_ID) {
       const gisRoot = page.getByTestId("google-gis-root");
       await expect(gisRoot).toBeVisible();
       await expect(gisRoot).toHaveAttribute("data-provider", "google-id-token");
@@ -23,9 +23,9 @@ test.describe("oauth contract", () => {
     const providers = (await response.json()) as Record<string, { id?: string }>;
     expect(providers["participant-credentials"]?.id).toBe("participant-credentials");
 
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    if (process.env.GOOGLE_CLIENT_ID) {
       expect(providers["google-id-token"]?.id).toBe("google-id-token");
-      expect(providers.google?.id).toBe("google");
+      expect(providers.google).toBeUndefined();
     }
   });
 

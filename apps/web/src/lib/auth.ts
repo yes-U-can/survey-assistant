@@ -3,7 +3,6 @@ import { compare } from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -32,9 +31,7 @@ const sessionPolicy = {
   updateAge: parseIntEnv("AUTH_SESSION_UPDATE_AGE_SEC", 60 * 60 * 24, 60, 60 * 60 * 24 * 30),
 };
 
-const hasGoogleOAuthEnv = Boolean(
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
-);
+const hasGoogleIdentityEnv = Boolean(process.env.GOOGLE_CLIENT_ID);
 
 const googleTokenVerifier = process.env.GOOGLE_CLIENT_ID
   ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -151,29 +148,6 @@ async function refreshAdminOAuthTokenClaims(subject: string) {
       isActive: true,
     },
   });
-}
-
-function extractAdminOAuthProfile(params: {
-  providerAccountId: string | null | undefined;
-  profile: unknown;
-}) {
-  const subject = params.providerAccountId?.trim();
-  if (!subject) {
-    return null;
-  }
-
-  const profile = params.profile as { email?: string; name?: string } | undefined;
-  const email = normalizeEmail(typeof profile?.email === "string" ? profile.email : null);
-  const displayName =
-    typeof profile?.name === "string" && profile.name.trim()
-      ? profile.name.trim()
-      : email ?? "Research Admin";
-
-  return {
-    subject,
-    email,
-    displayName,
-  };
 }
 
 async function validateAdminOAuthSignIn(params: {
@@ -385,9 +359,8 @@ const participantCredentials = CredentialsProvider({
 
 const providers: NextAuthOptions["providers"] = [participantCredentials];
 
-if (hasGoogleOAuthEnv) {
+if (hasGoogleIdentityEnv) {
   const googleClientId = process.env.GOOGLE_CLIENT_ID!;
-  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
 
   providers.push(
     CredentialsProvider({
@@ -468,13 +441,6 @@ if (hasGoogleOAuthEnv) {
       },
     }),
   );
-
-  providers.push(
-    GoogleProvider({
-      clientId: googleClientId,
-      clientSecret: googleClientSecret,
-    }),
-  );
 }
 
 export const authOptions: NextAuthOptions = {
@@ -485,29 +451,6 @@ export const authOptions: NextAuthOptions = {
   },
   providers,
   callbacks: {
-    async signIn({ account, profile }) {
-      if (account?.provider !== "google") {
-        return true;
-      }
-
-      const extracted = extractAdminOAuthProfile({
-        providerAccountId: account.providerAccountId,
-        profile,
-      });
-      if (!extracted) {
-        return buildAdminDenyRedirect("oauth_subject_missing");
-      }
-
-      try {
-        return await validateAdminOAuthSignIn({
-          subject: extracted.subject,
-          email: extracted.email,
-          displayName: extracted.displayName,
-        });
-      } catch {
-        return buildAdminDenyRedirect("auth_internal_error");
-      }
-    },
     async jwt({ token, account, user }) {
       if (
         (account?.provider === "participant-credentials" ||
@@ -519,23 +462,6 @@ export const authOptions: NextAuthOptions = {
         token.role = participant.role;
         token.locale = participant.locale;
         token.name = participant.name ?? token.name;
-      }
-
-      if (account?.provider === "google") {
-        const subject = account.providerAccountId;
-        if (subject) {
-          const dbUser = await refreshAdminOAuthTokenClaims(subject);
-          if (!dbUser || !dbUser.isActive) {
-            delete token.uid;
-            delete token.role;
-            return token;
-          }
-
-          token.uid = dbUser.id;
-          token.role = dbUser.role;
-          token.locale = dbUser.locale;
-          token.name = dbUser.displayName ?? token.name;
-        }
       }
 
       if (!account?.provider && typeof token.uid === "string") {

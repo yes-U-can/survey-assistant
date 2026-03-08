@@ -2916,3 +2916,17 @@
   - `corepack pnpm --filter web build` PASS
   - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS
   - `corepack pnpm verify:local` PASS
+
+## 47) Remove Legacy Auth.js Google Provider (2026-03-08, keep GIS-only admin sign-in path)
+- Scope type: auth simplification after GIS migration
+- Completed in this update
+  - Removed the legacy `GoogleProvider` path from `auth.ts`
+  - Removed the old `signIn` callback branch and `jwt` branch that existed only for the redirect-based Google OAuth flow
+  - Kept only the GIS-driven `google-id-token` credentials provider for research-admin sign-in
+  - Simplified the runtime requirement so GIS admin sign-in now depends on `GOOGLE_CLIENT_ID` only
+  - Updated the admin sign-in UI copy and OAuth contract test to match the GIS-only runtime path
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS
+  - `corepack pnpm verify:local` PASS
