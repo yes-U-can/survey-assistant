@@ -1,7 +1,7 @@
 ﻿import type { ReactNode } from "react";
 
 import { AppFooter } from "@/components/AppFooter";
-import { WorkspaceHeader } from "@/components/WorkspaceHeader";
+import { AppHeader } from "@/components/AppHeader";
 
 type WorkspaceLayoutProps = {
   children: ReactNode;
@@ -17,7 +17,7 @@ export default async function WorkspaceLayout({
 
   return (
     <>
-      <WorkspaceHeader locale={normalizedLocale} />
+      <AppHeader locale={normalizedLocale} />
       <div className="sa-workspace-body">{children}</div>
       <AppFooter locale={normalizedLocale} />
     </>
