@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { LogoutButton } from "@/components/LogoutButton";
 
 import { ParticipantDashboardClient } from "./ParticipantDashboardClient";
 import { authOptions } from "@/lib/auth";
@@ -90,13 +89,9 @@ export default async function ParticipantHomePage({ params }: PageProps) {
   return (
     <>
       <ParticipantDashboardClient locale={locale} initialPackages={initialPackages} />
-      <footer className="sa-footer">
-        <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-        <span className="sa-divider">|</span>
-        <LogoutButton locale={locale} className="sa-link-button" />
-      </footer>
     </>
   );
 }
+
 
 

@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { LogoutButton } from "@/components/LogoutButton";
 
 import { PlatformAdminClient } from "./PlatformAdminClient";
 import { authOptions } from "@/lib/auth";
@@ -480,15 +479,6 @@ export default async function PlatformAdminPage({ params }: PageProps) {
           initialSellerSettlements={initialSellerSettlements}
           initialAlertThresholds={initialAlertThresholds}
         />
-                <footer className="sa-footer">
-          <Link href={`/${locale}`}>{locale === "ko" ? "홈으로" : "Back to home"}</Link>
-          <span className="sa-divider">|</span>
-          <Link href={`/${locale}/admin`}>
-            {locale === "ko" ? "관리자 콘솔" : "Admin console"}
-          </Link>
-          <span className="sa-divider">|</span>
-          <LogoutButton locale={locale} className="sa-link-button" />
-        </footer>
       </div>
 
       <main className="sa-page sa-mobile-policy-block">
@@ -503,4 +493,5 @@ export default async function PlatformAdminPage({ params }: PageProps) {
     </>
   );
 }
+
 
