@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -38,25 +38,25 @@ export default async function AdminSignInPage({ params, searchParams }: PageProp
       ? {
           title: "연구자 간편 로그인",
           subtitle:
-            "초대된 연구자 또는 운영자 계정은 Google로 로그인할 수 있습니다. 로그인 후 이메일 정책에 따라 연구자 또는 플랫폼 어드민 권한이 연결됩니다.",
+            "초대된 연구자 또는 운영자 계정은 Google 계정으로 로그인할 수 있습니다. 로그인 후 이메일 정책에 따라 연구자 또는 플랫폼 어드민 권한이 연결됩니다.",
           flowTitle: "로그인 흐름",
           flow: ["Google 로그인 인증", "초대 및 권한 확인", "관리 콘솔 진입"],
-          googleButton: "Google로 계속하기",
+          googleButton: "Google 계정으로 계속하기",
           setupMissing:
-            "간편 로그인 환경변수가 아직 연결되지 않았습니다. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET를 확인하세요.",
+            "간편 로그인 환경변수가 아직 연결되지 않았습니다. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET를 확인해 주세요.",
           toParticipant: "피검자 로그인으로 이동",
           toHome: "홈으로 이동",
           mobileBlockedTitle: "연구자 로그인은 PC 전용입니다.",
           mobileBlockedBody:
-            "연구자와 플랫폼 운영 기능은 모바일을 지원하지 않습니다. PC 브라우저에서 로그인해 주세요.",
+            "연구자 및 플랫폼 운영 기능은 모바일을 지원하지 않습니다. PC 브라우저에서 로그인해 주세요.",
         }
       : {
           title: "Research Admin Sign-In",
           subtitle:
-            "Invited research-admin and platform-admin accounts can sign in with Google. After authentication, role access is resolved by email policy.",
+            "Invited research-admin and platform-admin accounts can sign in with a Google account. After authentication, role access is resolved by email policy.",
           flowTitle: "Sign-in flow",
           flow: ["Google sign-in", "Invite and role check", "Enter admin console"],
-          googleButton: "Continue with Google",
+          googleButton: "Continue with Google account",
           setupMissing:
             "OAuth environment variables are not configured yet. Check GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.",
           toParticipant: "Go to participant auth",
