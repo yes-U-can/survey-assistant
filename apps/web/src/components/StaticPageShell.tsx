@@ -3,8 +3,9 @@
 type Props = {
   locale: "ko" | "en";
   title: string;
-  subtitle: string;
+  subtitle?: string;
   meta?: string;
+  intro?: string;
   children: ReactNode;
 };
 
@@ -13,6 +14,7 @@ export function StaticPageShell({
   title,
   subtitle,
   meta,
+  intro,
   children,
 }: Props) {
   void _locale;
@@ -24,7 +26,8 @@ export function StaticPageShell({
           <header className="sa-static-page-header">
             <h1>{title}</h1>
             {meta ? <p className="sa-static-page-meta">{meta}</p> : null}
-            <p className="sa-static-page-subtitle">{subtitle}</p>
+            {subtitle ? <p className="sa-static-page-subtitle">{subtitle}</p> : null}
+            {intro ? <p className="sa-static-page-intro">{intro}</p> : null}
           </header>
           {children}
         </article>

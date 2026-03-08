@@ -11,119 +11,159 @@ type Section = {
   items: string[];
 };
 
+const SUPPORT_EMAIL = "mow.coding@gmail.com";
+
 function getCopy(locale: "ko" | "en") {
   if (locale === "ko") {
     return {
       title: "이용약관",
-      subtitle:
-        "이 약관은 설문조사 도우미를 이용하는 피검자, 연구자, 플랫폼 운영자 사이의 기본 이용 원칙과 책임 범위를 설명합니다.",
-      meta: "시행일: 2026년 3월 7일",
+      subtitle: "Survey Assistant 서비스 이용 기본 규칙",
+      meta: "시행일: 2026년 3월 8일",
+      intro:
+        "이 약관은 설문조사 도우미(Survey Assistant)를 사용하는 피검자, 연구자, 플랫폼 운영자 간의 기본 역할과 책임을 설명합니다. 법률 자문 문서라기보다 현재 서비스 운영 상태와 제품 정책을 반영한 서비스 약관의 초안 성격을 가집니다.",
       sections: [
         {
-          heading: "1. 역할과 계정",
+          heading: "1. 역할과 접근 방식",
           items: [
-            "서비스는 피검자, 연구자, 플랫폼 어드민 역할을 구분합니다.",
-            "피검자는 익명형 계정으로 설문에 참여할 수 있습니다.",
-            "연구자와 플랫폼 어드민은 승인된 OAuth 로그인과 권한 검증을 거쳐야 합니다.",
+            "서비스는 피검자, 연구자, 플랫폼 운영자 역할을 구분합니다.",
+            "피검자는 익명형 계정과 참여코드 기반으로 설문에 참여합니다.",
+            "연구자와 플랫폼 운영자는 Google 로그인 및 권한 확인을 거쳐 접근합니다.",
           ],
         },
         {
           heading: "2. 무료 코어 기능",
           items: [
-            "일반 리커트 템플릿 생성, 패키지 운영, 설문 응답, 결과 다운로드, BYOK AI 대화는 서비스의 핵심 기능입니다.",
-            "결과 다운로드는 기본적으로 ZIP 형태이며, 필요 시 master CSV 형식으로도 받을 수 있습니다.",
+            "일반 리커트 템플릿 작성, 패키지 운영, 피검자 응답 수집, ZIP/CSV 내보내기, BYOK AI 대화는 무료 코어 범위에 포함됩니다.",
+            "무료 코어는 연구자가 기본 설문을 운영하고 결과를 정리하는 데 필요한 최소 기능을 공개 미들웨어로 제공하는 것을 목표로 합니다.",
           ],
         },
         {
-          heading: "3. 유료 기능과 운영 기능",
+          heading: "3. 유료 운영 기능",
           items: [
-            "특수 템플릿 의뢰, SkillBook 스토어, Managed AI, 구독 플랜, 크레딧 충전 요청은 유료 운영 영역에 속합니다.",
-            "현재 결제 요청과 운영 승인 흐름은 구현되어 있으나, 외부 결제 모달과 자동 정기결제는 준비 중입니다.",
+            "특수 템플릿 의뢰, SkillBook 스토어, Managed AI, 크레딧, 구독형 운영 기능은 유료 운영 레이어에 속합니다.",
+            "현재 앱 내부에는 요청 등록과 운영 승인 흐름이 포함되어 있으며, 실제 외부 결제창과 자동 정기결제는 결제 게이트웨이 연동 이후 활성화됩니다.",
           ],
         },
         {
-          heading: "4. 오픈소스와 공개 경계",
+          heading: "4. AI 기능과 책임",
           items: [
-            "미들웨어 코드와 문서는 공개될 수 있습니다.",
-            "특수 템플릿 구현 코드는 의뢰 동의 정책과 MIT 공개 가능성에 따라 공개될 수 있습니다.",
-            "민감한 레거시 데이터와 원본 응답 데이터는 공개 대상이 아닙니다.",
+            "BYOK AI는 연구자가 자신의 API 키를 사용해 외부 LLM 제공사를 호출하는 기능입니다.",
+            "Managed AI는 플랫폼이 제공하는 계산 자원을 사용하는 기능으로, 향후 크레딧 정책과 함께 운영됩니다.",
+            "AI 출력은 연구 보조 자료이며, 최종 해석과 판단 책임은 연구자에게 있습니다.",
           ],
         },
         {
-          heading: "5. 금지되는 사용",
+          heading: "5. 오픈소스 공개 범위",
+          items: [
+            "서비스 코어 코드, 문서, 비식별 예시, 공개가 허용된 구현물은 공개 저장소에 포함될 수 있습니다.",
+            "레거시 DB 백업, 회원 정보, 접속 기록, 원본 응답 데이터 등 민감 정보는 공개 범위에 포함되지 않습니다.",
+            "특수 템플릿 구현물은 의뢰 동의와 공개 정책에 따라 공개될 수 있으며, 공개 여부와 보상 지급은 별도로 처리됩니다.",
+          ],
+        },
+        {
+          heading: "6. 금지 행위",
           items: [
             "권한 우회, 무단 접근, 원장 변조 시도, 민감 데이터 유출 시도는 금지됩니다.",
-            "AI 출력은 연구 보조용 참고자료이며, 최종 연구 판단이나 임상 판단을 대신하지 않습니다.",
+            "타인의 개인정보나 원본 응답 데이터를 정당한 근거 없이 업로드하거나 공유하는 행위는 금지됩니다.",
+            "서비스를 방해하거나 운영 인프라에 과도한 부하를 주는 자동화 남용도 금지됩니다.",
           ],
         },
         {
-          heading: "6. 문의와 변경",
+          heading: "7. 서비스 변경과 중단",
           items: [
-            "서비스 정책은 운영 필요에 따라 변경될 수 있으며, 중요한 변경은 서비스 화면이나 문서를 통해 고지합니다.",
-            "문의는 문의하기 페이지 또는 `sicpseoul@gmail.com`으로 접수할 수 있습니다.",
+            "서비스는 개발 단계에 있으므로 기능, 정책, UI, 외부 연동 범위가 변경될 수 있습니다.",
+            "중요한 변경은 서비스 화면, 문서, 또는 운영 공지를 통해 안내합니다.",
+          ],
+        },
+        {
+          heading: "8. 문의",
+          items: [
+            "약관, 권한, 운영 정책, 협업, 의뢰 관련 문의는 문의하기 페이지 또는 아래 이메일로 접수할 수 있습니다.",
+            `문의 이메일: ${SUPPORT_EMAIL}`,
           ],
         },
       ] satisfies Section[],
+      noteTitle: "현재 상태에 대한 고지",
+      note:
+        "이 약관은 현재 구현된 제품과 운영 계획을 기준으로 작성되었습니다. 결제 게이트웨이, 자동 정기결제, 일부 상업 기능은 아직 외부 심사와 연동 준비가 끝나지 않았으므로 활성화 시점에 맞춰 약관도 함께 보완됩니다.",
     };
   }
 
   return {
     title: "Terms of Service",
-    subtitle:
-      "These terms explain the basic rules and responsibilities for participants, researchers, and platform operators using Survey Assistant.",
-    meta: "Effective date: 2026-03-07",
+    subtitle: "Core usage rules for Survey Assistant",
+    meta: "Effective date: March 8, 2026",
+    intro:
+      "These terms describe the current operating rules for participants, researchers, and platform operators using Survey Assistant. They reflect the current implementation and product policy rather than a fully expanded commercial legal package.",
     sections: [
       {
-        heading: "1. Roles and accounts",
+        heading: "1. Roles and access",
         items: [
-          "The service separates participant, research-admin, and platform-admin roles.",
-          "Participants can join surveys with anonymous-style accounts.",
-          "Research-admin and platform-admin access requires approved OAuth sign-in and role verification.",
+          "The service separates participant, researcher, and platform-operator roles.",
+          "Participants join surveys with anonymous-style accounts and access codes.",
+          "Researchers and platform operators sign in through Google and must pass role checks.",
         ],
       },
       {
         heading: "2. Free core features",
         items: [
-          "Standard Likert template creation, package operations, survey response flow, result export, and BYOK AI chat form the core feature set.",
-          "Results are exported as ZIP bundles by default, with a master CSV option for compatibility.",
+          "Standard Likert template creation, package operations, participant response collection, ZIP/CSV exports, and BYOK AI chat belong to the free open-source core.",
+          "The purpose of this free core is to keep baseline survey operations reusable as public middleware.",
         ],
       },
       {
-        heading: "3. Paid and operational features",
+        heading: "3. Paid operational features",
         items: [
-          "Special-template requests, the SkillBook store, managed AI, subscription plans, and credit top-up requests belong to the paid operations layer.",
-          "Request and approval flows are already implemented, while hosted checkout and recurring billing are still pending external gateway onboarding.",
+          "Special-template requests, the SkillBook store, Managed AI, credits, and subscription operations belong to the paid service layer.",
+          "The app already contains request and approval flows, but hosted checkout and recurring billing remain pending external gateway onboarding.",
         ],
       },
       {
-        heading: "4. Open-source boundary",
+        heading: "4. AI features and responsibility",
         items: [
-          "Middleware code and documentation may be published publicly.",
-          "Special-template implementation code may also be published depending on request consent and MIT publication policy.",
-          "Sensitive legacy data and raw survey responses are never part of the public boundary.",
+          "BYOK AI uses the researcher's own API key to call external LLM providers.",
+          "Managed AI uses platform-provided compute resources and will follow platform credit policy.",
+          "AI output is assistive research material and does not replace final professional judgment.",
         ],
       },
       {
-        heading: "5. Prohibited use",
+        heading: "5. Open-source publication boundary",
+        items: [
+          "Core code, documents, sanitized examples, and publishable implementation artifacts may appear in public repositories.",
+          "Legacy database backups, member data, access logs, and raw survey responses are outside that public boundary.",
+          "Special-template implementation code may be published depending on request consent and publication policy, while compensation remains a separate matter.",
+        ],
+      },
+      {
+        heading: "6. Prohibited use",
         items: [
           "Privilege bypass, unauthorized access, ledger tampering attempts, and sensitive-data leakage attempts are prohibited.",
-          "AI output is an assistive research tool and does not replace final research or clinical judgment.",
+          "Uploading or sharing personal data or raw response data without proper basis is prohibited.",
+          "Abusive automation or activity that harms service stability is also prohibited.",
         ],
       },
       {
-        heading: "6. Contact and changes",
+        heading: "7. Service changes and interruptions",
         items: [
-          "Policies may change as the service evolves, and major updates will be announced in the service UI or documents.",
-          "Questions can be sent through the contact page or to `sicpseoul@gmail.com`.",
+          "Because the product is still evolving, features, policies, UI, and external integrations may change.",
+          "Material changes will be announced through the service UI, documentation, or operational notices.",
+        ],
+      },
+      {
+        heading: "8. Contact",
+        items: [
+          "Questions about terms, access policy, operations, collaboration, or custom work can be sent through the contact page or the email below.",
+          `Support email: ${SUPPORT_EMAIL}`,
         ],
       },
     ] satisfies Section[],
+    noteTitle: "Current-state notice",
+    note:
+      "These terms reflect the current implementation and rollout stage. Billing gateway integration, recurring subscription charging, and some business features will be expanded later, and the terms will be revised together when those capabilities go live.",
   };
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = rawLocale === "en" ? "en" : "ko";
 
@@ -131,8 +171,8 @@ export async function generateMetadata({
     title: locale === "ko" ? "이용약관" : "Terms of Service",
     description:
       locale === "ko"
-        ? "설문조사 도우미 이용약관입니다."
-        : "Terms of service for Survey Assistant.",
+        ? "설문조사 도우미의 현재 운영 규칙과 역할별 기본 책임을 설명합니다."
+        : "Core operating rules and role responsibilities for Survey Assistant.",
   };
 }
 
@@ -147,6 +187,7 @@ export default async function TermsPage({ params }: PageProps) {
       title={copy.title}
       subtitle={copy.subtitle}
       meta={copy.meta}
+      intro={copy.intro}
     >
       <div className="sa-static-page-sections">
         {copy.sections.map((section) => (
@@ -160,6 +201,10 @@ export default async function TermsPage({ params }: PageProps) {
           </section>
         ))}
       </div>
+      <aside className="sa-static-page-note">
+        <strong>{copy.noteTitle}</strong>
+        <p>{copy.note}</p>
+      </aside>
     </StaticPageShell>
   );
 }

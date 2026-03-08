@@ -2880,3 +2880,15 @@
   - corepack pnpm --filter web build PASS
   - corepack pnpm verify:local PASS
   - runtime/search check: active app code no longer contains Naver OAuth references
+
+## 45) Static Info Pages Refresh (2026-03-08, deepen about/contact/terms/privacy content)
+- Scope type: public static page quality upgrade
+- Completed in this update
+  - Reworked `about`, `contact`, `terms`, and `privacy` pages to better match the richer information architecture used in the reference project
+  - Expanded the content so each page now explains the actual Survey Assistant product boundary instead of showing only short placeholder copy
+  - Changed contact email from `sicpseoul@gmail.com` to `mow.coding@gmail.com`
+  - Added richer page intro blocks, stronger section spacing, FAQ-style contact items, and quick mail-draft links
+  - Updated the shared static-page shell and related CSS so the static pages read more like product documentation pages than placeholder cards
+- Verification
+  - `corepack pnpm --filter web lint` PASS
+  - `corepack pnpm --filter web build` PASS
