@@ -2892,3 +2892,11 @@
 - Verification
   - `corepack pnpm --filter web lint` PASS
   - `corepack pnpm --filter web build` PASS
+
+## 2026-03-08 - Public Hub vs Workspace Shell Split
+- User feedback: the landing screen should be a hub, not the parent page of participant/admin flows.
+- Implementation: split `[locale]` routes into `(public)` and `(workspace)` route groups without changing public URLs.
+- Public shell now owns the landing/info pages and uses `AppHeader + AppFooter`.
+- Workspace shell now owns `auth`, `participant`, `admin`, and `platform`, using a dedicated `WorkspaceHeader` plus shared footer.
+- Home cards now point to `/{locale}/participant` and `/{locale}/admin` as app entry routes; authentication stays behind those routes instead of being the visible primary target.
+- Validation: `pnpm --filter web lint` PASS, clean build PASS after clearing stale `.next` cache.

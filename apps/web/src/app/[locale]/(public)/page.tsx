@@ -25,14 +25,14 @@ export default async function LocaleHome({
     locale === "ko"
       ? {
           participant: {
-            href: `/${locale}/auth/participant`,
+            href: `/${locale}/participant`,
             title: "피검자 접속",
             description: "참여코드를 입력해 설문에 참여합니다.",
             devices: ["모바일", "PC"],
             kind: "participant" as const,
           },
           admin: {
-            href: `/${locale}/auth/admin`,
+            href: `/${locale}/admin`,
             title: "연구자 접속",
             description: "Google 로그인 후 설문과 결과를 관리합니다.",
             devices: ["PC"],
@@ -42,14 +42,14 @@ export default async function LocaleHome({
         }
       : {
           participant: {
-            href: `/${locale}/auth/participant`,
+            href: `/${locale}/participant`,
             title: "Participant Access",
             description: "Enter a code to join a survey.",
             devices: ["Mobile", "PC"],
             kind: "participant" as const,
           },
           admin: {
-            href: `/${locale}/auth/admin`,
+            href: `/${locale}/admin`,
             title: "Researcher Access",
             description: "Manage surveys after Google sign-in.",
             devices: ["PC"],

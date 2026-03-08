@@ -2,9 +2,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { AppFooter } from "@/components/AppFooter";
-import { AppHeader } from "@/components/AppHeader";
-
 type LocaleLayoutProps = {
   children: ReactNode;
   params: Promise<{ locale: string }>;
@@ -75,11 +72,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={normalizedLocale}>
-      <body>
-        <AppHeader locale={normalizedLocale} />
-        <div className="sa-app-body">{children}</div>
-        <AppFooter locale={normalizedLocale} />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
