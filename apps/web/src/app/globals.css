@@ -1692,7 +1692,7 @@ body::after {
 }
 
 .sa-home-portal {
-  max-width: 860px;
+  max-width: 1180px;
   padding-top: 24px;
 }
 
@@ -1702,17 +1702,17 @@ body::after {
 
 .sa-home-portal-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  max-width: 620px;
-  margin: 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 100%;
+  margin: 0;
 }
 
 .sa-home-portal-card {
   display: grid;
   gap: 16px;
   min-height: 0;
-  padding: 22px 24px;
+  padding: 24px 26px;
   border: 1px solid color-mix(in srgb, var(--brand-200) 68%, white);
   border-radius: 16px;
   background: #ffffff;
@@ -1733,8 +1733,8 @@ body::after {
 
 .sa-home-portal-card-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(160px, 200px);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(170px, 220px);
+  gap: 20px;
   align-items: center;
 }
 
@@ -1811,6 +1811,14 @@ body::after {
 @media (max-width: 1023px) {
   .sa-home-portal {
     padding-top: 18px;
+    max-width: 860px;
+  }
+
+  .sa-home-portal-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 620px;
+    margin: 0 auto;
   }
 
   .sa-home-portal-card {
