@@ -2942,3 +2942,4 @@
 - Verification
   - `corepack pnpm --filter web build` PASS
   - `corepack pnpm --filter web lint` PASS
+- Follow-up adjustment: kept the enlarged typography but reduced home-card vertical padding, illustration height, card gap, and footer spacing to avoid unnecessary scrolling on the public hub.

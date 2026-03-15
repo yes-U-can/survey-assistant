@@ -1630,7 +1630,7 @@ body::after {
 
 .sa-home-portal {
   max-width: 1120px;
-  padding-top: 36px;
+  padding-top: 24px;
 }
 
 .sa-home-portal-grid-shell {
@@ -1640,16 +1640,16 @@ body::after {
 .sa-home-portal-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 22px;
+  gap: 16px;
   max-width: 1040px;
   margin: 0 auto;
 }
 
 .sa-home-portal-card {
   display: grid;
-  gap: 20px;
+  gap: 16px;
   min-height: 0;
-  padding: 32px 34px;
+  padding: 24px 28px;
   border: 1px solid color-mix(in srgb, var(--brand-200) 68%, white);
   border-radius: 20px;
   background: #ffffff;
@@ -1671,13 +1671,13 @@ body::after {
 .sa-home-portal-card-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(240px, 320px);
-  gap: 28px;
+  gap: 20px;
   align-items: center;
 }
 
 .sa-home-portal-main {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .sa-home-portal-heading {
@@ -1689,7 +1689,7 @@ body::after {
 
 .sa-home-portal-visual {
   justify-self: end;
-  width: min(280px, 100%);
+  width: min(230px, 100%);
 }
 
 .sa-home-illustration {
@@ -1708,7 +1708,7 @@ body::after {
 .sa-home-portal-card p {
   margin: 0;
   color: var(--muted-foreground);
-  line-height: 1.72;
+  line-height: 1.64;
   font-size: 1.14rem;
   white-space: normal;
 }
@@ -1720,33 +1720,33 @@ body::after {
 }
 
 .sa-home-portal-heading .sa-home-device-badge {
-  min-height: 38px;
-  padding: 6px 14px;
-  font-size: 0.9rem;
+  min-height: 34px;
+  padding: 5px 12px;
+  font-size: 0.84rem;
 }
 
 .sa-home-device-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 6px 14px;
+  min-height: 34px;
+  padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--brand-200) 74%, white);
   background: var(--surface-muted);
   color: var(--brand-700);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
 .sa-home-portal-footer {
   justify-content: center;
-  padding-top: 18px;
+  padding-top: 12px;
 }
 
 @media (max-width: 1023px) {
-  .sa-home-portal {
+.sa-home-portal {
     padding-top: 24px;
     max-width: 860px;
   }
@@ -1760,17 +1760,17 @@ body::after {
 
   .sa-home-portal-card {
     min-height: 0;
-    padding: 24px 22px;
+    padding: 20px 20px;
   }
 
   .sa-home-portal-card-layout {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
 
   .sa-home-portal-visual {
     justify-self: center;
-    width: min(260px, 100%);
+    width: min(220px, 100%);
     order: -1;
   }
 }
@@ -1778,13 +1778,13 @@ body::after {
 .sa-site-footer {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 32px 24px 40px;
+  padding: 22px 24px 28px;
 }
 
 .sa-site-footer-inner {
   display: grid;
-  gap: 16px;
-  padding-top: 24px;
+  gap: 12px;
+  padding-top: 16px;
   border-top: 1px solid color-mix(in srgb, var(--brand-200) 76%, white);
 }
 
