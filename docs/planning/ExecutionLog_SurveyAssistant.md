@@ -2930,3 +2930,15 @@
   - `corepack pnpm --filter web build` PASS
   - `corepack pnpm --filter web e2e -- e2e/oauth-contract.spec.ts` PASS
   - `corepack pnpm verify:local` PASS
+
+## 48) Senior-Friendly Home Scale Pass (2026-03-15, enlarge hub header/cards/footer)
+- Scope type: public home accessibility and readability pass
+- Completed in this update
+  - Increased the shared header brand size and locale-switcher size so the top area reads more clearly for senior users
+  - Changed the public hub cards to a single-column desktop layout while keeping the card internal text/image balance intact
+  - Increased the home card title, description, badge, padding, and illustration footprint without changing the overall visual hierarchy
+  - Removed forced single-line wrapping from the home card descriptions so larger text can wrap naturally instead of shrinking readability
+  - Increased the shared footer text scale and spacing so copyright, legal links, and version text are easier to read on the home screen
+- Verification
+  - `corepack pnpm --filter web build` PASS
+  - `corepack pnpm --filter web lint` PASS
